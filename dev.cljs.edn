@@ -1,0 +1,7 @@
+{:main "replicant.dev"
+ :optimizations :none
+ :pretty-print true
+ :source-map true
+ :asset-path "/js/replicant/dev"
+ :output-to "dev-resources/public/js/replicant/app.js"
+ :output-dir "dev-resources/public/js/replicant/dev"}

@@ -1,0 +1,4 @@
+{:watch-dirs ["src" "dev" "test"]
+ :ring-server-options {:port 5885}
+ :open-url false}
+
