@@ -33,7 +33,7 @@
        (seq classes) (assoc :classes classes))]))
 
 (defn get-tag-name [hiccup]
-  (when (keyword? (first hiccup))
+  (when (and (coll? hiccup) (keyword? (first hiccup)))
     (re-find #"^[a-z0-9]+" (str/lower-case (name (first hiccup))))))
 
 (defn explode-styles [s]

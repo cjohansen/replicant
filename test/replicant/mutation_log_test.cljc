@@ -117,6 +117,16 @@
                summarize)
            [[:remove-attribute "title"]])))
 
+  (testing "Does not trip on numbers as children"
+    (is (= (-> (render [:h1 "Hello"])
+               (render [:h1 2 "Hello"])
+               get-events
+               summarize)
+           [[:create-text-node "Hello"]
+            [:append-child "Hello" :to "h1"]
+            [:create-text-node "2"]
+            [:replace-child "2" "Hello"]])))
+
   (testing "Sets style"
     (is (= (->> (render [:h1 {:style {:color "red"}} "Hello world"])
                 get-events
