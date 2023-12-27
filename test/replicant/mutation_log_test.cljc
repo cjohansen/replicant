@@ -41,7 +41,7 @@
   (->> events
        (map (juxt :replicant/life-cycle
                   :replicant/details
-                  (comp hiccup-tag :element :replicant/node)))
+                  (comp hiccup-tag deref :replicant/node)))
        (map #(vec (remove blank? %)))))
 
 (defn summarize [events]
@@ -526,10 +526,10 @@
 (deftest lifecycle-test
   (testing "Triggers on-update on first mount"
     (is (= (-> (let [res (atom nil)]
-               (binding [replicant/*dispatch* (fn [e data] (reset! res {:e e :data data}))]
-                 (render [:h1 {:replicant/on-update ["Update data"]} "Hi!"])
-                 @res))
-               (update-in [:e :replicant/node] :element))
+                 (binding [replicant/*dispatch* (fn [e data] (reset! res {:e e :data data}))]
+                   (render [:h1 {:replicant/on-update ["Update data"]} "Hi!"])
+                   @res))
+               (update-in [:e :replicant/node] deref))
            {:e
             {:replicant/event :replicant.event/life-cycle
              :replicant/life-cycle :replicant/mount
@@ -541,7 +541,7 @@
     (is (= (-> (let [res (atom nil)]
                  (render [:h1 {:replicant/on-update #(reset! res %)} "Hi!"])
                  @res)
-               (update :replicant/node get-element))
+               (update :replicant/node deref))
            {:replicant/event :replicant.event/life-cycle
             :replicant/life-cycle :replicant/mount
             :replicant/node {:tag-name "h1"
@@ -610,9 +610,7 @@
   (testing "Triggers on-update on mounting child and parent"
     (is (= (let [res (atom [])
                  f (fn [e] (swap! res conj e))]
-             (-> #_(render [:div [:h1 "Hi!"]])
-                 {:el {:element {:children [{:tag-name "div", :children [{:tag-name "h1", :children [{:text "Hi!"}]}]}]}}
-                  :current [:div [:h1 "Hi!"]]}
+             (-> (render [:div [:h1 "Hi!"]])
                  (render [:div {:replicant/on-update f}
                           [:h1 "Hi!"]
                           [:p {:replicant/on-update f} "New paragraph!"]]))

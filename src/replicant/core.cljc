@@ -41,67 +41,54 @@
 
 (defn register-hook
   "Register the life-cycle hook from the corresponding virtual DOM node to call in
-  `hooks`, if any. The only time the hook in `old` is used is when `new` is
+  `impl`, if any. The only time the hook in `old` is used is when `new` is
   `nil`, which means the node is unmounting. `details` is a vector of keywords
   that provide some detail about why the hook is invoked."
-  [hooks node new & [old details]]
-  (let [hook (:replicant/on-update (if new (second new) (second old)))]
-    (cond-> hooks
-      hook (conj [hook node new old details]))))
+  [{:keys [hooks]} node new & [old details]]
+  (when-let [hook (:replicant/on-update (if new (second new) (second old)))]
+    (swap! hooks conj [hook node new old details])))
 
-(defn update-styles [el new-styles old-styles]
-  (loop [el el
-         ks (seq (into (set (keys new-styles)) (keys old-styles)))]
-    (if (nil? ks)
-      el
-      (let [k (first ks)
-            new-style (k new-styles)]
-        (recur
-         (cond
-           (nil? new-style)
-           (r/remove-style el k)
+(defn update-styles [impl el new-styles old-styles]
+  (doseq [k (seq (into (set (keys new-styles)) (keys old-styles)))]
+    (let [new-style (k new-styles)]
+      (cond
+        (nil? new-style)
+        (r/remove-style (:renderer impl) el k)
 
-           (not= new-style (k old-styles))
-           (r/set-style el k new-style)
+        (not= new-style (k old-styles))
+        (r/set-style (:renderer impl) el k new-style)))))
 
-           :else el)
-         (next ks))))))
+(defn update-classes [impl el new-classes old-classes]
+  (doseq [class (remove (set new-classes) old-classes)]
+    (r/remove-class (:renderer impl) el class))
+  (doseq [class (remove (set old-classes) new-classes)]
+    (r/add-class (:renderer impl) el class)))
 
-(defn update-classes [el new-classes old-classes]
-  (let [el (->> (remove (set new-classes) old-classes)
-                (reduce #(r/remove-class %1 %2) el))]
-    (->> (remove (set old-classes) new-classes)
-         (reduce #(r/add-class %1 %2) el))))
+(defn add-event-listeners [impl el val]
+  (doseq [[event handler] val]
+    (when-let [handler (get-event-handler handler event)]
+      (r/set-event-handler (:renderer impl) el event handler))))
 
-(defn add-event-listeners [el val]
-  (reduce (fn [el [event handler]]
-            (let [handler (get-event-handler handler event)]
-              (cond-> el
-                handler (r/set-event-handler event handler))))
-          el val))
-
-(defn update-event-listeners [el new-handlers old-handlers]
-  (let [old-keys (keys old-handlers)
-        el (->> (remove (set (keys new-handlers)) old-keys)
-                (reduce #(r/remove-event-handler %1 %2) el))]
-    (->> (remove #(= (val %) (get old-handlers (key %))) new-handlers)
-         (add-event-listeners el))))
+(defn update-event-listeners [impl el new-handlers old-handlers]
+  (doseq [event (remove (set (keys new-handlers)) (keys old-handlers))]
+    (r/remove-event-handler (:renderer impl) el event))
+  (->> (remove #(= (val %) (get old-handlers (key %))) new-handlers)
+       (add-event-listeners impl el)))
 
 (def xlinkns "http://www.w3.org/1999/xlink")
 (def xmlns "http://www.w3.org/XML/1998/namespace")
 
-(defn update-attr [el attr new old]
+(defn update-attr [impl el attr new old]
   (case attr
-    :style (update-styles el (:style new) (:style old))
-    :classes (update-classes el (:classes new) (:classes old))
-    :on (update-event-listeners el (:on new) (:on old))
+    :style (update-styles impl el (:style new) (:style old))
+    :classes (update-classes impl el (:classes new) (:classes old))
+    :on (update-event-listeners impl el (:on new) (:on old))
     (if-let [v (attr new)]
-      (if (= v (attr old))
-        el
+      (when (not= v (attr old))
         (let [an (name attr)]
           (->> (cond-> {}
-                 (#{["x" "m" "l" ":"] ;; ClojureScript
-                    [\x \m \l \:]} ;; Clojure
+                 (#{["x" "m" "l"] ;; ClojureScript
+                    [\x \m \l]} ;; Clojure
                   (take 3 an))
                  (assoc :ns xmlns)
 
@@ -109,16 +96,13 @@
                     [\x \l \i \n \k \:]}
                   (take 6 an))
                  (assoc :ns xlinkns))
-               (r/set-attribute el an v))))
-      (r/remove-attribute el (name attr)))))
+               (r/set-attribute (:renderer impl) el an v))))
+      (r/remove-attribute (:renderer impl) el (name attr)))))
 
-(defn update-attributes [el new-attrs old-attrs]
-  {:el (reduce
-        (fn [el attr]
-          (update-attr el attr new-attrs old-attrs))
-        el
-        (into (set (keys new-attrs)) (keys old-attrs)))
-   :changed? (not= new-attrs old-attrs)})
+(defn update-attributes [impl el new-attrs old-attrs]
+  (doseq [attr (into (set (keys new-attrs)) (keys old-attrs))]
+    (update-attr impl el attr new-attrs old-attrs))
+  {:changed? (not= new-attrs old-attrs)})
 
 (defn- strip-nil-vals [m]
   (into {} (remove (comp nil? val) m)))
@@ -181,33 +165,25 @@
       (and el-ns (:children inflated))
       (update :children (fn [xs] (map #(namespace-hiccup % el-ns) xs))))))
 
-(defn append-children [el children]
-  (reduce #(r/append-child %1 %2) el children))
+(defn append-children [impl el children]
+  (doseq [child children]
+    (r/append-child (:renderer impl) el child))
+  el)
 
 (defn create-node
   "Create DOM node according to virtual DOM in `hiccup`. Register relevant
-  life-cycle hooks from the new node or its descendants in `hooks`. Returns a
-  map of `{:node :hooks}` - the newly created node and an updated list of
-  hooks."
-  [el hooks hiccup]
+  life-cycle hooks from the new node or its descendants in `impl`. Returns
+  the newly created node."
+  [impl hiccup]
   (if (hiccup/hiccup? hiccup)
     (let [{:keys [tag-name attrs children ns]} (inflate-hiccup hiccup)
-          {:keys [children hooks]}
-          (->> children
-               (reduce
-                (fn [{:keys [hooks children]} vdom]
-                  (let [{:keys [node hooks]} (create-node el hooks vdom)]
-                    {:children (conj children node)
-                     :hooks hooks}))
-                {:hooks hooks :children []}))
-          node (-> (r/create-element el tag-name {:ns ns})
-                   (update-attributes attrs nil)
-                   :el
-                   (append-children children))]
-      {:node node
-       :hooks (register-hook hooks node hiccup)})
-    {:node (r/create-text-node el (str hiccup))
-     :hooks hooks}))
+          children (mapv #(create-node impl %) children)
+          node (r/create-element (:renderer impl) tag-name {:ns ns})]
+      (update-attributes impl node attrs nil)
+      (append-children impl node children)
+      (register-hook impl node hiccup)
+      node)
+    (r/create-text-node (:renderer impl) (str hiccup))))
 
 (defn safe-nth [xs n]
   (when (< n (count xs))
@@ -275,24 +251,22 @@
   "Reorders child nodes in `el` according to `shifts`. Only moves nodes that have
   moved. Tries to conserve the number of move operations to the minimum required
   ones (assuming mutable implementations of insert-before and append-child)."
-  [el hooks shifts new old]
-  (loop [el el
-         hooks hooks
-         ;; Pick up the child nodes before we start to move them, otherwise the
+  [impl el shifts new old]
+  (loop [;; Pick up the child nodes before we start to move them, otherwise the
          ;; indexes in `shifts` will lead us to the wrong nodes. Such DOM, much
          ;; mutation, wow. Also: `mapv` because we can't afford this to be
          ;; lazy (it needs to happen now), and `seq` because we want `shifts` to
          ;; be `nil` if it's empty (to terminate the loop)
-         shifts (seq (mapv #(conj % (r/get-child el (second %))) shifts))
+         shifts (seq (mapv #(conj % (r/get-child (:renderer impl) el (second %))) shifts))
          ref-node nil
          ref-i 0
          changed? false]
     (cond
       (nil? shifts)
-      {:el el :hooks hooks :changed? changed?}
+      {:changed? changed?}
 
       (same-pos? (first shifts))
-      (recur el hooks (next shifts) ref-node (dec ref-i) changed?)
+      (recur (next shifts) ref-node (dec ref-i) changed?)
 
       :else
       (let [[ni oi node] (first shifts)
@@ -303,25 +277,18 @@
           ;; Node is swapping places with its next sibling. A single DOM
           ;; operation will suffice, but both nodes will receive a hook, since
           ;; they both end up at new positions (could affect CSS, etc).
-          (let [el-a (r/get-child el ni)
-                el-b (r/get-child el oi)]
-            (recur
-             (r/insert-before el el-b el-a)
-             (-> hooks
-                 (register-hook el-a (get-in new [:children ni]) (get-in old [:children oi]) [:replicant/swap-node])
-                 (register-hook el-b (get-in new [:children oi]) (get-in old [:children ni]) [:replicant/swap-node]))
-             (next shifts)
-             ref-node
-             (- ref-i 2)
-             true))
-          (recur (if ref-node
-                   (r/insert-before el node ref-node)
-                   (r/append-child el node))
-                 (register-hook hooks node (get-in new [:children ni]) (get-in old [:children oi]) [:replicant/move-node])
-                 shifts
-                 ref-node
-                 (dec ref-i)
-                 true))))))
+          (let [el-a (r/get-child (:renderer impl) el ni)
+                el-b (r/get-child (:renderer impl) el oi)]
+            (r/insert-before (:renderer impl) el el-b el-a)
+            (register-hook impl el-a (get-in new [:children ni]) (get-in old [:children oi]) [:replicant/swap-node])
+            (register-hook impl el-b (get-in new [:children oi]) (get-in old [:children ni]) [:replicant/swap-node])
+            (recur (next shifts) ref-node (- ref-i 2) true))
+          (do
+            (if ref-node
+              (r/insert-before (:renderer impl) el node ref-node)
+              (r/append-child (:renderer impl) el node))
+            (register-hook impl node (get-in new [:children ni]) (get-in old [:children oi]) [:replicant/move-node])
+            (recur shifts ref-node (dec ref-i) true)))))))
 
 (defn insert-before [xs x i]
   (concat (take i xs) [x] (drop i xs)))
@@ -347,7 +314,7 @@
   By first creating and inserting the #0 node, a new check for position shifts
   will not find any further moves to be necessary. If we did not create the new
   node first, `reorder-children` would have moved every node one step down."
-  [this new old]
+  [impl el new old]
   (let [shifts (get-position-shifts same? (:children new) (:children old))
         n (count (:children old))
         new-positions (->> (filter (comp nil? second) shifts)
@@ -360,92 +327,87 @@
                                           ;; append-child
                                           [new-pos (+ idx n)])))]
     (if (seq new-positions)
-      (let [;; Create and insert child nodes that did not exist in old vdom
-            this (reduce (fn [{:keys [el hooks]} [pos child-n]]
-                           (let [vdom (nth (:children new) pos)
-                                 {:keys [node hooks]} (create-node el hooks vdom)]
-                             {:hooks hooks
-                              :el (if (<= child-n pos)
-                                    (r/append-child el node)
-                                    (r/insert-before el node (r/get-child el pos)))}))
-                         this new-positions)
-            ;; Place new vdom entries in the corresponding places in the old
-            ;; vdom, since these are now reconciled. This avoids further
-            ;; reconciliation of the child nodes.
-            old (update old :children
-                        (fn [children]
-                          (reduce
-                           #(insert-before %1 (nth (:children new) %2) %2)
-                           children
-                           (map first new-positions))))]
-        (assoc this
-               :shifts (get-position-shifts same? (:children new) (:children old))
-               :old old
-               :changed? true))
-      (assoc this :shifts shifts :old old :changed? false))))
+      (do
+        ;; Create and insert child nodes that did not exist in old vdom
+        (doseq [[pos child-n] new-positions]
+          (let [vdom (nth (:children new) pos)
+                node (create-node impl vdom)]
+            (if (<= child-n pos)
+              (r/append-child (:renderer impl) el node)
+              (r/insert-before (:renderer impl) el node (r/get-child (:renderer impl) el pos)))))
+        (let [;; Place new vdom entries in the corresponding places in the old
+              ;; vdom, since these are now reconciled. This avoids further
+              ;; reconciliation of the child nodes.
+              old (update old :children
+                          (fn [children]
+                            (reduce
+                             #(insert-before %1 (nth (:children new) %2) %2)
+                             children
+                             (map first new-positions))))]
+          {:shifts (get-position-shifts same? (:children new) (:children old))
+           :old old
+           :changed? true}))
+      {:shifts shifts
+       :old old
+       :changed? false})))
 
 ;; reconcile* and update-children are mutually recursive
 (declare reconcile*)
 
 (defn update-children
-  "Update the children in the DOM `:el` in `this` - and add corresponding to
-  life-cycle hooks to call in `:hooks` - by diffing the children of `new` and
-  `old`. Tries to perform as few DOM operations as possible:
+  "Update the children in the DOM `el` - and register corresponding life-cycle
+  hooks to call in `impl` - by diffing the children of `new` and `old`. Tries to
+  perform as few DOM operations as possible:
 
   1. Insert new nodes, if any
   2. Move nodes
   3. Reconcile old nodes (e.g. update their attributes, children, etc) with new
      vdom"
-  [this new old]
-  (let [{:keys [el hooks shifts old] :as created} (create-new-children this new old)
-        {:keys [el hooks] :as reordered} (reorder-children el hooks shifts new old)]
-    (assoc
-     (->> (max (count (:children old))
-               (count (:children new)))
-          range
-          reverse
-          (reduce 
-           #(reconcile*
-             %1
-             (safe-nth (:children new) %2)
-             (safe-nth (:children old) (get-in shifts [%2 1] %2))
-             {:index %2})
-           {:el el
-            :hooks hooks}))
-     :changed? (or (:changed? created) (:changed? reordered)))))
+  [impl el new old]
+  (let [{:keys [shifts old] :as created} (create-new-children impl el new old)
+        reordered (reorder-children impl el shifts new old)]
+    (doseq [idx (->> (max (count (:children old))
+                          (count (:children new)))
+                     range
+                     reverse)]
+      (reconcile*
+       impl
+       el
+       (safe-nth (:children new) idx)
+       (safe-nth (:children old) (get-in shifts [idx 1] idx))
+       {:index idx}))
+    {:changed? (or (:changed? created) (:changed? reordered))}))
 
-(defn reconcile* [{:keys [el hooks] :as this} new old {:keys [index]}]
+(defn reconcile* [impl el new old {:keys [index]}]
   (cond
     (= new old)
-    this
+    nil
 
     (nil? new)
-    (let [child (r/get-child el index)]
-      {:el (r/remove-child el child)
-       :hooks (register-hook hooks child new old)})
+    (let [child (r/get-child (:renderer impl) el index)]
+      (r/remove-child (:renderer impl) el child)
+      (register-hook impl child new old))
 
     ;; The node at this index is of a different type than before, replace it
     ;; with a fresh one. Use keys to avoid ending up here.
     (changed? new old)
-    (let [{:keys [node hooks]} (create-node el hooks new)]
-      {:el (r/replace-child el node (r/get-child el index))
-       :hooks hooks})
+    (let [node (create-node impl new)]
+      (r/replace-child (:renderer impl) el node (r/get-child (:renderer impl) el index)))
 
     ;; Update the node's attributes and reconcile its children
     (not (string? new))
     (let [old* (inflate-hiccup old)
           new* (inflate-hiccup new)
-          child (r/get-child el index)
-          post-attrs (update-attributes child (:attrs new*) (:attrs old*))
-          post-children (update-children (assoc post-attrs :hooks hooks) new* old*)
+          child (r/get-child (:renderer impl) el index)
+          post-attrs (update-attributes impl child (:attrs new*) (:attrs old*))
+          post-children (update-children impl child new* old*)
           attrs-changed? (or (:changed? post-attrs)
                              (not= (:replicant/on-update (second new))
                                    (:replicant/on-update (second old))))]
-      (-> post-children
-          (update :el r/get-parent-node)
-          (update :hooks register-hook child new old
-                  (remove nil? [(when attrs-changed? :replicant/updated-attrs)
-                                (when (:changed? post-children) :replicant/updated-children)]))))))
+      (->> [(when attrs-changed? :replicant/updated-attrs)
+            (when (:changed? post-children) :replicant/updated-children)]
+           (remove nil?)
+           (register-hook impl child new old)))))
 
 (defn call-hooks
   "Call the lifecycle hooks gathered during reconciliation."
@@ -465,13 +427,13 @@
   there is no `old` hiccup, `reconcile` will create the DOM as per `new`.
   Assumes that the DOM in `el` is in sync with `old` - if not, this will
   certainly not produce the desired result."
-  [el new & [old]]
-  (let [{:keys [el hooks]}
-        (if (nil? old)
-          (let [{:keys [node hooks]} (create-node el [] new)]
-            {:el (r/append-child el node)
-             :hooks hooks})
-          (reconcile* {:el el :hooks []} new old {:index 0}))]
-    (doseq [hook hooks]
-      (call-hooks hook))
-    {:el el :hooks hooks}))
+  [renderer el new & [old]]
+  (let [impl {:renderer renderer
+              :hooks (atom [])}]
+    (if (nil? old)
+      (r/append-child renderer el (create-node impl new))
+      (reconcile* impl el new old {:index 0}))
+    (let [hooks @(:hooks impl)]
+      (doseq [hook hooks]
+        (call-hooks hook))
+      {:hooks hooks})))

@@ -6,22 +6,21 @@
   (create-text-node [this text])
   (create-element [this tag-name options])
 
-  (set-style [this k v])
-  (remove-style [this k])
+  (set-style [this el k v])
+  (remove-style [this el k])
 
-  (add-class [this cn])
-  (remove-class [this cn])
+  (add-class [this el cn])
+  (remove-class [this el cn])
 
-  (set-attribute [this a v opt])
-  (remove-attribute [this a])
+  (set-attribute [this el a v opt])
+  (remove-attribute [this el a])
 
-  (set-event-handler [this event handler])
-  (remove-event-handler [this event])
+  (set-event-handler [this el event handler])
+  (remove-event-handler [this el event])
 
-  (insert-before [this child-node reference-node])
-  (append-child [this child-node])
-  (remove-child [this child-node])
-  (replace-child [this insert-child replace-child])
+  (insert-before [this el child-node reference-node])
+  (append-child [this el child-node])
+  (remove-child [this el child-node])
+  (replace-child [this el insert-child replace-child])
 
-  (get-child [this idx])
-  (get-parent-node [this]))
+  (get-child [this el idx]))
