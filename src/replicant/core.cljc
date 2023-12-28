@@ -210,6 +210,14 @@
 ;; reconcile* and update-children are mutually recursive
 (declare reconcile*)
 
+(defn index-of [f xs]
+  (loop [n 0
+         xs (seq xs)]
+    (cond
+      (nil? xs) -1
+      (f (first xs)) n
+      :else (recur (inc n) (next xs)))))
+
 (defn update-children [impl el new old]
   (let [r (:renderer impl)
         get-child #(r/get-child (:renderer impl) el %)]
@@ -249,21 +257,26 @@
 
           ;; Nodes have moved. Find the original position of the two nodes
           ;; currently being considered, and move the one that is currently the
-          ;; furthest away.
+          ;; furthest away, create node or remove node accordingly.
           :else
-          (let [old-upto (take-while #(not (same? new-hiccup %)) old-c)
-                o-idx (count old-upto)
-                new-upto (take-while #(not (same? old-hiccup %)) new-c)
-                n-idx (count new-upto)]
+          (let [o-idx (index-of #(same? new-hiccup %) old-c)
+                n-idx (index-of #(same? old-hiccup %) new-c)]
             (cond
               ;; new-hiccup represents a node that did not previously exist,
               ;; create it
-              (= o-idx (count old-c))
+              (< o-idx 0)
               (let [child (create-node impl new-hiccup)]
                 (if (<= n-children n)
                   (r/append-child (:renderer impl) el child)
                   (r/insert-before (:renderer impl) el child (get-child n)))
                 (recur (next new-c) old-c (inc n) move-n (inc n-children) true))
+
+              ;; the old node no longer exists, remove it
+              (< n-idx 0)
+              (let [child (get-child n)]
+                (r/remove-child (:renderer impl) el child)
+                (register-hook impl child nil old-hiccup)
+                (recur new-c (next old-c) n move-n (dec n-children) true))
 
               (< o-idx n-idx)
               ;; The new node needs to be moved back
@@ -316,7 +329,7 @@
                 (reconcile* impl el new-hiccup corresponding-old-hiccup {:index n})
                 (when (= new-hiccup corresponding-old-hiccup)
                   (register-hook impl child new-hiccup corresponding-old-hiccup [:replicant/move-node]))
-                (recur (next new-c) (concat old-upto (drop (inc o-idx) old-c)) (inc n) (inc (+ n o-idx)) n-children true)))))))))
+                (recur (next new-c) (concat (take o-idx old-c) (drop (inc o-idx) old-c)) (inc n) (inc (+ n o-idx)) n-children true)))))))))
 
 (defn reconcile* [impl el new old {:keys [index]}]
   (cond

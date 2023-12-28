@@ -409,6 +409,18 @@
             [:remove-child [:li "Item #2"] :from "ul"]
             [:remove-child [:li "Item #3"] :from "ul"]])))
 
+  (testing "Deletes single child node"
+    (is (= (-> (render [:ul
+                        [:li {:key 1} "Item #1"]
+                        [:li {:key 2} "Item #2"]
+                        [:li {:key 3} "Item #3"]])
+               (render [:ul
+                        [:li {:key 2} "Item #2"]
+                        [:li {:key 3} "Item #3"]])
+               get-events
+               summarize)
+           [[:remove-child [:li "Item #1"] :from "ul"]])))
+
   (testing "Adds node in the middle of existing nodes"
     (is (= (-> (render [:div
                         [:h1 {} "Title"]
