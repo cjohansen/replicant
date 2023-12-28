@@ -397,6 +397,18 @@
            [[:insert-before [:li "Item #2"] [:li "Item #1"] :in "ul"]
             [:remove-child [:li "Item #3"] :from "ul"]])))
 
+  (testing "Clears out child nodes"
+    (is (= (-> (render [:ul
+                        [:li {:key 1} "Item #1"]
+                        [:li {:key 2} "Item #2"]
+                        [:li {:key 3} "Item #3"]])
+               (render [:ul])
+               get-events
+               summarize)
+           [[:remove-child [:li "Item #1"] :from "ul"]
+            [:remove-child [:li "Item #2"] :from "ul"]
+            [:remove-child [:li "Item #3"] :from "ul"]])))
+
   (testing "Adds node in the middle of existing nodes"
     (is (= (-> (render [:div
                         [:h1 {} "Title"]

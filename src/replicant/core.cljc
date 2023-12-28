@@ -231,7 +231,7 @@
           (let [child (r/get-child r el n)]
             (r/remove-child r el child)
             (register-hook impl child nil old-hiccup)
-            (recur nil (next old-c) (inc n) move-n (dec n-children) true))
+            (recur nil (next old-c) n move-n (dec n-children) true))
 
           ;; There are new nodes where there were no old ones: create
           (nil? old-c)
