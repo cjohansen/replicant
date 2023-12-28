@@ -129,7 +129,7 @@
     :else
     (into [(first hiccup) {::ns el-ns}] (rest hiccup))))
 
-(defn inflate-hiccup
+(defn inflate-hiccup-1
   "Normalize hiccup form. Parses out class names and ids from the tag and returns
   a map of:
 
@@ -164,6 +164,8 @@
       
       (and el-ns (:children inflated))
       (update :children (fn [xs] (map #(namespace-hiccup % el-ns) xs))))))
+
+(def inflate-hiccup (memoize inflate-hiccup-1))
 
 (defn append-children [impl el children]
   (doseq [child children]
