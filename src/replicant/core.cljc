@@ -78,6 +78,20 @@
 (def xlinkns "http://www.w3.org/1999/xlink")
 (def xmlns "http://www.w3.org/XML/1998/namespace")
 
+(defn set-attr-val [impl el attr v]
+  (let [an (name attr)]
+    (->> (cond-> {}
+           (#{["x" "m" "l"] ;; ClojureScript
+              [\x \m \l]} ;; Clojure
+            (take 3 an))
+           (assoc :ns xmlns)
+
+           (#{["x" "l" "i" "n" "k" ":"]
+              [\x \l \i \n \k \:]}
+            (take 6 an))
+           (assoc :ns xlinkns))
+         (r/set-attribute (:renderer impl) el an v))))
+
 (defn update-attr [impl el attr new old]
   (case attr
     :style (update-styles impl el (:style new) (:style old))
@@ -85,24 +99,40 @@
     :on (update-event-listeners impl el (:on new) (:on old))
     (if-let [v (attr new)]
       (when (not= v (attr old))
-        (let [an (name attr)]
-          (->> (cond-> {}
-                 (#{["x" "m" "l"] ;; ClojureScript
-                    [\x \m \l]} ;; Clojure
-                  (take 3 an))
-                 (assoc :ns xmlns)
-
-                 (#{["x" "l" "i" "n" "k" ":"]
-                    [\x \l \i \n \k \:]}
-                  (take 6 an))
-                 (assoc :ns xlinkns))
-               (r/set-attribute (:renderer impl) el an v))))
+        (set-attr-val impl el attr v))
       (r/remove-attribute (:renderer impl) el (name attr)))))
 
 (defn update-attributes [impl el new-attrs old-attrs]
   (doseq [attr (into (set (keys new-attrs)) (keys old-attrs))]
     (update-attr impl el attr new-attrs old-attrs))
   {:changed? (not= new-attrs old-attrs)})
+
+;; These setters are not strictly necessary - you could just call the update-*
+;; functions with `nil` for `old`. The pure setters improve performance for
+;; `create-node`
+
+(defn set-styles [impl el new-styles]
+  (doseq [k (keys new-styles)]
+    (r/set-style (:renderer impl) el k (k new-styles))))
+
+(defn set-classes [impl el new-classes]
+  (doseq [class new-classes]
+    (r/add-class (:renderer impl) el class)))
+
+(defn set-event-listeners [impl el new-handlers]
+  (add-event-listeners impl el new-handlers))
+
+(defn set-attr [impl el attr new]
+  (case attr
+    :style (set-styles impl el (:style new))
+    :classes (set-classes impl el (:classes new))
+    :on (set-event-listeners impl el (:on new))
+    (set-attr-val impl el attr (attr new))))
+
+(defn set-attributes [impl el new-attrs]
+  (doseq [attr (keys new-attrs)]
+    (set-attr impl el attr new-attrs))
+  {:changed? true})
 
 (defn- strip-nil-vals [m]
   (into {} (remove (comp nil? val) m)))
@@ -177,10 +207,9 @@
   [impl hiccup]
   (if (hiccup/hiccup? hiccup)
     (let [{:keys [tag-name attrs children ns]} (inflate-hiccup hiccup)
-          children (mapv #(create-node impl %) children)
           node (r/create-element (:renderer impl) tag-name {:ns ns})]
-      (update-attributes impl node attrs nil)
-      (append-children impl node children)
+      (set-attributes impl node attrs)
+      (run! #(r/append-child (:renderer impl) node (create-node impl %)) children)
       (register-hook impl node hiccup)
       node)
     (r/create-text-node (:renderer impl) (str hiccup))))
@@ -220,7 +249,7 @@
 
 (defn update-children [impl el new old]
   (let [r (:renderer impl)
-        get-child #(r/get-child (:renderer impl) el %)]
+        get-child #(r/get-child r el %)]
     (loop [new-c (:children new)
            old-c (:children old)
            n 0
@@ -243,9 +272,10 @@
 
           ;; There are new nodes where there were no old ones: create
           (nil? old-c)
-          (let [child (create-node impl new-hiccup)]
-            (r/append-child r el child)
-            (recur (next new-c) nil (inc n) move-n (inc n-children) true))
+          (do
+            (doseq [hiccup new-c]
+              (r/append-child r el (create-node impl hiccup)))
+            {:changed? true})
 
           ;; It's "the same node" (e.g. reusable), reconcile
           (same? new-hiccup old-hiccup)
@@ -267,14 +297,14 @@
               (< o-idx 0)
               (let [child (create-node impl new-hiccup)]
                 (if (<= n-children n)
-                  (r/append-child (:renderer impl) el child)
-                  (r/insert-before (:renderer impl) el child (get-child n)))
+                  (r/append-child r el child)
+                  (r/insert-before r el child (get-child n)))
                 (recur (next new-c) old-c (inc n) move-n (inc n-children) true))
 
               ;; the old node no longer exists, remove it
               (< n-idx 0)
               (let [child (get-child n)]
-                (r/remove-child (:renderer impl) el child)
+                (r/remove-child r el child)
                 (register-hook impl child nil old-hiccup)
                 (recur new-c (next old-c) n move-n (dec n-children) true))
 
@@ -296,8 +326,8 @@
               (let [idx (+ n n-idx 1)
                     child (get-child n)]
                 (if (< idx n-children)
-                  (r/insert-before (:renderer impl) el child (get-child idx))
-                  (r/append-child (:renderer impl) el child))
+                  (r/insert-before r el child (get-child idx))
+                  (r/append-child r el child))
                 (register-hook impl child (nth new-c n-idx) old-hiccup [:replicant/move-node])
                 (recur
                  new-c
@@ -325,7 +355,7 @@
               (let [idx (+ n o-idx)
                     child (get-child idx)
                     corresponding-old-hiccup (nth old-c o-idx)]
-                (r/insert-before (:renderer impl) el child (get-child n))
+                (r/insert-before r el child (get-child n))
                 (reconcile* impl el new-hiccup corresponding-old-hiccup {:index n})
                 (when (= new-hiccup corresponding-old-hiccup)
                   (register-hook impl child new-hiccup corresponding-old-hiccup [:replicant/move-node]))

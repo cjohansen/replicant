@@ -82,8 +82,8 @@
     (is (= (-> (render [:h1 "Hello world"])
                get-events
                summarize)
-           [[:create-text-node "Hello world"]
-            [:create-element "h1"]
+           [[:create-element "h1"]
+            [:create-text-node "Hello world"]
             [:append-child "Hello world" :to "h1"]
             [:append-child [:h1 "Hello world"] :to "Document"]])))
 
@@ -105,8 +105,8 @@
     (is (= (-> (render [:h1 {:title nil} "Hello world"])
                get-events
                summarize)
-           [[:create-text-node "Hello world"]
-            [:create-element "h1"]
+           [[:create-element "h1"]
+            [:create-text-node "Hello world"]
             [:append-child "Hello world" :to "h1"]
             [:append-child [:h1 "Hello world"] :to "Document"]])))
 
@@ -175,12 +175,12 @@
                         [:g [:use {:xlink:href "#icon"}]]])
                get-events
                summarize)
-           [[:create-element "use" "http://www.w3.org/2000/svg"]
-            [:set-attribute [:use ""] "xlink:href" "http://www.w3.org/1999/xlink" nil :to "#icon"]
-            [:create-element "g" "http://www.w3.org/2000/svg"]
-            [:append-child [:use ""] :to "g"]
-            [:create-element "svg" "http://www.w3.org/2000/svg"]
+           [[:create-element "svg" "http://www.w3.org/2000/svg"]
             [:set-attribute [:svg ""] "viewBox" nil :to "0 0 100 100"]
+            [:create-element "g" "http://www.w3.org/2000/svg"]
+            [:create-element "use" "http://www.w3.org/2000/svg"]
+            [:set-attribute [:use ""] "xlink:href" "http://www.w3.org/1999/xlink" nil :to "#icon"]
+            [:append-child [:use ""] :to "g"]
             [:append-child [:g ""] :to "svg"]
             [:append-child [:svg ""] :to "Document"]])))
 
@@ -192,8 +192,15 @@
                          [:g [:use {:xlink:href "#icon"}]]]])
                get-events
                summarize
-               first)
-           [:create-element "use" "http://www.w3.org/2000/svg"])))
+               )
+           [[:create-element "svg" "http://www.w3.org/2000/svg"]
+            [:set-attribute [:svg ""] "viewBox" nil :to "0 0 100 100"]
+            [:create-element "g" "http://www.w3.org/2000/svg"]
+            [:create-element "use" "http://www.w3.org/2000/svg"]
+            [:set-attribute [:use ""] "xlink:href" "http://www.w3.org/1999/xlink" nil :to "#icon"]
+            [:append-child [:use ""] :to "g"]
+            [:append-child [:g ""] :to "svg"]
+            [:append-child [:svg ""] :to "div"]])))
 
   (testing "Properly namespaces new svg children"
     (is (= (-> (render [:svg {:viewBox "0 0 100 100"}
@@ -278,8 +285,8 @@
                         [:li {:key "1"} "Item #2"]])
                get-events
                summarize)
-           [[:create-text-node "Item #3"]
-            [:create-element "li"]
+           [[:create-element "li"]
+            [:create-text-node "Item #3"]
             [:append-child "Item #3" :to "li"]
             [:insert-before [:li "Item #3"] [:li "Item #2"] :in "ul"]])))
 
@@ -433,8 +440,8 @@
                         [:p {:key :p2} "Paragraph 2"]])
                get-events
                summarize)
-           [[:create-text-node "Paragraph 0"]
-            [:create-element "p"]
+           [[:create-element "p"]
+            [:create-text-node "Paragraph 0"]
             [:append-child "Paragraph 0" :to "p"]
             [:insert-before [:p "Paragraph 0"] [:p "Paragraph 1"] :in "div"]])))
 
@@ -449,12 +456,12 @@
                         [:p {:key :p2} "Paragraph 2"]])
                get-events
                summarize)
-           [[:create-text-node "Paragraph 0"]
-            [:create-element "p"]
+           [[:create-element "p"]
+            [:create-text-node "Paragraph 0"]
             [:append-child "Paragraph 0" :to "p"]
             [:insert-before [:p "Paragraph 0"] [:p "Paragraph 2"] :in "div"]
-            [:create-text-node "Paragraph 1"]
             [:create-element "p"]
+            [:create-text-node "Paragraph 1"]
             [:append-child "Paragraph 1" :to "p"]
             [:insert-before [:p "Paragraph 1"] [:p "Paragraph 2"] :in "div"]])))
 
@@ -470,8 +477,8 @@
                         [:p {:key :p0} "Paragraph 3"]])
                get-events
                summarize)
-           [[:create-text-node "Paragraph 3"]
-            [:create-element "p"]
+           [[:create-element "p"]
+            [:create-text-node "Paragraph 3"]
             [:append-child "Paragraph 3" :to "p"]
             [:append-child [:p "Paragraph 3"] :to "div"]]))))
 
@@ -483,9 +490,9 @@
     (is (= (-> (render [:h1 {:on {:click f1}} "Hi!"])
                get-events
                summarize)
-           [[:create-text-node "Hi!"]
-            [:create-element "h1"]
+           [[:create-element "h1"]
             [:set-event-handler [:h1 ""] :click f1]
+            [:create-text-node "Hi!"]
             [:append-child "Hi!" :to "h1"]
             [:append-child [:h1 "Hi!"] :to "Document"]])))
 
