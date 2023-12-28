@@ -185,10 +185,6 @@
       node)
     (r/create-text-node (:renderer impl) (str hiccup))))
 
-(defn safe-nth [xs n]
-  (when (< n (count xs))
-    (nth xs n)))
-
 (defn same?
   "Two elements are considered the \"same\" if they are both hiccup elements with
   the same tag name and the same key (or both have no key) - or they are both
@@ -211,172 +207,116 @@
       (and (string? old) (not= new old))
       (not= (hiccup/get-tag-name old) (hiccup/get-tag-name new))))
 
-(defn get-position-shifts
-  "Given two sequences, return a `(count as)` long list of tuples of
-  `[position-in-a position-in-b]`. If all the tuples contain the same number, no
-  element in `as` has changed place in `bs`. A `nil` in the right position
-  indicates that the element in `as` was removed from `bs`. Additional items at
-  the end of `bs` is not accounted for.
-
-  `f` is a function that can determine if `a` and `b` are the same element."
-  [f as bs]
-  (loop [positions (range (count bs))
-         as as
-         i 0
-         res []]
-    (if-let [a (first as)]
-      (let [idx (loop [pos positions]
-                  (when-let [n (first pos)]
-                    (if (f a (nth bs n))
-                      n
-                      (recur (next pos)))))]
-        (recur (remove #{idx} positions) (next as) (inc i) (conj res [i idx])))
-      res)))
-
-(defn same-pos? [[new-pos old-pos]]
-  (= new-pos old-pos))
-
-(defn get-next-ref
-  "Find the next position in `shifts` where the new and old node positions are the
-  same. Returns `[i node]` where `i` is the number of steps until the position
-  is reached, and `node` is the node at the position. If `ref-i` is positive,
-  returns existing `ref`."
-  [shifts ref-i ref-node]
-  (if (< 0 ref-i)
-    [ref-i ref-node]
-    (let [i (count (take-while (complement same-pos?) shifts))]
-      [i (nth (first (drop i shifts)) 2)])))
-
-(defn reorder-children
-  "Reorders child nodes in `el` according to `shifts`. Only moves nodes that have
-  moved. Tries to conserve the number of move operations to the minimum required
-  ones (assuming mutable implementations of insert-before and append-child)."
-  [impl el shifts new old]
-  (loop [;; Pick up the child nodes before we start to move them, otherwise the
-         ;; indexes in `shifts` will lead us to the wrong nodes. Such DOM, much
-         ;; mutation, wow. Also: `mapv` because we can't afford this to be
-         ;; lazy (it needs to happen now), and `seq` because we want `shifts` to
-         ;; be `nil` if it's empty (to terminate the loop)
-         shifts (seq (mapv #(conj % (r/get-child (:renderer impl) el (second %))) shifts))
-         ref-node nil
-         ref-i 0
-         changed? false]
-    (cond
-      (nil? shifts)
-      {:changed? changed?}
-
-      (same-pos? (first shifts))
-      (recur (next shifts) ref-node (dec ref-i) changed?)
-
-      :else
-      (let [[ni oi node] (first shifts)
-            ;; ref-node is the next node that isn't moving
-            [ref-i ref-node] (get-next-ref shifts ref-i ref-node)
-            shifts (next shifts)]
-        (if (= [oi ni] (take 2 (first shifts)))
-          ;; Node is swapping places with its next sibling. A single DOM
-          ;; operation will suffice, but both nodes will receive a hook, since
-          ;; they both end up at new positions (could affect CSS, etc).
-          (let [el-a (r/get-child (:renderer impl) el ni)
-                el-b (r/get-child (:renderer impl) el oi)]
-            (r/insert-before (:renderer impl) el el-b el-a)
-            (register-hook impl el-a (get-in new [:children ni]) (get-in old [:children oi]) [:replicant/swap-node])
-            (register-hook impl el-b (get-in new [:children oi]) (get-in old [:children ni]) [:replicant/swap-node])
-            (recur (next shifts) ref-node (- ref-i 2) true))
-          (do
-            (if ref-node
-              (r/insert-before (:renderer impl) el node ref-node)
-              (r/append-child (:renderer impl) el node))
-            (register-hook impl node (get-in new [:children ni]) (get-in old [:children oi]) [:replicant/move-node])
-            (recur shifts ref-node (dec ref-i) true)))))))
-
-(defn insert-before [xs x i]
-  (concat (take i xs) [x] (drop i xs)))
-
-(defn create-new-children
-  "Find positions in the child nodes in `new` that didn't exist in `old`. These
-  need new DOM nodes. By filling these first, we can avoid making unnecessary
-  moves when we try to reorder children. Imagine this scenario:
-
-  ```clj
-  [:ul
-    [:li \"#1\"]
-    [:li \"#2\"]]
-
-  ;; =>
-
-  [:ul
-    [:li \"#0\"]
-    [:li \"#1\"]
-    [:li \"#2\"]]
-  ```
-
-  By first creating and inserting the #0 node, a new check for position shifts
-  will not find any further moves to be necessary. If we did not create the new
-  node first, `reorder-children` would have moved every node one step down."
-  [impl el new old]
-  (let [shifts (get-position-shifts same? (:children new) (:children old))
-        n (count (:children old))
-        new-positions (->> (filter (comp nil? second) shifts)
-                           (map-indexed (fn [idx [new-pos]]
-                                          ;; For each child inserted, the total
-                                          ;; number of children in the parent
-                                          ;; will be one higher. We need this
-                                          ;; number to know the difference
-                                          ;; between insert-before and
-                                          ;; append-child
-                                          [new-pos (+ idx n)])))]
-    (if (seq new-positions)
-      (do
-        ;; Create and insert child nodes that did not exist in old vdom
-        (doseq [[pos child-n] new-positions]
-          (let [vdom (nth (:children new) pos)
-                node (create-node impl vdom)]
-            (if (<= child-n pos)
-              (r/append-child (:renderer impl) el node)
-              (r/insert-before (:renderer impl) el node (r/get-child (:renderer impl) el pos)))))
-        (let [;; Place new vdom entries in the corresponding places in the old
-              ;; vdom, since these are now reconciled. This avoids further
-              ;; reconciliation of the child nodes.
-              old (update old :children
-                          (fn [children]
-                            (reduce
-                             #(insert-before %1 (nth (:children new) %2) %2)
-                             children
-                             (map first new-positions))))]
-          {:shifts (get-position-shifts same? (:children new) (:children old))
-           :old old
-           :changed? true}))
-      {:shifts shifts
-       :old old
-       :changed? false})))
-
 ;; reconcile* and update-children are mutually recursive
 (declare reconcile*)
 
-(defn update-children
-  "Update the children in the DOM `el` - and register corresponding life-cycle
-  hooks to call in `impl` - by diffing the children of `new` and `old`. Tries to
-  perform as few DOM operations as possible:
+(defn update-children [impl el new old]
+  (let [r (:renderer impl)
+        get-child #(r/get-child (:renderer impl) el %)]
+    (loop [new-c (:children new)
+           old-c (:children old)
+           n 0
+           move-n 0
+           n-children (count (:children old))
+           changed? false]
+      (let [new-hiccup (first new-c)
+            old-hiccup (first old-c)]
+        (cond
+          ;; Both empty, we're done
+          (and (nil? new-c) (nil? old-c))
+          {:changed? changed?}
 
-  1. Insert new nodes, if any
-  2. Move nodes
-  3. Reconcile old nodes (e.g. update their attributes, children, etc) with new
-     vdom"
-  [impl el new old]
-  (let [{:keys [shifts old] :as created} (create-new-children impl el new old)
-        reordered (reorder-children impl el shifts new old)]
-    (doseq [idx (->> (max (count (:children old))
-                          (count (:children new)))
-                     range
-                     reverse)]
-      (reconcile*
-       impl
-       el
-       (safe-nth (:children new) idx)
-       (safe-nth (:children old) (get-in shifts [idx 1] idx))
-       {:index idx}))
-    {:changed? (or (:changed? created) (:changed? reordered))}))
+          ;; There are old nodes where there are no new nodes: delete
+          (nil? new-c)
+          (let [child (r/get-child r el n)]
+            (r/remove-child r el child)
+            (register-hook impl child nil old-hiccup)
+            (recur nil (next old-c) (inc n) move-n (dec n-children) true))
+
+          ;; There are new nodes where there were no old ones: create
+          (nil? old-c)
+          (let [child (create-node impl new-hiccup)]
+            (r/append-child r el child)
+            (recur (next new-c) nil (inc n) move-n (inc n-children) true))
+
+          ;; It's "the same node" (e.g. reusable), reconcile
+          (same? new-hiccup old-hiccup)
+          (let [node-changed? (not= new-hiccup old-hiccup)]
+            (reconcile* impl el new-hiccup old-hiccup {:index n})
+            (when (and (not node-changed?) (< n move-n))
+              (register-hook impl (get-child n) new-hiccup old-hiccup [:replicant/move-node]))
+            (recur (next new-c) (next old-c) (inc n) move-n n-children (or changed? node-changed?)))
+
+          ;; Nodes have moved. Find the original position of the two nodes
+          ;; currently being considered, and move the one that is currently the
+          ;; furthest away.
+          :else
+          (let [old-upto (take-while #(not (same? new-hiccup %)) old-c)
+                o-idx (count old-upto)
+                new-upto (take-while #(not (same? old-hiccup %)) new-c)
+                n-idx (count new-upto)]
+            (cond
+              ;; new-hiccup represents a node that did not previously exist,
+              ;; create it
+              (= o-idx (count old-c))
+              (let [child (create-node impl new-hiccup)]
+                (if (<= n-children n)
+                  (r/append-child (:renderer impl) el child)
+                  (r/insert-before (:renderer impl) el child (get-child n)))
+                (recur (next new-c) old-c (inc n) move-n (inc n-children) true))
+
+              (< o-idx n-idx)
+              ;; The new node needs to be moved back
+              ;;
+              ;; Old: 1 2 3
+              ;; New: 2 3 1
+              ;;
+              ;; old-hiccup: 1, n-idx: 2
+              ;; new-hiccup: 2, o-idx: 1
+              ;;
+              ;; The old node is now at the end, move it there and continue. It
+              ;; will be reconciled when the loop reaches it.
+              ;;
+              ;; append-child 0
+              ;; Old: 2 3 1
+              ;; New: 2 3 1
+              (let [idx (+ n n-idx 1)
+                    child (get-child n)]
+                (if (< idx n-children)
+                  (r/insert-before (:renderer impl) el child (get-child idx))
+                  (r/append-child (:renderer impl) el child))
+                (register-hook impl child (nth new-c n-idx) old-hiccup [:replicant/move-node])
+                (recur
+                 new-c
+                 (concat (take n-idx (next old-c)) [(first old-c)] (drop (inc n-idx) old-c))
+                 n
+                 (dec idx)
+                 n-children
+                 true))
+
+              :else
+              ;; The new node needs to be brought to the front
+              ;;
+              ;; Old: 1 2 3
+              ;; New: 3 1 2
+              ;;
+              ;; old-hiccup: 1, n-idx: 1
+              ;; new-hiccup: 3, o-idx: 2
+              ;;
+              ;; The new node used to be at the end, move it to the front and
+              ;; reconcile it, then continue with the rest of the nodes.
+              ;;
+              ;; insert-before 3 1
+              ;; Old: 1 2
+              ;; New: 1 2
+              (let [idx (+ n o-idx)
+                    child (get-child idx)
+                    corresponding-old-hiccup (nth old-c o-idx)]
+                (r/insert-before (:renderer impl) el child (get-child n))
+                (reconcile* impl el new-hiccup corresponding-old-hiccup {:index n})
+                (when (= new-hiccup corresponding-old-hiccup)
+                  (register-hook impl child new-hiccup corresponding-old-hiccup [:replicant/move-node]))
+                (recur (next new-c) (concat old-upto (drop (inc o-idx) old-c)) (inc n) (inc (+ n o-idx)) n-children true)))))))))
 
 (defn reconcile* [impl el new old {:keys [index]}]
   (cond

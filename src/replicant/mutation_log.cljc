@@ -14,9 +14,12 @@
   (let [to-remove #{replace-child}]
     (update element :children #(conj (vec (remove to-remove %)) insert-child))))
 
-(defn -get-child [element idx]
-  (-> element :children (nth idx)
-      (with-meta {:parent element})))
+(defn -get-child [el idx]
+  (-> @el :children (nth idx)
+      (with-meta {:parent el})))
+
+(defn -remove-child [el child]
+  (update el :children #(vec (remove #{child} %))))
 
 (def mutation-log-impl
   {`replicant/create-text-node
@@ -83,7 +86,9 @@
    (fn [this el child-node]
      (let [child @child-node]
        (swap! (:log this) conj [:append-child @el child])
-       (swap! el update :children #(vec (concat % [child]))))
+       (when-let [parent (:parent (meta child))]
+         (swap! parent -remove-child child))
+       (swap! el update :children #(conj (vec %) child)))
      this)
 
    `replicant/insert-before
@@ -98,7 +103,7 @@
    (fn [this el child-node]
      (let [child @child-node]
        (swap! (:log this) conj [:remove-child @el child])
-       (swap! el update :children #(vec (remove #{child} %))))
+       (swap! el -remove-child child))
      this)
 
    `replicant/replace-child
@@ -112,7 +117,7 @@
    `replicant/get-child
    (fn [this el idx]
      (swap! (:log this) conj [:get-child idx])
-     (atom (-get-child @el idx)))})
+     (atom (-get-child el idx)))})
 
 (defn create-renderer [{:keys [log element]}]
   (with-meta
@@ -128,3 +133,39 @@
              (update :log deref)
              (update :element deref))
      :hooks hooks}))
+
+(comment
+  (do
+    (def el (atom {:tag-name "div"}))
+    (def renderer (create-renderer {}))
+
+    (def t1 (replicant/create-text-node renderer "P1"))
+    (def e1 (replicant/create-element renderer "p" {}))
+    (replicant/append-child renderer e1 t1)
+
+    (def t2 (replicant/create-text-node renderer "P2"))
+    (def e2 (replicant/create-element renderer "p" {}))
+    (replicant/append-child renderer e2 t2)
+
+    (def t3 (replicant/create-text-node renderer "P3"))
+    (def e3 (replicant/create-element renderer "p" {}))
+    (replicant/append-child renderer e3 t3)
+
+    (replicant/append-child renderer el e1)
+    (replicant/append-child renderer el e2)
+    (replicant/insert-before renderer el e3 e2))
+
+
+  (def child (replicant/get-child renderer el 0))
+  (replicant/append-child renderer el child)
+
+  (replicant/insert-before
+   renderer
+   el
+   (replicant/get-child renderer el 0)
+   (replicant/get-child renderer el 2))
+
+  (= @el (:parent (meta @(replicant/get-child renderer el 1))))
+
+  el
+)

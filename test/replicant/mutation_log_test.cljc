@@ -122,10 +122,10 @@
                (render [:h1 2 "Hello"])
                get-events
                summarize)
-           [[:create-text-node "Hello"]
-            [:append-child "Hello" :to "h1"]
-            [:create-text-node "2"]
-            [:replace-child "2" "Hello"]])))
+           [[:create-text-node "2"]
+            [:replace-child "2" "Hello"]
+            [:create-text-node "Hello"]
+            [:append-child "Hello" :to "h1"]])))
 
   (testing "Sets style"
     (is (= (->> (render [:h1 {:style {:color "red"}} "Hello world"])
@@ -217,9 +217,7 @@
                         [:p "Paragraph 1"]])
                get-events
                summarize)
-           [[:append-child [:ul "List"] :to "div"]
-            [:append-child [:h1 "Title"] :to "div"]
-            [:append-child [:p "Paragraph 1"] :to "div"]])))
+           [[:insert-before [:ul "List"] [:h1 "Title"] :in "div"]])))
 
   (testing "Does not move initial nodes in the desired position"
     (is (= (-> (render [:div
@@ -236,9 +234,7 @@
                         [:h4 "Item #4"]])
                get-events
                summarize)
-           [[:append-child [:h5 "Item #5"] :to "div"]
-            [:append-child [:h3 "Item #3"] :to "div"]
-            [:append-child [:h4 "Item #4"] :to "div"]])))
+           [[:insert-before [:h5 "Item #5"] [:h3 "Item #3"] :in "div"]])))
 
   (testing "Moves keyed nodes"
     (is (= (-> (render [:ul
@@ -251,9 +247,7 @@
                         [:li {:key "1"} "Item #2"]])
                get-events
                summarize)
-           [[:append-child [:li "Item #3"] :to "ul"]
-            [:append-child [:li "Item #1"] :to "ul"]
-            [:append-child [:li "Item #2"] :to "ul"]])))
+           [[:insert-before [:li "Item #3"] [:li "Item #1"] :in "ul"]])))
 
   (testing "Only moves \"disorganized\" nodes in the middle"
     (is (= (-> (render [:ul
@@ -272,9 +266,22 @@
                         [:li {:key "5"} "Item #6"]])
                get-events
                summarize)
-           [[:insert-before [:li "Item #4"] [:li "Item #6"] :in "ul"]
-            [:insert-before [:li "Item #5"] [:li "Item #6"] :in "ul"]
-            [:insert-before [:li "Item #3"] [:li "Item #6"] :in "ul"]])))
+           [[:insert-before [:li "Item #3"] [:li "Item #6"] :in "ul"]])))
+
+  (testing "Moves nodes beyond end of original children"
+    (is (= (-> (render [:ul
+                        [:li {:key "0"} "Item #1"]
+                        [:li {:key "1"} "Item #2"]])
+               (render [:ul
+                        [:li {:key "0"} "Item #1"]
+                        [:li {:key "2"} "Item #3"]
+                        [:li {:key "1"} "Item #2"]])
+               get-events
+               summarize)
+           [[:create-text-node "Item #3"]
+            [:create-element "li"]
+            [:append-child "Item #3" :to "li"]
+            [:insert-before [:li "Item #3"] [:li "Item #2"] :in "ul"]])))
 
   (testing "Does not re-add child nodes that did not move"
     (is (= (-> (render [:ul
@@ -294,9 +301,8 @@
                         ])
                get-events
                summarize)
-           [[:insert-before [:li "Item #5"] [:li "Item #3"] :in "ul"]
-            [:insert-before [:li "Item #2"] [:li "Item #6"] :in "ul"]
-            [:insert-before [:li "Item #4"] [:li "Item #6"] :in "ul"]])))
+           [[:insert-before [:li "Item #5"] [:li "Item #2"] :in "ul"]
+            [:insert-before [:li "Item #3"] [:li "Item #2"] :in "ul"]])))
 
   (testing "Swaps adjacent nodes"
     (is (= (-> (render [:ul
@@ -325,8 +331,8 @@
                get-events
                summarize)
            [[:insert-before [:li "Item #2"] [:li "Item #1"] :in "ul"]
-            [:set-attribute [:li "Item #1"] "title" "Numero uno" :to "Number one"]
-            [:set-attribute [:li "Item #2"] "title" "Numero dos" :to "Number two"]])))
+            [:set-attribute [:li "Item #2"] "title" "Numero dos" :to "Number two"]
+            [:set-attribute [:li "Item #1"] "title" "Numero uno" :to "Number one"]])))
 
   (testing "Surgically swaps nodes"
     (is (= (-> (render [:ul
@@ -345,7 +351,7 @@
                         [:li {:key "5"} "Item #6"]])
                get-events
                summarize)
-           [[:insert-before [:li "Item #5"] [:li "Item #3"] :in "ul"]
+           [[:insert-before [:li "Item #5"] [:li "Item #2"] :in "ul"]
             [:insert-before [:li "Item #2"] [:li "Item #6"] :in "ul"]])))
 
   (testing "Surgically swaps nodes at the end"
@@ -359,8 +365,8 @@
                         [:li {:key "0"} "Item #1"]])
                get-events
                summarize)
-           [[:insert-before [:li "Item #3"] [:li "Item #2"] :in "ul"]
-            [:append-child [:li "Item #1"] :to "ul"]])))
+           [[:insert-before [:li "Item #3"] [:li "Item #1"] :in "ul"]
+            [:insert-before [:li "Item #2"] [:li "Item #1"] :in "ul"]])))
 
   (testing "Replaces text content when elements are not keyed"
     (is (= (-> (render [:ul
@@ -373,10 +379,10 @@
                         [:li "Item #2"]])
                get-events
                summarize)
-           [[:create-text-node "Item #2"]
-            [:replace-child "Item #2" "Item #3"]
-            [:create-text-node "Item #3"]
-            [:replace-child "Item #3" "Item #2"]])))
+           [[:create-text-node "Item #3"]
+            [:replace-child "Item #3" "Item #2"]
+            [:create-text-node "Item #2"]
+            [:replace-child "Item #2" "Item #3"]])))
 
   (testing "Moves and removes nodes"
     (is (= (-> (render [:ul
@@ -663,9 +669,9 @@
             [:replicant/mount "p.p2"]
             [:replicant/mount "p.p3"]
             [:replicant/mount "p.p4"]
+            [:replicant/update [:replicant/move-node] "p.p1"]
             [:replicant/update [:replicant/move-node] "p.p2"]
-            [:replicant/update [:replicant/move-node] "p.p3"]
-            [:replicant/update [:replicant/move-node] "p.p1"]])))
+            [:replicant/update [:replicant/move-node] "p.p3"]])))
 
   (testing "Triggers on-update on swapping children"
     (is (= (let [res (atom [])
@@ -679,8 +685,8 @@
              (summarize-events @res))
            [[:replicant/mount "h1"]
             [:replicant/mount "p"]
-            [:replicant/update [:replicant/swap-node] "h1"]
-            [:replicant/update [:replicant/swap-node] "p"]])))
+            [:replicant/update [:replicant/move-node] "p"]
+            [:replicant/update [:replicant/move-node] "h1"]])))
 
   (testing "Triggers on-update on deeply nested change"
     (is (= (let [res (atom [])
@@ -707,4 +713,4 @@
                              [:p.mmm-h3.mmm-mbs.mmm-desktop "455 kJ"]]]]]))
              (summarize-events @res))
            [[:replicant/mount "h1.mmm-h1"]
-            [:replicant/update "h1.mmm-h1"]]))))
+            [:replicant/update [:replicant/updated-children] "h1.mmm-h1"]]))))
