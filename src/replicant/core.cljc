@@ -204,7 +204,7 @@
   not consider any two strings the same - only the exact same string."
   [new old]
   (or (not= (type old) (type new))
-      (and (string? old) (not= new old))
+      (and (not (hiccup/hiccup? old)) (not= new old))
       (not= (hiccup/get-tag-name old) (hiccup/get-tag-name new))))
 
 ;; reconcile* and update-children are mutually recursive
