@@ -49,29 +49,32 @@
     (swap! hooks conj [hook node new old details])))
 
 (defn update-styles [impl el new-styles old-styles]
-  (doseq [k (seq (into (set (keys new-styles)) (keys old-styles)))]
-    (let [new-style (k new-styles)]
+  (run!
+   #(let [new-style (% new-styles)]
       (cond
         (nil? new-style)
-        (r/remove-style (:renderer impl) el k)
+        (r/remove-style (:renderer impl) el %)
 
-        (not= new-style (k old-styles))
-        (r/set-style (:renderer impl) el k new-style)))))
+        (not= new-style (% old-styles))
+        (r/set-style (:renderer impl) el % new-style)))
+   (into (set (keys new-styles)) (keys old-styles))))
 
 (defn update-classes [impl el new-classes old-classes]
-  (doseq [class (remove (set new-classes) old-classes)]
-    (r/remove-class (:renderer impl) el class))
-  (doseq [class (remove (set old-classes) new-classes)]
-    (r/add-class (:renderer impl) el class)))
+  (->> (remove (set new-classes) old-classes)
+       (run! #(r/remove-class (:renderer impl) el %)))
+  (->> (remove (set old-classes) new-classes)
+       (run! #(r/add-class (:renderer impl) el %))))
 
 (defn add-event-listeners [impl el val]
-  (doseq [[event handler] val]
-    (when-let [handler (get-event-handler handler event)]
-      (r/set-event-handler (:renderer impl) el event handler))))
+  (run!
+   (fn [[event handler]]
+     (when-let [handler (get-event-handler handler event)]
+       (r/set-event-handler (:renderer impl) el event handler)))
+   val))
 
 (defn update-event-listeners [impl el new-handlers old-handlers]
-  (doseq [event (remove (set (keys new-handlers)) (keys old-handlers))]
-    (r/remove-event-handler (:renderer impl) el event))
+  (->> (remove (set (keys new-handlers)) (keys old-handlers))
+       (run! #(r/remove-event-handler (:renderer impl) el %)))
   (->> (remove #(= (val %) (get old-handlers (key %))) new-handlers)
        (add-event-listeners impl el)))
 
@@ -103,8 +106,8 @@
       (r/remove-attribute (:renderer impl) el (name attr)))))
 
 (defn update-attributes [impl el new-attrs old-attrs]
-  (doseq [attr (into (set (keys new-attrs)) (keys old-attrs))]
-    (update-attr impl el attr new-attrs old-attrs))
+  (->> (into (set (keys new-attrs)) (keys old-attrs))
+       (run! #(update-attr impl el % new-attrs old-attrs)))
   {:changed? (not= new-attrs old-attrs)})
 
 ;; These setters are not strictly necessary - you could just call the update-*
@@ -112,12 +115,12 @@
 ;; `create-node`
 
 (defn set-styles [impl el new-styles]
-  (doseq [k (keys new-styles)]
-    (r/set-style (:renderer impl) el k (k new-styles))))
+  (->> (keys new-styles)
+       (run! #(r/set-style (:renderer impl) el % (% new-styles)))))
 
 (defn set-classes [impl el new-classes]
-  (doseq [class new-classes]
-    (r/add-class (:renderer impl) el class)))
+  (->> new-classes
+       (run! #(r/add-class (:renderer impl) el %))))
 
 (defn set-event-listeners [impl el new-handlers]
   (add-event-listeners impl el new-handlers))
@@ -130,8 +133,8 @@
     (set-attr-val impl el attr (attr new))))
 
 (defn set-attributes [impl el new-attrs]
-  (doseq [attr (keys new-attrs)]
-    (set-attr impl el attr new-attrs))
+  (->> (keys new-attrs)
+       (run! #(set-attr impl el % new-attrs)))
   {:changed? true})
 
 (defn- strip-nil-vals [m]
@@ -196,8 +199,7 @@
       (update :children (fn [xs] (map #(namespace-hiccup % el-ns) xs))))))
 
 (defn append-children [impl el children]
-  (doseq [child children]
-    (r/append-child (:renderer impl) el child))
+  (run! #(r/append-child (:renderer impl) el %) children)
   el)
 
 (defn create-node
@@ -273,8 +275,7 @@
           ;; There are new nodes where there were no old ones: create
           (nil? old-c)
           (do
-            (doseq [hiccup new-c]
-              (r/append-child r el (create-node impl hiccup)))
+            (run! #(r/append-child r el (create-node impl %)) new-c)
             {:changed? true})
 
           ;; It's "the same node" (e.g. reusable), reconcile
@@ -417,6 +418,5 @@
       (r/append-child renderer el (create-node impl new))
       (reconcile* impl el new old {:index 0}))
     (let [hooks @(:hooks impl)]
-      (doseq [hook hooks]
-        (call-hooks hook))
+      (run! call-hooks hooks)
       {:hooks hooks})))
