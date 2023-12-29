@@ -205,7 +205,7 @@
   [{:keys [renderer] :as impl} hiccup]
   (if (hiccup/hiccup? hiccup)
     (let [{:keys [tag-name attrs children ns]} (inflate-hiccup hiccup)
-          node (r/create-element renderer tag-name {:ns ns})]
+          node (r/create-element renderer tag-name (when ns {:ns ns}))]
       (set-attributes renderer node attrs)
       (run! #(r/append-child renderer node (create-node impl %)) children)
       (register-hook impl node hiccup)
