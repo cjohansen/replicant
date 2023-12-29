@@ -56,7 +56,13 @@
   (when (coll? hiccup)
     (let [sym (first hiccup)]
       (when (keyword? sym)
-        (first (parse-tag (name sym)))))))
+        (let [s (name sym)
+              id-index (.indexOf s "#")
+              class-index (.indexOf s ".")]
+          (cond
+            (<= 0 id-index) (.substring s 0 id-index)
+            (<= 0 class-index) (.substring s 0 class-index)
+            :else s))))))
 
 (defn explode-styles [s]
   (->> (str/split s #";")
