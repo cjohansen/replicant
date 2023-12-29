@@ -1,2 +1,6 @@
 dev-resources/public/domed/js
 /.cpcache/
+/dev-resources/public/js/
+/.nrepl-port
+/.lsp/
+/.clj-kondo/
