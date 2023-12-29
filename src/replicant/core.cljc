@@ -234,9 +234,9 @@
   instead of creating a new node from scratch."
   [a b]
   (or (and (string? a) (string? b))
-      (and (= (hiccup/get-tag-name a) (hiccup/get-tag-name b))
-           (= (get-in a [1 :key])
-              (get-in b [1 :key])))))
+      (and (= (get-in a [1 :key])
+              (get-in b [1 :key]))
+           (= (hiccup/get-tag-name a) (hiccup/get-tag-name b)))))
 
 (defn changed?
   "Returns `true` when nodes have changed in such a way that a new node should be
