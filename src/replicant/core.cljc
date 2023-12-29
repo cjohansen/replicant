@@ -108,7 +108,7 @@
 (defn update-attributes [renderer el new-attrs old-attrs]
   (->> (into (set (keys new-attrs)) (keys old-attrs))
        (run! #(update-attr renderer el % new-attrs old-attrs)))
-  {:changed? (not= new-attrs old-attrs)})
+  (not= new-attrs old-attrs))
 
 ;; These setters are not strictly necessary - you could just call the update-*
 ;; functions with `nil` for `old`. The pure setters improve performance for
@@ -259,7 +259,7 @@
         (cond
           ;; Both empty, we're done
           (and (nil? new-c) (nil? old-c))
-          {:changed? changed?}
+          changed?
 
           ;; There are old nodes where there are no new nodes: delete
           (nil? new-c)
@@ -272,7 +272,7 @@
           (nil? old-c)
           (do
             (run! #(r/append-child r el (create-node impl %)) new-c)
-            {:changed? true})
+            true)
 
           ;; It's "the same node" (e.g. reusable), reconcile
           (same? new-hiccup old-hiccup)
@@ -379,13 +379,13 @@
     (let [old* (inflate-hiccup old)
           new* (inflate-hiccup new)
           child (r/get-child renderer el index)
-          post-attrs (update-attributes renderer child (:attrs new*) (:attrs old*))
-          post-children (update-children impl child new* old*)
-          attrs-changed? (or (:changed? post-attrs)
+          attrs-changed? (update-attributes renderer child (:attrs new*) (:attrs old*))
+          children-changed? (update-children impl child new* old*)
+          attrs-changed? (or attrs-changed?
                              (not= (:replicant/on-update (second new))
                                    (:replicant/on-update (second old))))]
       (->> [(when attrs-changed? :replicant/updated-attrs)
-            (when (:changed? post-children) :replicant/updated-children)]
+            (when children-changed? :replicant/updated-children)]
            (remove nil?)
            (register-hook impl child new old)))))
 
