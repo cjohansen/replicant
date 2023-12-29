@@ -17,10 +17,30 @@
      :else (throw (ex-info "Received class name that is neither string, keyword, or a collection of those"
                            {:classes classes})))))
 
+(defn parse-tag [^String tag]
+  ;; Borrowed from hiccup, and adapted to support multiple classes
+  (let [id-index (let [index (.indexOf tag "#")] (when (pos? index) index))
+        class-index (let [index (.indexOf tag ".")] (when (pos? index) index))]
+    [(cond
+       id-index (.substring tag 0 id-index)
+       class-index (.substring tag 0 class-index)
+       :else tag)
+     (when id-index
+       (if class-index
+         (.substring tag (unchecked-inc-int id-index) class-index)
+         (.substring tag (unchecked-inc-int id-index))))
+     (when class-index
+       (loop [classes []
+              s (.substring tag (unchecked-inc-int class-index))]
+         (let [index (.indexOf s ".")]
+           (if (pos? index)
+             (recur
+              (conj classes (.substring s 0 index))
+              (.substring s (unchecked-inc-int index)))
+             (conj classes s)))))]))
+
 (defn parse-hiccup-symbol [sym attrs]
-  (let [[_ id] (re-find #"#([^\.#]+)" sym)
-        [el & classes] (-> (str/replace sym #"#([^#\.]+)" "")
-                           (str/split #"\."))
+  (let [[el id classes] (parse-tag sym)
         classes (->> (concat
                       (get-classes (:class attrs))
                       (get-classes (:className attrs))
@@ -33,8 +53,10 @@
        (seq classes) (assoc :classes classes))]))
 
 (defn get-tag-name [hiccup]
-  (when (and (coll? hiccup) (keyword? (first hiccup)))
-    (re-find #"^[a-z0-9]+" (str/lower-case (name (first hiccup))))))
+  (when (coll? hiccup)
+    (let [sym (first hiccup)]
+      (when (keyword? sym)
+        (first (parse-tag (name sym)))))))
 
 (defn explode-styles [s]
   (->> (str/split s #";")
