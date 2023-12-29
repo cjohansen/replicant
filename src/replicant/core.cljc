@@ -48,40 +48,40 @@
   (when-let [hook (:replicant/on-update (if new (second new) (second old)))]
     (swap! hooks conj [hook node new old details])))
 
-(defn update-styles [impl el new-styles old-styles]
+(defn update-styles [renderer el new-styles old-styles]
   (run!
    #(let [new-style (% new-styles)]
       (cond
         (nil? new-style)
-        (r/remove-style (:renderer impl) el %)
+        (r/remove-style renderer el %)
 
         (not= new-style (% old-styles))
-        (r/set-style (:renderer impl) el % new-style)))
+        (r/set-style renderer el % new-style)))
    (into (set (keys new-styles)) (keys old-styles))))
 
-(defn update-classes [impl el new-classes old-classes]
+(defn update-classes [renderer el new-classes old-classes]
   (->> (remove (set new-classes) old-classes)
-       (run! #(r/remove-class (:renderer impl) el %)))
+       (run! #(r/remove-class renderer el %)))
   (->> (remove (set old-classes) new-classes)
-       (run! #(r/add-class (:renderer impl) el %))))
+       (run! #(r/add-class renderer el %))))
 
-(defn add-event-listeners [impl el val]
+(defn add-event-listeners [renderer el val]
   (run!
    (fn [[event handler]]
      (when-let [handler (get-event-handler handler event)]
-       (r/set-event-handler (:renderer impl) el event handler)))
+       (r/set-event-handler renderer el event handler)))
    val))
 
-(defn update-event-listeners [impl el new-handlers old-handlers]
+(defn update-event-listeners [renderer el new-handlers old-handlers]
   (->> (remove (set (keys new-handlers)) (keys old-handlers))
-       (run! #(r/remove-event-handler (:renderer impl) el %)))
+       (run! #(r/remove-event-handler renderer el %)))
   (->> (remove #(= (val %) (get old-handlers (key %))) new-handlers)
-       (add-event-listeners impl el)))
+       (add-event-listeners renderer el)))
 
 (def xlinkns "http://www.w3.org/1999/xlink")
 (def xmlns "http://www.w3.org/XML/1998/namespace")
 
-(defn set-attr-val [impl el attr v]
+(defn set-attr-val [renderer el attr v]
   (let [an (name attr)]
     (->> (cond-> {}
            (#{["x" "m" "l"] ;; ClojureScript
@@ -93,48 +93,48 @@
               [\x \l \i \n \k \:]}
             (take 6 an))
            (assoc :ns xlinkns))
-         (r/set-attribute (:renderer impl) el an v))))
+         (r/set-attribute renderer el an v))))
 
-(defn update-attr [impl el attr new old]
+(defn update-attr [renderer el attr new old]
   (case attr
-    :style (update-styles impl el (:style new) (:style old))
-    :classes (update-classes impl el (:classes new) (:classes old))
-    :on (update-event-listeners impl el (:on new) (:on old))
+    :style (update-styles renderer el (:style new) (:style old))
+    :classes (update-classes renderer el (:classes new) (:classes old))
+    :on (update-event-listeners renderer el (:on new) (:on old))
     (if-let [v (attr new)]
       (when (not= v (attr old))
-        (set-attr-val impl el attr v))
-      (r/remove-attribute (:renderer impl) el (name attr)))))
+        (set-attr-val renderer el attr v))
+      (r/remove-attribute renderer el (name attr)))))
 
-(defn update-attributes [impl el new-attrs old-attrs]
+(defn update-attributes [renderer el new-attrs old-attrs]
   (->> (into (set (keys new-attrs)) (keys old-attrs))
-       (run! #(update-attr impl el % new-attrs old-attrs)))
+       (run! #(update-attr renderer el % new-attrs old-attrs)))
   {:changed? (not= new-attrs old-attrs)})
 
 ;; These setters are not strictly necessary - you could just call the update-*
 ;; functions with `nil` for `old`. The pure setters improve performance for
 ;; `create-node`
 
-(defn set-styles [impl el new-styles]
+(defn set-styles [renderer el new-styles]
   (->> (keys new-styles)
-       (run! #(r/set-style (:renderer impl) el % (% new-styles)))))
+       (run! #(r/set-style renderer el % (% new-styles)))))
 
-(defn set-classes [impl el new-classes]
+(defn set-classes [renderer el new-classes]
   (->> new-classes
-       (run! #(r/add-class (:renderer impl) el %))))
+       (run! #(r/add-class renderer el %))))
 
-(defn set-event-listeners [impl el new-handlers]
-  (add-event-listeners impl el new-handlers))
+(defn set-event-listeners [renderer el new-handlers]
+  (add-event-listeners renderer el new-handlers))
 
-(defn set-attr [impl el attr new]
+(defn set-attr [renderer el attr new]
   (case attr
-    :style (set-styles impl el (:style new))
-    :classes (set-classes impl el (:classes new))
-    :on (set-event-listeners impl el (:on new))
-    (set-attr-val impl el attr (attr new))))
+    :style (set-styles renderer el (:style new))
+    :classes (set-classes renderer el (:classes new))
+    :on (set-event-listeners renderer el (:on new))
+    (set-attr-val renderer el attr (attr new))))
 
-(defn set-attributes [impl el new-attrs]
+(defn set-attributes [renderer el new-attrs]
   (->> (keys new-attrs)
-       (run! #(set-attr impl el % new-attrs)))
+       (run! #(set-attr renderer el % new-attrs)))
   {:changed? true})
 
 (defn- strip-nil-vals [m]
@@ -198,23 +198,19 @@
       (and el-ns (:children inflated))
       (update :children (fn [xs] (map #(namespace-hiccup % el-ns) xs))))))
 
-(defn append-children [impl el children]
-  (run! #(r/append-child (:renderer impl) el %) children)
-  el)
-
 (defn create-node
   "Create DOM node according to virtual DOM in `hiccup`. Register relevant
   life-cycle hooks from the new node or its descendants in `impl`. Returns
   the newly created node."
-  [impl hiccup]
+  [{:keys [renderer] :as impl} hiccup]
   (if (hiccup/hiccup? hiccup)
     (let [{:keys [tag-name attrs children ns]} (inflate-hiccup hiccup)
-          node (r/create-element (:renderer impl) tag-name {:ns ns})]
-      (set-attributes impl node attrs)
-      (run! #(r/append-child (:renderer impl) node (create-node impl %)) children)
+          node (r/create-element renderer tag-name {:ns ns})]
+      (set-attributes renderer node attrs)
+      (run! #(r/append-child renderer node (create-node impl %)) children)
       (register-hook impl node hiccup)
       node)
-    (r/create-text-node (:renderer impl) (str hiccup))))
+    (r/create-text-node renderer (str hiccup))))
 
 (defn same?
   "Two elements are considered the \"same\" if they are both hiccup elements with
@@ -362,28 +358,28 @@
                   (register-hook impl child new-hiccup corresponding-old-hiccup [:replicant/move-node]))
                 (recur (next new-c) (concat (take o-idx old-c) (drop (inc o-idx) old-c)) (inc n) (inc (+ n o-idx)) n-children true)))))))))
 
-(defn reconcile* [impl el new old {:keys [index]}]
+(defn reconcile* [{:keys [renderer] :as impl} el new old {:keys [index]}]
   (cond
     (= new old)
     nil
 
     (nil? new)
-    (let [child (r/get-child (:renderer impl) el index)]
-      (r/remove-child (:renderer impl) el child)
+    (let [child (r/get-child renderer el index)]
+      (r/remove-child renderer el child)
       (register-hook impl child new old))
 
     ;; The node at this index is of a different type than before, replace it
     ;; with a fresh one. Use keys to avoid ending up here.
     (changed? new old)
     (let [node (create-node impl new)]
-      (r/replace-child (:renderer impl) el node (r/get-child (:renderer impl) el index)))
+      (r/replace-child renderer el node (r/get-child renderer el index)))
 
     ;; Update the node's attributes and reconcile its children
     (not (string? new))
     (let [old* (inflate-hiccup old)
           new* (inflate-hiccup new)
-          child (r/get-child (:renderer impl) el index)
-          post-attrs (update-attributes impl child (:attrs new*) (:attrs old*))
+          child (r/get-child renderer el index)
+          post-attrs (update-attributes renderer child (:attrs new*) (:attrs old*))
           post-children (update-children impl child new* old*)
           attrs-changed? (or (:changed? post-attrs)
                              (not= (:replicant/on-update (second new))
