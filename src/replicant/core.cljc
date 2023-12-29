@@ -48,6 +48,19 @@
   (when-let [hook (:replicant/on-update (if new (second new) (second old)))]
     (swap! hooks conj [hook node new old details])))
 
+(defn call-hooks
+  "Call the lifecycle hooks gathered during reconciliation."
+  [[hook node new old details]]
+  (let [f (get-life-cycle-hook hook)]
+    (f (cond-> {:replicant/event :replicant.event/life-cycle
+                :replicant/life-cycle
+                (cond
+                  (nil? old) :replicant/mount
+                  (nil? new) :replicant/unmount
+                  :else :replicant/update)
+                :replicant/node node}
+         details (assoc :replicant/details details)))))
+
 (defn update-styles [renderer el new-styles old-styles]
   (run!
    #(let [new-style (% new-styles)]
@@ -388,19 +401,6 @@
             (when children-changed? :replicant/updated-children)]
            (remove nil?)
            (register-hook impl child new old)))))
-
-(defn call-hooks
-  "Call the lifecycle hooks gathered during reconciliation."
-  [[hook node new old details]]
-  (let [f (get-life-cycle-hook hook)]
-    (f (cond-> {:replicant/event :replicant.event/life-cycle
-                :replicant/life-cycle
-                (cond
-                  (nil? old) :replicant/mount
-                  (nil? new) :replicant/unmount
-                  :else :replicant/update)
-                :replicant/node node}
-         details (assoc :replicant/details details)))))
 
 (defn reconcile
   "Reconcile the DOM in `el` by diffing the `new` hiccup with the `old` hiccup. If
