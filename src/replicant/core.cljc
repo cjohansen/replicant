@@ -365,11 +365,11 @@
 
 (defn get-ns [headers]
   (or (nth headers hiccup-ns)
-      (tag->ns (nth headers hiccup-tag-name))))
+      (and (= "svg" (nth headers hiccup-tag-name))
+           "http://www.w3.org/2000/svg")))
 
 (defn update-children [impl el new old]
   (let [r (:renderer impl)
-        get-child #(r/get-child r el %)
         old-children (get-children (get-ns old) old)]
     (loop [new-c (seq (get-children (get-ns new) new))
            old-c (seq old-children)
@@ -380,72 +380,72 @@
       (let [new-hiccup (first new-c)
             old-hiccup (first old-c)]
         (cond
-          ;; Both empty, we're done
+           ;; Both empty, we're done
           (and (nil? new-c) (nil? old-c))
           changed?
 
-          ;; There are old nodes where there are no new nodes: delete
+           ;; There are old nodes where there are no new nodes: delete
           (nil? new-c)
           (let [child (r/get-child r el n)]
             (r/remove-child r el child)
             (register-hook impl child nil old-hiccup)
             (recur nil (next old-c) n move-n (dec n-children) true))
 
-          ;; There are new nodes where there were no old ones: create
+           ;; There are new nodes where there were no old ones: create
           (nil? old-c)
           (do
             (run! #(r/append-child r el (create-node impl %)) new-c)
             true)
 
-          ;; It's "the same node" (e.g. reusable), reconcile
+           ;; It's "the same node" (e.g. reusable), reconcile
           (reusable? new-hiccup old-hiccup)
           (let [node-changed? (not= new-hiccup old-hiccup)]
             (reconcile* impl el new-hiccup old-hiccup n)
             (when (and (not node-changed?) (< n move-n))
-              (register-hook impl (get-child n) new-hiccup old-hiccup [:replicant/move-node]))
+              (register-hook impl (r/get-child r el n) new-hiccup old-hiccup [:replicant/move-node]))
             (recur (next new-c) (next old-c) (unchecked-inc-int n) move-n n-children (or changed? node-changed?)))
 
-          ;; Nodes are either new, have been replaced, or have moved. Find the
-          ;; original position of the two nodes currently being considered, to
-          ;; determine which it is.
+           ;; Nodes are either new, have been replaced, or have moved. Find the
+           ;; original position of the two nodes currently being considered, to
+           ;; determine which it is.
           :else
           (let [o-idx (int (index-of #(reusable? new-hiccup %) old-c))]
             (if (< o-idx 0)
-              ;; new-hiccup represents a node that did not previously exist,
-              ;; create it
+               ;; new-hiccup represents a node that did not previously exist,
+               ;; create it
               (let [child (create-node impl new-hiccup)]
                 (if (<= n-children n)
                   (r/append-child r el child)
-                  (r/insert-before r el child (get-child n)))
+                  (r/insert-before r el child (r/get-child r el n)))
                 (recur (next new-c) old-c (unchecked-inc-int n) move-n (unchecked-inc-int n-children) true))
               (let [n-idx (int (index-of #(reusable? old-hiccup %) new-c))]
                 (cond
-                  ;; the old node no longer exists, remove it
+                   ;; the old node no longer exists, remove it
                   (< n-idx 0)
-                  (let [child (get-child n)]
+                  (let [child (r/get-child r el n)]
                     (r/remove-child r el child)
                     (register-hook impl child nil old-hiccup)
                     (recur new-c (next old-c) n move-n (dec n-children) true))
 
                   (< o-idx n-idx)
-                  ;; The new node needs to be moved back
-                  ;;
-                  ;; Old: 1 2 3
-                  ;; New: 2 3 1
-                  ;;
-                  ;; old-hiccup: 1, n-idx: 2
-                  ;; new-hiccup: 2, o-idx: 1
-                  ;;
-                  ;; The old node is now at the end, move it there and continue. It
-                  ;; will be reconciled when the loop reaches it.
-                  ;;
-                  ;; append-child 0
-                  ;; Old: 2 3 1
-                  ;; New: 2 3 1
+                   ;; The new node needs to be moved back
+                   ;;
+                   ;; Old: 1 2 3
+                   ;; New: 2 3 1
+                   ;;
+                   ;; old-hiccup: 1, n-idx: 2
+                   ;; new-hiccup: 2, o-idx: 1
+                   ;;
+                   ;; The old node is now at the end, move it there and continue. It
+                   ;; will be reconciled when the loop reaches it.
+                   ;;
+                   ;; append-child 0
+                   ;; Old: 2 3 1
+                   ;; New: 2 3 1
                   (let [idx (unchecked-inc-int (unchecked-add-int n n-idx))
-                        child (get-child n)]
+                        child (r/get-child r el n)]
                     (if (< idx n-children)
-                      (r/insert-before r el child (get-child idx))
+                      (r/insert-before r el child (r/get-child r el idx))
                       (r/append-child r el child))
                     (register-hook impl child (nth new-c n-idx) old-hiccup [:replicant/move-node])
                     (recur
@@ -457,24 +457,24 @@
                      true))
 
                   :else
-                  ;; The new node needs to be brought to the front
-                  ;;
-                  ;; Old: 1 2 3
-                  ;; New: 3 1 2
-                  ;;
-                  ;; old-hiccup: 1, n-idx: 1
-                  ;; new-hiccup: 3, o-idx: 2
-                  ;;
-                  ;; The new node used to be at the end, move it to the front and
-                  ;; reconcile it, then continue with the rest of the nodes.
-                  ;;
-                  ;; insert-before 3 1
-                  ;; Old: 1 2
-                  ;; New: 1 2
+                   ;; The new node needs to be brought to the front
+                   ;;
+                   ;; Old: 1 2 3
+                   ;; New: 3 1 2
+                   ;;
+                   ;; old-hiccup: 1, n-idx: 1
+                   ;; new-hiccup: 3, o-idx: 2
+                   ;;
+                   ;; The new node used to be at the end, move it to the front and
+                   ;; reconcile it, then continue with the rest of the nodes.
+                   ;;
+                   ;; insert-before 3 1
+                   ;; Old: 1 2
+                   ;; New: 1 2
                   (let [idx (unchecked-add-int n o-idx)
-                        child (get-child idx)
+                        child (r/get-child r el idx)
                         corresponding-old-hiccup (nth old-c o-idx)]
-                    (r/insert-before r el child (get-child n))
+                    (r/insert-before r el child (r/get-child r el n))
                     (reconcile* impl el new-hiccup corresponding-old-hiccup n)
                     (when (= new-hiccup corresponding-old-hiccup)
                       (register-hook impl child new-hiccup corresponding-old-hiccup [:replicant/move-node]))
