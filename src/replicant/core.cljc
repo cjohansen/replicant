@@ -218,7 +218,7 @@
   that provide some detail about why the hook is invoked."
   [{:keys [hooks]} node new & [old details]]
   (when-let [hook (:replicant/on-update (if new (nth new hiccup-attrs) (nth old hiccup-attrs)))]
-    (swap! hooks conj [hook node new old details])))
+    (vswap! hooks conj [hook node new old details])))
 
 ;; Perform DOM operations
 
@@ -516,7 +516,7 @@
   certainly not produce the desired result."
   [renderer el new & [old]]
   (let [impl {:renderer renderer
-              :hooks (atom [])}]
+              :hooks (volatile! [])}]
     (if (nil? old)
       (r/append-child renderer el (create-node impl (get-hiccup-headers new nil)))
       (reconcile* impl el (get-hiccup-headers new nil) (get-hiccup-headers old nil) 0))
