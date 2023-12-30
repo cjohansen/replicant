@@ -10,7 +10,8 @@
 (def hiccup-attrs 4)
 (def hiccup-children 5)
 (def hiccup-ns 6)
-
+#_(set! *warn-on-reflection* true)
+#_(set! *unchecked-math* :warn-on-boxed)
 (def tag->ns
   {"svg" "http://www.w3.org/2000/svg"})
 
@@ -74,10 +75,10 @@
     (coll? classes) (map (fn [class]
                            (if (keyword? class)
                              (name class)
-                             (map #(.trim %) (.split class " "))))
+                             (map (fn [^String s] (.trim  s)) (.split ^String class " "))))
                          classes)
     (keyword? classes) [(name classes)]
-    (string? classes) (map #(.trim %) (.split classes " "))
+    (string? classes) (map #(.trim ^String %) (.split ^String classes " "))
     :else (throw (ex-info "class name is neither string, keyword, or a collection of those"
                           {:classes classes}))))
 
@@ -112,10 +113,10 @@
 (defn explode-styles
   "Converts string values for the style attribute to a map of keyword keys and
   string values."
-  [s]
+  [^String s]
   (->> (.split s ";")
-       (map (fn [kv]
-              (let [[k v] (map #(.trim %) (.split kv ":"))]
+       (map (fn [^String kv]
+              (let [[k v] (map #(.trim ^String %) (.split kv ":"))]
                 [(keyword k) v])))
        (into {})))
 
@@ -408,7 +409,7 @@
           ;; original position of the two nodes currently being considered, to
           ;; determine which it is.
           :else
-          (let [o-idx (index-of #(reusable? new-hiccup %) old-c)]
+          (let [o-idx (int (index-of #(reusable? new-hiccup %) old-c))]
             (if (< o-idx 0)
               ;; new-hiccup represents a node that did not previously exist,
               ;; create it
@@ -417,7 +418,7 @@
                   (r/append-child r el child)
                   (r/insert-before r el child (get-child n)))
                 (recur (next new-c) old-c (unchecked-inc-int n) move-n (unchecked-inc-int n-children) true))
-              (let [n-idx (index-of #(reusable? old-hiccup %) new-c)]
+              (let [n-idx (int (index-of #(reusable? old-hiccup %) new-c))]
                 (cond
                   ;; the old node no longer exists, remove it
                   (< n-idx 0)
@@ -441,7 +442,7 @@
                   ;; append-child 0
                   ;; Old: 2 3 1
                   ;; New: 2 3 1
-                  (let [idx (+ n n-idx 1)
+                  (let [idx (unchecked-inc-int (unchecked-add-int n n-idx))
                         child (get-child n)]
                     (if (< idx n-children)
                       (r/insert-before r el child (get-child idx))
@@ -451,7 +452,7 @@
                      new-c
                      (concat (take n-idx (next old-c)) [(first old-c)] (drop (unchecked-inc-int n-idx) old-c))
                      n
-                     (dec idx)
+                     (unchecked-dec-int idx)
                      n-children
                      true))
 
@@ -470,14 +471,14 @@
                   ;; insert-before 3 1
                   ;; Old: 1 2
                   ;; New: 1 2
-                  (let [idx (+ n o-idx)
+                  (let [idx (unchecked-add-int n o-idx)
                         child (get-child idx)
                         corresponding-old-hiccup (nth old-c o-idx)]
                     (r/insert-before r el child (get-child n))
                     (reconcile* impl el new-hiccup corresponding-old-hiccup n)
                     (when (= new-hiccup corresponding-old-hiccup)
                       (register-hook impl child new-hiccup corresponding-old-hiccup [:replicant/move-node]))
-                    (recur (next new-c) (concat (take o-idx old-c) (drop (unchecked-inc-int o-idx) old-c)) (unchecked-inc-int n) (unchecked-inc-int (+ n o-idx)) n-children true)))))))))))
+                    (recur (next new-c) (concat (take o-idx old-c) (drop (unchecked-inc-int o-idx) old-c)) (unchecked-inc-int n) (unchecked-inc-int (unchecked-add-int n o-idx)) n-children true)))))))))))
 
 (defn reconcile* [{:keys [renderer] :as impl} el new old index]
   (cond
