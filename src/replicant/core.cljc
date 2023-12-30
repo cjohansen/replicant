@@ -1,6 +1,164 @@
 (ns replicant.core
-  (:require [replicant.hiccup :as hiccup]
-            [replicant.protocols :as r]))
+  (:require [replicant.protocols :as r]))
+
+;; Hiccup stuff
+
+(def hiccup-tag-name 0)
+(def hiccup-id 1)
+(def hiccup-class 2)
+(def hiccup-key 3)
+(def hiccup-attrs 4)
+(def hiccup-children 5)
+(def hiccup-ns 6)
+
+(def tag->ns
+  {"svg" "http://www.w3.org/2000/svg"})
+
+(defn hiccup? [sexp]
+  (and (vector? sexp)
+       (not (map-entry? sexp))
+       (or (keyword? (first sexp)) (fn? (first sexp)))))
+
+(defn parse-tag [^String tag]
+  ;; Borrowed from hiccup, and adapted to support multiple classes
+  (let [id-index (let [index (.indexOf tag "#")] (when (pos? index) index))
+        class-index (let [index (.indexOf tag ".")] (when (pos? index) index))]
+    [(cond
+       id-index (.substring tag 0 id-index)
+       class-index (.substring tag 0 class-index)
+       :else tag)
+     (when id-index
+       (if class-index
+         (.substring tag (unchecked-inc-int id-index) class-index)
+         (.substring tag (unchecked-inc-int id-index))))
+     (when class-index
+       (seq (.split (.substring tag (unchecked-inc-int class-index)) #?(:clj "\\."
+                                                                        :cljs "."))))]))
+
+(defn get-hiccup-headers
+  "Hiccup symbols can include tag name, id and classes. The argument map is
+  optional. This function finds the important bits of the hiccup data structure
+  and returns a \"headers\" tuple with a stable position for:
+
+  - tag-name
+  - id from the hiccup symbol
+  - classes from the hiccup symbol
+  - key
+  - attributes
+  - children
+  - namespace
+
+  Attributes and children are completely untouched. Headers can be used to
+  quickly determine tag name and key, or sent to `get-attrs` and `get-children`
+  for usable information about those things.
+
+  Returns a tuple (instead of a map) for speed. The the above vars for indexed
+  lookups, e.g.: `(nth headers hiccup-key)`"
+  [sexp ns]
+  (when sexp
+    (if (hiccup? sexp)
+      (let [sym (first sexp)
+            args (rest sexp)
+            has-args? (map? (first args))
+            attrs (if has-args? (first args) {})]
+        (-> (parse-tag (name sym))
+            (conj (:key attrs))
+            (conj attrs)
+            (conj (if has-args? (rest args) args))
+            (conj ns)))
+      (str sexp))))
+
+(defn get-classes [classes]
+  (cond
+    (empty? classes) []
+    (coll? classes) (map (fn [class]
+                           (if (keyword? class)
+                             (name class)
+                             (map #(.trim %) (.split class " "))))
+                         classes)
+    (keyword? classes) [(name classes)]
+    (string? classes) (map #(.trim %) (.split classes " "))
+    :else (throw (ex-info "class name is neither string, keyword, or a collection of those"
+                          {:classes classes}))))
+
+(def skip-pixelize-attrs
+  #{:animation-iteration-count
+    :box-flex
+    :box-flex-group
+    :box-ordinal-group
+    :column-count
+    :fill-opacity
+    :flex
+    :flex-grow
+    :flex-positive
+    :flex-shrink
+    :flex-negative
+    :flex-order
+    :font-weight
+    :line-clamp
+    :line-height
+    :opacity
+    :order
+    :orphans
+    :stop-opacity
+    :stroke-dashoffset
+    :stroke-opacity
+    :stroke-width
+    :tab-size
+    :widows
+    :z-index
+    :zoom})
+
+(defn explode-styles
+  "Converts string values for the style attribute to a map of keyword keys and
+  string values."
+  [s]
+  (->> (.split s ";")
+       (map (fn [kv]
+              (let [[k v] (map #(.trim %) (.split kv ":"))]
+                [(keyword k) v])))
+       (into {})))
+
+(defn get-style-val [attr v]
+  (if (number? v)
+    (if (skip-pixelize-attrs attr)
+      (str v)
+      (str v "px"))
+    v))
+
+(defn get-attrs
+  "Given `headers` as produced by `get-hiccup-headers`, returns a map of all HTML
+  attributes."
+  [headers]
+  (let [id (nth headers hiccup-id)
+        attrs (nth headers hiccup-attrs)
+        classes (concat
+                 (remove empty? (get-classes (:class attrs)))
+                 (nth headers hiccup-class))]
+    (cond-> (dissoc attrs :key :replicant/on-update)
+      id (assoc :id id)
+      (seq classes) (assoc :classes classes)
+      (string? (:style attrs)) (update :style explode-styles))))
+
+(defn flatten-seqs [xs]
+  (loop [res []
+         [x & xs] xs]
+    (cond
+      (and (nil? xs) (nil? x)) (not-empty res)
+      (seq? x) (recur (into res (flatten-seqs x)) xs)
+      :else (recur (conj res x) xs))))
+
+(defn get-children
+  "Given an optional tag namespace `ns` (e.g. for SVG nodes) and `headers`, as
+  produced by `get-hiccup-headers`, returns a flat collection of children as
+  \"hiccup headers\". Children will carry the `ns`, if any."
+  [ns headers]
+  (when-not (:innerHTML (nth headers hiccup-attrs))
+    (->> (nth headers hiccup-children)
+         flatten-seqs
+         (map #(get-hiccup-headers % ns)))))
+
+;; Events and life cycle hooks
 
 (def ^:dynamic *dispatch* nil)
 
@@ -39,15 +197,6 @@
                         {:handler handler
                          :dispatch *dispatch*})))))
 
-(defn register-hook
-  "Register the life-cycle hook from the corresponding virtual DOM node to call in
-  `impl`, if any. The only time the hook in `old` is used is when `new` is
-  `nil`, which means the node is unmounting. `details` is a vector of keywords
-  that provide some detail about why the hook is invoked."
-  [{:keys [hooks]} node new & [old details]]
-  (when-let [hook (:replicant/on-update (if new (second new) (second old)))]
-    (swap! hooks conj [hook node new old details])))
-
 (defn call-hooks
   "Call the lifecycle hooks gathered during reconciliation."
   [[hook node new old details]]
@@ -61,6 +210,17 @@
                 :replicant/node node}
          details (assoc :replicant/details details)))))
 
+(defn register-hook
+  "Register the life-cycle hook from the corresponding virtual DOM node to call in
+  `impl`, if any. The only time the hook in `old` is used is when `new` is
+  `nil`, which means the node is unmounting. `details` is a vector of keywords
+  that provide some detail about why the hook is invoked."
+  [{:keys [hooks]} node new & [old details]]
+  (when-let [hook (:replicant/on-update (if new (nth new hiccup-attrs) (nth old hiccup-attrs)))]
+    (swap! hooks conj [hook node new old details])))
+
+;; Perform DOM operations
+
 (defn update-styles [renderer el new-styles old-styles]
   (run!
    #(let [new-style (% new-styles)]
@@ -69,7 +229,7 @@
         (r/remove-style renderer el %)
 
         (not= new-style (% old-styles))
-        (r/set-style renderer el % new-style)))
+        (r/set-style renderer el % (get-style-val % new-style))))
    (into (set (keys new-styles)) (keys old-styles))))
 
 (defn update-classes [renderer el new-classes old-classes]
@@ -79,14 +239,15 @@
        (run! #(r/add-class renderer el %))))
 
 (defn add-event-listeners [renderer el val]
-  (run!
-   (fn [[event handler]]
-     (when-let [handler (get-event-handler handler event)]
-       (r/set-event-handler renderer el event handler)))
-   val))
+  (->> val
+       (remove (comp nil? second))
+       (run! (fn [[event handler]]
+               (when-let [handler (get-event-handler handler event)]
+                 (r/set-event-handler renderer el event handler))))))
 
 (defn update-event-listeners [renderer el new-handlers old-handlers]
-  (->> (remove (set (keys new-handlers)) (keys old-handlers))
+  (->> (remove (set (filter new-handlers (keys new-handlers)))
+               (filter old-handlers (keys old-handlers)))
        (run! #(r/remove-event-handler renderer el %)))
   (->> (remove #(= (val %) (get old-handlers (key %))) new-handlers)
        (add-event-listeners renderer el)))
@@ -97,14 +258,10 @@
 (defn set-attr-val [renderer el attr v]
   (let [an (name attr)]
     (->> (cond-> {}
-           (#{["x" "m" "l"] ;; ClojureScript
-              [\x \m \l]} ;; Clojure
-            (take 3 an))
+           (= 0 (.indexOf an "xml:"))
            (assoc :ns xmlns)
 
-           (#{["x" "l" "i" "n" "k" ":"]
-              [\x \l \i \n \k \:]}
-            (take 6 an))
+           (= 0 (.indexOf an "xlink:"))
            (assoc :ns xlinkns))
          (r/set-attribute renderer el an v))))
 
@@ -118,10 +275,15 @@
         (set-attr-val renderer el attr v))
       (r/remove-attribute renderer el (name attr)))))
 
-(defn update-attributes [renderer el new-attrs old-attrs]
-  (->> (into (set (keys new-attrs)) (keys old-attrs))
-       (run! #(update-attr renderer el % new-attrs old-attrs)))
-  (not= new-attrs old-attrs))
+(defn update-attributes [renderer el new old]
+  (let [new-attrs (get-attrs new)
+        old-attrs (get-attrs old)]
+    (if (= new-attrs old-attrs)
+      false
+      (do
+        (->> (into (set (keys new-attrs)) (keys old-attrs))
+             (run! #(update-attr renderer el % new-attrs old-attrs)))
+        true))))
 
 ;; These setters are not strictly necessary - you could just call the update-*
 ;; functions with `nil` for `old`. The pure setters improve performance for
@@ -129,7 +291,8 @@
 
 (defn set-styles [renderer el new-styles]
   (->> (keys new-styles)
-       (run! #(r/set-style renderer el % (% new-styles)))))
+       (filter new-styles)
+       (run! #(r/set-style renderer el % (get-style-val % (% new-styles))))))
 
 (defn set-classes [renderer el new-classes]
   (->> new-classes
@@ -147,105 +310,46 @@
 
 (defn set-attributes [renderer el new-attrs]
   (->> (keys new-attrs)
-       (run! #(set-attr renderer el % new-attrs)))
-  {:changed? true})
-
-(defn- strip-nil-vals [m]
-  (into {} (remove (comp nil? val) m)))
-
-(defn- update-existing [m k & args]
-  (if (contains? m k)
-    (apply update m k args)
-    m))
-
-(defn prep-attributes [attrs]
-  (-> attrs
-      (dissoc :key :replicant/on-update ::ns)
-      strip-nil-vals
-      (update-existing :style strip-nil-vals)
-      (update-existing :on strip-nil-vals)))
-
-(defn namespace-hiccup [hiccup el-ns]
-  (cond
-    (string? hiccup) hiccup
-
-    (map? (second hiccup))
-    (assoc-in hiccup [1 ::ns] el-ns)
-
-    :else
-    (into [(first hiccup) {::ns el-ns}] (rest hiccup))))
-
-(defn inflate-hiccup
-  "Normalize hiccup form. Parses out class names and ids from the tag and returns
-  a map of:
-
-  - `:tag-name` - A string
-  - `:attrs` - Parsed attributes
-  - `:children` - A flattened list of children
-  - `:ns` - Namespace for element (SVG)
-
-  Some attributes receive special care:
-
-  - `:classes` is a list of classes, extracted by parsing out dotted classes
-    from the hiccup tag (e.g. \"heading\" in `:h1.heading`), as well as strings,
-    keywords, or a collection of either from both `:class` and `:className`.
-  - `:style` is a map of styles, even when the input hiccup provided a string
-  - `:innerHTML` when this attribute is present, `:children` will be ignored
-
-  ```clj
-  (inflate-hiccup [:h1.heading \"Hello\"])
-  ;;=>
-  ;; {:tag-name \"h1\",
-  ;;  :attrs {:classes (\"heading\")},
-  ;;  :children [\"Heading\"]}
-  ```"
-  [hiccup]
-  (let [inflated (hiccup/inflate hiccup)
-        el-ns (or (::ns (:attrs inflated))
-                  (when (= "svg" (:tag-name inflated))
-                    "http://www.w3.org/2000/svg"))]
-    (cond-> (update inflated :attrs prep-attributes)
-      (:innerHTML (:attrs inflated)) (dissoc :children)
-      el-ns (assoc :ns el-ns)
-      
-      (and el-ns (:children inflated))
-      (update :children (fn [xs] (map #(namespace-hiccup % el-ns) xs))))))
+       (filter new-attrs)
+       (run! #(set-attr renderer el % new-attrs))))
 
 (defn create-node
-  "Create DOM node according to virtual DOM in `hiccup`. Register relevant
-  life-cycle hooks from the new node or its descendants in `impl`. Returns
-  the newly created node."
-  [{:keys [renderer] :as impl} hiccup]
-  (if (hiccup/hiccup? hiccup)
-    (let [{:keys [tag-name attrs children ns]} (inflate-hiccup hiccup)
+  "Create DOM node according to virtual DOM in `hiccup-headers`. Register relevant
+  life-cycle hooks from the new node or its descendants in `impl`. Returns the
+  newly created node."
+  [{:keys [renderer] :as impl} hiccup-headers]
+  (if (string? hiccup-headers)
+    (r/create-text-node renderer hiccup-headers)
+    (let [tag-name (nth hiccup-headers hiccup-tag-name)
+          ns (or (nth hiccup-headers hiccup-ns) (tag->ns tag-name))
           node (r/create-element renderer tag-name (when ns {:ns ns}))]
-      (set-attributes renderer node attrs)
-      (run! #(r/append-child renderer node (create-node impl %)) children)
-      (register-hook impl node hiccup)
-      node)
-    (r/create-text-node renderer (str hiccup))))
+      (set-attributes renderer node (get-attrs hiccup-headers))
+      (->> hiccup-headers
+           (get-children ns)
+           (run! #(r/append-child renderer node (create-node impl %))))
+      (register-hook impl node hiccup-headers)
+      node)))
 
-(defn same?
-  "Two elements are considered the \"same\" if they are both hiccup elements with
-  the same tag name and the same key (or both have no key) - or they are both
-  strings.
+(defn reusable?
+  "Two elements are considered the similar enough for reuse if they are both
+  hiccup elements with the same tag name and the same key (or both have no key)
+  - or they are both strings.
 
-  Sameness in this case indicates that the node can be used for reconciliation
+  Similarity in this case indicates that the node can be used for reconciliation
   instead of creating a new node from scratch."
   [a b]
   (or (and (string? a) (string? b))
-      (and (= (get-in a [1 :key])
-              (get-in b [1 :key]))
-           (= (hiccup/get-tag-name a) (hiccup/get-tag-name b)))))
+      (and (= (nth a hiccup-key) (nth b hiccup-key))
+           (= (nth a hiccup-tag-name) (nth b hiccup-tag-name)))))
 
 (defn changed?
   "Returns `true` when nodes have changed in such a way that a new node should be
-  created. `changed?` is not the strict complement of `same?`, because it does
-  not consider any two strings the same - only the exact same string."
+  created. `changed?` is not the strict complement of `resuable?`, because it
+  does not consider any two strings the same - only the exact same string."
   [new old]
   (or (not= (type old) (type new))
-      (and (not (hiccup/hiccup? old)) (not= new old))
-      (not= (hiccup/get-tag-name old) (hiccup/get-tag-name new))))
+      (and (string? old) (not= new old))
+      (not= (nth old hiccup-tag-name) (nth new hiccup-tag-name))))
 
 ;; reconcile* and update-children are mutually recursive
 (declare reconcile*)
@@ -256,16 +360,21 @@
     (cond
       (nil? xs) -1
       (f (first xs)) n
-      :else (recur (inc n) (next xs)))))
+      :else (recur (unchecked-inc-int n) (next xs)))))
+
+(defn get-ns [headers]
+  (or (nth headers hiccup-ns)
+      (tag->ns (nth headers hiccup-tag-name))))
 
 (defn update-children [impl el new old]
   (let [r (:renderer impl)
-        get-child #(r/get-child r el %)]
-    (loop [new-c (:children new)
-           old-c (:children old)
+        get-child #(r/get-child r el %)
+        old-children (get-children (get-ns old) old)]
+    (loop [new-c (seq (get-children (get-ns new) new))
+           old-c (seq old-children)
            n 0
            move-n 0
-           n-children (count (:children old))
+           n-children (count old-children)
            changed? false]
       (let [new-hiccup (first new-c)
             old-hiccup (first old-c)]
@@ -288,90 +397,89 @@
             true)
 
           ;; It's "the same node" (e.g. reusable), reconcile
-          (same? new-hiccup old-hiccup)
+          (reusable? new-hiccup old-hiccup)
           (let [node-changed? (not= new-hiccup old-hiccup)]
-            (reconcile* impl el new-hiccup old-hiccup {:index n})
+            (reconcile* impl el new-hiccup old-hiccup n)
             (when (and (not node-changed?) (< n move-n))
               (register-hook impl (get-child n) new-hiccup old-hiccup [:replicant/move-node]))
-            (recur (next new-c) (next old-c) (inc n) move-n n-children (or changed? node-changed?)))
+            (recur (next new-c) (next old-c) (unchecked-inc-int n) move-n n-children (or changed? node-changed?)))
 
-          ;; Nodes have moved. Find the original position of the two nodes
-          ;; currently being considered, and move the one that is currently the
-          ;; furthest away, create node or remove node accordingly.
+          ;; Nodes are either new, have been replaced, or have moved. Find the
+          ;; original position of the two nodes currently being considered, to
+          ;; determine which it is.
           :else
-          (let [o-idx (index-of #(same? new-hiccup %) old-c)
-                n-idx (index-of #(same? old-hiccup %) new-c)]
-            (cond
+          (let [o-idx (index-of #(reusable? new-hiccup %) old-c)]
+            (if (< o-idx 0)
               ;; new-hiccup represents a node that did not previously exist,
               ;; create it
-              (< o-idx 0)
               (let [child (create-node impl new-hiccup)]
                 (if (<= n-children n)
                   (r/append-child r el child)
                   (r/insert-before r el child (get-child n)))
-                (recur (next new-c) old-c (inc n) move-n (inc n-children) true))
+                (recur (next new-c) old-c (unchecked-inc-int n) move-n (unchecked-inc-int n-children) true))
+              (let [n-idx (index-of #(reusable? old-hiccup %) new-c)]
+                (cond
+                  ;; the old node no longer exists, remove it
+                  (< n-idx 0)
+                  (let [child (get-child n)]
+                    (r/remove-child r el child)
+                    (register-hook impl child nil old-hiccup)
+                    (recur new-c (next old-c) n move-n (dec n-children) true))
 
-              ;; the old node no longer exists, remove it
-              (< n-idx 0)
-              (let [child (get-child n)]
-                (r/remove-child r el child)
-                (register-hook impl child nil old-hiccup)
-                (recur new-c (next old-c) n move-n (dec n-children) true))
+                  (< o-idx n-idx)
+                  ;; The new node needs to be moved back
+                  ;;
+                  ;; Old: 1 2 3
+                  ;; New: 2 3 1
+                  ;;
+                  ;; old-hiccup: 1, n-idx: 2
+                  ;; new-hiccup: 2, o-idx: 1
+                  ;;
+                  ;; The old node is now at the end, move it there and continue. It
+                  ;; will be reconciled when the loop reaches it.
+                  ;;
+                  ;; append-child 0
+                  ;; Old: 2 3 1
+                  ;; New: 2 3 1
+                  (let [idx (+ n n-idx 1)
+                        child (get-child n)]
+                    (if (< idx n-children)
+                      (r/insert-before r el child (get-child idx))
+                      (r/append-child r el child))
+                    (register-hook impl child (nth new-c n-idx) old-hiccup [:replicant/move-node])
+                    (recur
+                     new-c
+                     (concat (take n-idx (next old-c)) [(first old-c)] (drop (unchecked-inc-int n-idx) old-c))
+                     n
+                     (dec idx)
+                     n-children
+                     true))
 
-              (< o-idx n-idx)
-              ;; The new node needs to be moved back
-              ;;
-              ;; Old: 1 2 3
-              ;; New: 2 3 1
-              ;;
-              ;; old-hiccup: 1, n-idx: 2
-              ;; new-hiccup: 2, o-idx: 1
-              ;;
-              ;; The old node is now at the end, move it there and continue. It
-              ;; will be reconciled when the loop reaches it.
-              ;;
-              ;; append-child 0
-              ;; Old: 2 3 1
-              ;; New: 2 3 1
-              (let [idx (+ n n-idx 1)
-                    child (get-child n)]
-                (if (< idx n-children)
-                  (r/insert-before r el child (get-child idx))
-                  (r/append-child r el child))
-                (register-hook impl child (nth new-c n-idx) old-hiccup [:replicant/move-node])
-                (recur
-                 new-c
-                 (concat (take n-idx (next old-c)) [(first old-c)] (drop (inc n-idx) old-c))
-                 n
-                 (dec idx)
-                 n-children
-                 true))
+                  :else
+                  ;; The new node needs to be brought to the front
+                  ;;
+                  ;; Old: 1 2 3
+                  ;; New: 3 1 2
+                  ;;
+                  ;; old-hiccup: 1, n-idx: 1
+                  ;; new-hiccup: 3, o-idx: 2
+                  ;;
+                  ;; The new node used to be at the end, move it to the front and
+                  ;; reconcile it, then continue with the rest of the nodes.
+                  ;;
+                  ;; insert-before 3 1
+                  ;; Old: 1 2
+                  ;; New: 1 2
+                  (let [idx (+ n o-idx)
+                        child (get-child idx)
+                        corresponding-old-hiccup (nth old-c o-idx)]
+                    (r/insert-before r el child (get-child n))
+                    (reconcile* impl el new-hiccup corresponding-old-hiccup n)
+                    (when (= new-hiccup corresponding-old-hiccup)
+                      (register-hook impl child new-hiccup corresponding-old-hiccup [:replicant/move-node]))
+                    (recur (next new-c) (concat (take o-idx old-c) (drop (unchecked-inc-int o-idx) old-c)) (unchecked-inc-int n) (unchecked-inc-int (+ n o-idx)) n-children true)))))))))))
 
-              :else
-              ;; The new node needs to be brought to the front
-              ;;
-              ;; Old: 1 2 3
-              ;; New: 3 1 2
-              ;;
-              ;; old-hiccup: 1, n-idx: 1
-              ;; new-hiccup: 3, o-idx: 2
-              ;;
-              ;; The new node used to be at the end, move it to the front and
-              ;; reconcile it, then continue with the rest of the nodes.
-              ;;
-              ;; insert-before 3 1
-              ;; Old: 1 2
-              ;; New: 1 2
-              (let [idx (+ n o-idx)
-                    child (get-child idx)
-                    corresponding-old-hiccup (nth old-c o-idx)]
-                (r/insert-before r el child (get-child n))
-                (reconcile* impl el new-hiccup corresponding-old-hiccup {:index n})
-                (when (= new-hiccup corresponding-old-hiccup)
-                  (register-hook impl child new-hiccup corresponding-old-hiccup [:replicant/move-node]))
-                (recur (next new-c) (concat (take o-idx old-c) (drop (inc o-idx) old-c)) (inc n) (inc (+ n o-idx)) n-children true)))))))))
-
-(defn reconcile* [{:keys [renderer] :as impl} el new old {:keys [index]}]
+(defn reconcile* [{:keys [renderer] :as impl} el new old index]
   (cond
     (= new old)
     nil
@@ -389,14 +497,12 @@
 
     ;; Update the node's attributes and reconcile its children
     (not (string? new))
-    (let [old* (inflate-hiccup old)
-          new* (inflate-hiccup new)
-          child (r/get-child renderer el index)
-          attrs-changed? (update-attributes renderer child (:attrs new*) (:attrs old*))
-          children-changed? (update-children impl child new* old*)
+    (let [child (r/get-child renderer el index)
+          attrs-changed? (update-attributes renderer child new old)
+          children-changed? (update-children impl child new old)
           attrs-changed? (or attrs-changed?
-                             (not= (:replicant/on-update (second new))
-                                   (:replicant/on-update (second old))))]
+                             (not= (:replicant/on-update (nth new hiccup-attrs))
+                                   (:replicant/on-update (nth old hiccup-attrs))))]
       (->> [(when attrs-changed? :replicant/updated-attrs)
             (when children-changed? :replicant/updated-children)]
            (remove nil?)
@@ -411,8 +517,8 @@
   (let [impl {:renderer renderer
               :hooks (atom [])}]
     (if (nil? old)
-      (r/append-child renderer el (create-node impl new))
-      (reconcile* impl el new old {:index 0}))
+      (r/append-child renderer el (create-node impl (get-hiccup-headers new nil)))
+      (reconcile* impl el (get-hiccup-headers new nil) (get-hiccup-headers old nil) 0))
     (let [hooks @(:hooks impl)]
       (run! call-hooks hooks)
       {:hooks hooks})))

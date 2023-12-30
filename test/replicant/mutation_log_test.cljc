@@ -87,6 +87,13 @@
             [:append-child "Hello world" :to "h1"]
             [:append-child [:h1 "Hello world"] :to "Document"]])))
 
+  (testing "Adds id from hiccup symbol"
+    (is (= (->> (render [:h1#heading "Hello world"])
+                get-events
+                summarize
+                (filter (comp #{:set-attribute} first)))
+           [[:set-attribute [:h1 ""] "id" nil :to "heading"]])))
+
   (testing "Changes attribute"
     (is (= (-> (render [:h1 {:lang "en"} "Hello world"])
                (render [:h1 {:lang "nb"} "Hello world"])
