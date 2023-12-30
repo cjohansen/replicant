@@ -17,7 +17,7 @@
 (defn hiccup? [sexp]
   (and (vector? sexp)
        (not (map-entry? sexp))
-       (or (keyword? (first sexp)) (fn? (first sexp)))))
+       (keyword? (first sexp))))
 
 (defn parse-tag [^String tag]
   ;; Borrowed from hiccup, and adapted to support multiple classes
