@@ -8,8 +8,8 @@
            ["h1" nil nil nil {} ["Hello world"] nil])))
 
   (testing "Flattens children"
-    (is (= (->> (sut/get-hiccup-headers [:h1 (list (list "Hello world"))] nil)
-                (sut/get-children nil))
+    (is (= (-> (sut/get-hiccup-headers [:h1 (list (list "Hello world"))] nil)
+               (sut/get-children nil))
            ["Hello world"])))
 
   (testing "Pixelizes styles"

@@ -152,7 +152,7 @@
   "Given an optional tag namespace `ns` (e.g. for SVG nodes) and `headers`, as
   produced by `get-hiccup-headers`, returns a flat collection of children as
   \"hiccup headers\". Children will carry the `ns`, if any."
-  [ns headers]
+  [headers ns]
   (when-not (:innerHTML (nth headers hiccup-attrs))
     (->> (nth headers hiccup-children)
          flatten-seqs
@@ -326,8 +326,7 @@
                    "http://www.w3.org/2000/svg"))
           node (r/create-element renderer tag-name (when ns {:ns ns}))]
       (set-attributes renderer node (get-attrs hiccup-headers))
-      (->> hiccup-headers
-           (get-children ns)
+      (->> (get-children hiccup-headers ns)
            (run! #(r/append-child renderer node (create-node impl %))))
       (register-hook impl node hiccup-headers)
       node)))
@@ -371,8 +370,8 @@
 
 (defn update-children [impl el new old]
   (let [r (:renderer impl)
-        old-children (get-children (get-ns old) old)]
-    (loop [new-c (seq (get-children (get-ns new) new))
+        old-children (get-children old (get-ns old))]
+    (loop [new-c (seq (get-children new (get-ns new)))
            old-c (seq old-children)
            n 0
            move-n 0
