@@ -14,9 +14,6 @@
 #_(set! *warn-on-reflection* true)
 #_(set! *unchecked-math* :warn-on-boxed)
 
-(def tag->ns
-  {"svg" "http://www.w3.org/2000/svg"})
-
 (defn hiccup? [sexp]
   (and (vector? sexp)
        (not (map-entry? sexp))
@@ -324,7 +321,9 @@
   (if (string? hiccup-headers)
     (r/create-text-node renderer hiccup-headers)
     (let [tag-name (nth hiccup-headers hiccup-tag-name)
-          ns (or (nth hiccup-headers hiccup-ns) (tag->ns tag-name))
+          ns (or (nth hiccup-headers hiccup-ns)
+                 (when (= "svg" tag-name)
+                   "http://www.w3.org/2000/svg"))
           node (r/create-element renderer tag-name (when ns {:ns ns}))]
       (set-attributes renderer node (get-attrs hiccup-headers))
       (->> hiccup-headers
@@ -367,8 +366,8 @@
 
 (defn get-ns [headers]
   (or (nth headers hiccup-ns)
-      (and (= "svg" (nth headers hiccup-tag-name))
-           "http://www.w3.org/2000/svg")))
+      (when (= "svg" (nth headers hiccup-tag-name))
+        "http://www.w3.org/2000/svg")))
 
 (defn update-children [impl el new old]
   (let [r (:renderer impl)
