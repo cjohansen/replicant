@@ -523,4 +523,4 @@
       (reconcile* impl el (get-hiccup-headers new nil) (get-hiccup-headers old nil) 0))
     (let [hooks @(:hooks impl)]
       (run! call-hooks hooks)
-      {:hooks hooks})))
+      hooks)))
