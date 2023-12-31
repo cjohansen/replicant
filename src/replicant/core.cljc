@@ -148,6 +148,7 @@
                    :else (conj! res x))) (transient []) xs)))
 
 
+
 (defn get-children
   "Given an optional tag namespace `ns` (e.g. for SVG nodes) and `headers`, as
   produced by `get-hiccup-headers`, returns a flat collection of children as
@@ -509,8 +510,16 @@
           attrs-changed? (or attrs-changed?
                              (not= (:replicant/on-update (nth new hiccup-attrs))
                                    (:replicant/on-update (nth old hiccup-attrs))))]
-      (->> [(when attrs-changed? :replicant/updated-attrs)
-            (when children-changed? :replicant/updated-children)]
+      (->> (cond
+             (and attrs-changed? children-changed?)
+             [:replicant/updated-attrs
+              :replicant/updated-children]
+
+             attrs-changed?
+             [:replicant/updated-attrs]
+
+             :else
+             [:replicant/updated-children])
            (remove nil?)
            (register-hook impl child new old))
       true)))
