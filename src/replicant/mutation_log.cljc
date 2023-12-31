@@ -128,7 +128,7 @@
 (defn render [element new-hiccup & [old-hiccup]]
   (let [el (atom (or element {}))
         renderer (create-renderer {:log (atom []) :element el})
-        {:keys [hooks]} (d/reconcile renderer el new-hiccup old-hiccup)]
+        hooks (d/reconcile renderer el new-hiccup old-hiccup)]
     {:el (-> renderer
              (update :log deref)
              (update :element deref))
