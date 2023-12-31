@@ -141,12 +141,12 @@
       (string? (:style attrs)) (update :style explode-styles))))
 
 (defn flatten-seqs [xs]
-  (loop [res []
-         [x & xs] xs]
-    (cond
-      (and (nil? xs) (nil? x)) (not-empty res)
-      (seq? x) (recur (into res (flatten-seqs x)) xs)
-      :else (recur (conj res x) xs))))
+  (persistent!
+   (reduce (fn [res x]
+             (cond (nil? x) res
+                   (seq? x) (reduce conj! res (flatten-seqs x))
+                   :else (conj! res x))) (transient []) xs)))
+
 
 (defn get-children
   "Given an optional tag namespace `ns` (e.g. for SVG nodes) and `headers`, as
@@ -367,6 +367,8 @@
   (or (nth headers hiccup-ns)
       (when (= "svg" (nth headers hiccup-tag-name))
         "http://www.w3.org/2000/svg")))
+
+(def move-node-details [:replicant/move-node])
 
 (defn update-children [impl el new old]
   (let [r (:renderer impl)
