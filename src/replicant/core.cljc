@@ -475,8 +475,7 @@
                         child (r/get-child r el idx)
                         corresponding-old-hiccup (nth old-c o-idx)]
                     (r/insert-before r el child (r/get-child r el n))
-                    (reconcile* impl el new-hiccup corresponding-old-hiccup n)
-                    (when (= new-hiccup corresponding-old-hiccup)
+                    (when (not (reconcile* impl el new-hiccup corresponding-old-hiccup n))
                       (register-hook impl child new-hiccup corresponding-old-hiccup [:replicant/move-node]))
                     (recur (next new-c) (concat (take o-idx old-c) (drop (unchecked-inc-int o-idx) old-c)) (unchecked-inc-int n) (unchecked-inc-int (unchecked-add-int n o-idx)) n-children true)))))))))))
 
