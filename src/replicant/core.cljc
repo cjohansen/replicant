@@ -400,8 +400,7 @@
 
           ;; It's "the same node" (e.g. reusable), reconcile
           (reusable? new-hiccup old-hiccup)
-          (let [node-changed? (not= new-hiccup old-hiccup)]
-            (reconcile* impl el new-hiccup old-hiccup n)
+          (let [node-changed? (reconcile* impl el new-hiccup old-hiccup n)]
             (when (and (not node-changed?) (< n move-n))
               (register-hook impl (r/get-child r el n) new-hiccup old-hiccup [:replicant/move-node]))
             (recur (next new-c) (next old-c) (unchecked-inc-int n) move-n n-children (or changed? node-changed?)))
@@ -484,18 +483,20 @@
 (defn reconcile* [{:keys [renderer] :as impl} el new old index]
   (cond
     (= new old)
-    nil
+    false
 
     (nil? new)
     (let [child (r/get-child renderer el index)]
       (r/remove-child renderer el child)
-      (register-hook impl child new old))
+      (register-hook impl child new old)
+      true)
 
     ;; The node at this index is of a different type than before, replace it
     ;; with a fresh one. Use keys to avoid ending up here.
     (changed? new old)
     (let [node (create-node impl new)]
-      (r/replace-child renderer el node (r/get-child renderer el index)))
+      (r/replace-child renderer el node (r/get-child renderer el index))
+      true)
 
     ;; Update the node's attributes and reconcile its children
     (not (string? new))
@@ -508,7 +509,8 @@
       (->> [(when attrs-changed? :replicant/updated-attrs)
             (when children-changed? :replicant/updated-children)]
            (remove nil?)
-           (register-hook impl child new old)))))
+           (register-hook impl child new old))
+      true)))
 
 (defn reconcile
   "Reconcile the DOM in `el` by diffing the `new` hiccup with the `old` hiccup. If
