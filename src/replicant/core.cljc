@@ -386,10 +386,11 @@
 
           ;; There are old nodes where there are no new nodes: delete
           (nil? new-c)
-          (let [child (r/get-child r el n)]
-            (r/remove-child r el child)
-            (register-hook impl child nil old-hiccup)
-            (recur nil (next old-c) n move-n (dec n-children) true))
+          (do
+            (run! #(let [child (r/get-child r el n)]
+                     (r/remove-child r el child)
+                     (register-hook impl child nil %)) old-c)
+            true)
 
           ;; There are new nodes where there were no old ones: create
           (nil? old-c)
