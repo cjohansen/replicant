@@ -145,7 +145,7 @@
          [x & xs] xs]
     (cond
       (and (nil? xs) (nil? x)) (not-empty res)
-      (seq? x) (recur (into res (flatten-seqs x)) xs)
+      (seq? x) (recur (concat res (flatten-seqs x)) xs)
       :else (recur (conj res x) xs))))
 
 (defn get-children
