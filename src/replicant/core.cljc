@@ -140,14 +140,18 @@
       (seq classes) (assoc :classes classes)
       (string? (:style attrs)) (update :style explode-styles))))
 
+(defn ^:private flatten-seqs* [xs coll]
+  (reduce
+   (fn [_ x]
+     (cond (nil? x) nil
+           (seq? x) (flatten-seqs* x coll)
+           :else (conj! coll x)))
+   nil xs))
+
 (defn flatten-seqs [xs]
-  (persistent!
-   (reduce (fn [res x]
-             (cond (nil? x) res
-                   (seq? x) (reduce conj! res (flatten-seqs x))
-                   :else (conj! res x))) (transient []) xs)))
-
-
+  (let [coll (transient [])]
+    (flatten-seqs* xs coll)
+    (persistent! coll)))
 
 (defn get-children
   "Given an optional tag namespace `ns` (e.g. for SVG nodes) and `headers`, as
