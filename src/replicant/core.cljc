@@ -368,6 +368,8 @@
       (when (= "svg" (nth headers hiccup-tag-name))
         "http://www.w3.org/2000/svg")))
 
+(def move-node-details [:replicant/move-node])
+
 (defn update-children [impl el new old]
   (let [r (:renderer impl)
         old-children (get-children old (get-ns old))]
@@ -402,7 +404,7 @@
           (reusable? new-hiccup old-hiccup)
           (let [node-changed? (reconcile* impl el new-hiccup old-hiccup n)]
             (when (and (not node-changed?) (< n move-n))
-              (register-hook impl (r/get-child r el n) new-hiccup old-hiccup [:replicant/move-node]))
+              (register-hook impl (r/get-child r el n) new-hiccup old-hiccup move-node-details))
             (recur (next new-c) (next old-c) (unchecked-inc-int n) move-n n-children (or changed? node-changed?)))
 
           ;; Nodes are either new, have been replaced, or have moved. Find the
@@ -447,7 +449,7 @@
                     (if (< idx n-children)
                       (r/insert-before r el child (r/get-child r el idx))
                       (r/append-child r el child))
-                    (register-hook impl child (nth new-c n-idx) old-hiccup [:replicant/move-node])
+                    (register-hook impl child (nth new-c n-idx) old-hiccup move-node-details)
                     (recur
                      new-c
                      (concat (take n-idx (next old-c)) [(first old-c)] (drop (unchecked-inc-int n-idx) old-c))
@@ -478,7 +480,8 @@
                     (when (not (reconcile* impl el new-hiccup corresponding-old-hiccup n))
                       ;; If it didn't change, reconcile* did not schedule a hook
                       ;; Because the node just moved we still need the hook
-                      (register-hook impl child new-hiccup corresponding-old-hiccup [:replicant/move-node]))
+                      (register-hook impl child new-hiccup corresponding-old-hiccup move-node-details))
+
                     (recur (next new-c) (concat (take o-idx old-c) (drop (unchecked-inc-int o-idx) old-c)) (unchecked-inc-int n) (unchecked-inc-int (unchecked-add-int n o-idx)) n-children true)))))))))))
 
 (defn reconcile* [{:keys [renderer] :as impl} el new old index]
