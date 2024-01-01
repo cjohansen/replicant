@@ -7,7 +7,7 @@
 (deftest hiccup-test
   (testing "Normalizes hiccup structure"
     (is (= (sut/get-hiccup-headers [:h1 "Hello world"] nil)
-           ["h1" nil nil nil {} ["Hello world"] nil])))
+           ["h1" nil nil nil {} ["Hello world"] nil [:h1 "Hello world"]])))
 
   (testing "Flattens children"
     (is (= (-> (sut/get-hiccup-headers [:h1 (list (list "Hello world"))] nil)
@@ -117,22 +117,24 @@
 
   (testing "Sets innerHTML at the expense of any children"
     (is (= (-> (h/render [:h1 {:innerHTML "Whoa!"} "Hello world"])
-               h/get-mutation-log-events)
+               h/get-mutation-log-events
+               h/summarize)
            [[:create-element "h1"]
-            [:set-attribute {:tag-name "h1"} "innerHTML" "Whoa!"]
-            [:append-child {} {:tag-name "h1" "innerHTML" "Whoa!"}]])))
+            [:set-attribute [:h1 ""] "innerHTML" nil :to "Whoa!"]
+            [:append-child [:h1 ""] :to "Document"]])))
 
   (testing "Removes innerHTML from node"
     (is (= (-> (h/render [:h1 {:innerHTML "Whoa!"} "Hello world"])
                (h/render [:h1 {} "Hello world"])
-               h/get-mutation-log-events)
+               h/get-mutation-log-events
+               h/summarize)
            [[:remove-attribute "innerHTML"]
             [:create-text-node "Hello world"]
-            [:append-child {:tag-name "h1"} "Hello world"]])))
+            [:append-child "Hello world" :to "h1"]])))
 
   (testing "Builds svg nodes"
     (is (= (-> (h/render [:svg {:viewBox "0 0 100 100"}
-                        [:g [:use {:xlink:href "#icon"}]]])
+                          [:g [:use {:xlink:href "#icon"}]]])
                h/get-mutation-log-events
                h/summarize)
            [[:create-element "svg" "http://www.w3.org/2000/svg"]
@@ -147,9 +149,9 @@
   (testing "Properly adds svg to existing nodes"
     (is (= (-> (h/render [:div [:h1 "Hello"]])
                (h/render [:div
-                        [:h1 "Hello"]
-                        [:svg {:viewBox "0 0 100 100"}
-                         [:g [:use {:xlink:href "#icon"}]]]])
+                          [:h1 "Hello"]
+                          [:svg {:viewBox "0 0 100 100"}
+                           [:g [:use {:xlink:href "#icon"}]]]])
                h/get-mutation-log-events
                h/summarize)
            [[:create-element "svg" "http://www.w3.org/2000/svg"]
@@ -163,85 +165,104 @@
 
   (testing "Properly namespaces new svg children"
     (is (= (-> (h/render [:svg {:viewBox "0 0 100 100"}
-                        [:g [:use {:xlink:href "#icon"}]]])
+                          [:g [:use {:xlink:href "#icon"}]]])
                (h/render [:svg {:viewBox "0 0 100 100"}
-                        [:g [:use {:xlink:href "#icon"}]]
-                        [:g]])
+                          [:g [:use {:xlink:href "#icon"}]]
+                          [:g]])
                h/get-mutation-log-events
                h/summarize
                first)
            [:create-element "g" "http://www.w3.org/2000/svg"])))
 
-  (testing "Moves existing nodes"
+(testing "Re-creates unkeyed moved nodes"
     (is (= (-> (h/render [:div
-                        [:h1 {} "Title"]
-                        [:p "Paragraph 1"]
-                        [:ul [:li "List"]]])
+                          [:h1 {} "Title"]
+                          [:p "Paragraph 1"]
+                          [:ul [:li "List"]]])
                (h/render [:div
-                        [:ul [:li "List"]]
-                        [:h1 {} "Title"]
-                        [:p "Paragraph 1"]])
+                          [:ul [:li "List"]]
+                          [:h1 {} "Title"]
+                          [:p "Paragraph 1"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "ul"]
+            [:create-element "li"]
+            [:create-text-node "List"]
+            [:append-child "List" :to "li"]
+            [:append-child [:li "List"] :to "ul"]
+            [:insert-before [:ul "List"] [:h1 "Title"] :in "div"]
+            [:remove-child [:ul "List"] :from "div"]])))
+
+  (testing "Moves existing nodes when keyed"
+    (is (= (-> (h/render [:div
+                          [:h1 {:key "h1"} "Title"]
+                          [:p {:key "p"} "Paragraph 1"]
+                          [:ul {:key "ul"} [:li "List"]]])
+               (h/render [:div
+                          [:ul {:key "ul"} [:li "List"]]
+                          [:h1 {:key "h1"} "Title"]
+                          [:p {:key "p"} "Paragraph 1"]])
                h/get-mutation-log-events
                h/summarize)
            [[:insert-before [:ul "List"] [:h1 "Title"] :in "div"]])))
 
   (testing "Does not move initial nodes in the desired position"
     (is (= (-> (h/render [:div
-                        [:h1 "Item #1"]
-                        [:h2 "Item #2"]
-                        [:h3 "Item #3"]
-                        [:h4 "Item #4"]
-                        [:h5 "Item #5"]])
+                          [:h1 {:key "1"} "Item #1"]
+                          [:h2 {:key "2"} "Item #2"]
+                          [:h3 {:key "3"} "Item #3"]
+                          [:h4 {:key "4"} "Item #4"]
+                          [:h5 {:key "5"} "Item #5"]])
                (h/render [:div
-                        [:h1 "Item #1"]
-                        [:h2 "Item #2"]
-                        [:h5 "Item #5"]
-                        [:h3 "Item #3"]
-                        [:h4 "Item #4"]])
+                          [:h1 {:key "1"} "Item #1"]
+                          [:h2 {:key "2"} "Item #2"]
+                          [:h5 {:key "5"} "Item #5"]
+                          [:h3 {:key "3"} "Item #3"]
+                          [:h4 {:key "4"} "Item #4"]])
                h/get-mutation-log-events
                h/summarize)
            [[:insert-before [:h5 "Item #5"] [:h3 "Item #3"] :in "div"]])))
 
   (testing "Moves keyed nodes"
     (is (= (-> (h/render [:ul
-                        [:li {:key "0"} "Item #1"]
-                        [:li {:key "1"} "Item #2"]
-                        [:li {:key "2"} "Item #3"]])
+                          [:li {:key "0"} "Item #1"]
+                          [:li {:key "1"} "Item #2"]
+                          [:li {:key "2"} "Item #3"]])
                (h/render [:ul
-                        [:li {:key "2"} "Item #3"]
-                        [:li {:key "0"} "Item #1"]
-                        [:li {:key "1"} "Item #2"]])
+                          [:li {:key "2"} "Item #3"]
+                          [:li {:key "0"} "Item #1"]
+                          [:li {:key "1"} "Item #2"]])
                h/get-mutation-log-events
                h/summarize)
            [[:insert-before [:li "Item #3"] [:li "Item #1"] :in "ul"]])))
 
   (testing "Only moves \"disorganized\" nodes in the middle"
     (is (= (-> (h/render [:ul
-                        [:li {:key "0"} "Item #1"]
-                        [:li {:key "1"} "Item #2"]
-                        [:li {:key "2"} "Item #3"]
-                        [:li {:key "3"} "Item #4"]
-                        [:li {:key "4"} "Item #5"]
-                        [:li {:key "5"} "Item #6"]])
+                          [:li {:key "0"} "Item #1"]
+                          [:li {:key "1"} "Item #2"]
+                          [:li {:key "2"} "Item #3"]
+                          [:li {:key "3"} "Item #4"]
+                          [:li {:key "4"} "Item #5"]
+                          [:li {:key "5"} "Item #6"]])
                (h/render [:ul
-                        [:li {:key "0"} "Item #1"]
-                        [:li {:key "1"} "Item #2"]
-                        [:li {:key "3"} "Item #4"]
-                        [:li {:key "4"} "Item #5"]
-                        [:li {:key "2"} "Item #3"]
-                        [:li {:key "5"} "Item #6"]])
+                          [:li {:key "0"} "Item #1"]
+                          [:li {:key "1"} "Item #2"]
+                          [:li {:key "3"} "Item #4"]
+                          [:li {:key "4"} "Item #5"]
+                          [:li {:key "2"} "Item #3"]
+                          [:li {:key "5"} "Item #6"]])
                h/get-mutation-log-events
                h/summarize)
            [[:insert-before [:li "Item #3"] [:li "Item #6"] :in "ul"]])))
 
   (testing "Moves nodes beyond end of original children"
     (is (= (-> (h/render [:ul
-                        [:li {:key "0"} "Item #1"]
-                        [:li {:key "1"} "Item #2"]])
+                          [:li {:key "0"} "Item #1"]
+                          [:li {:key "1"} "Item #2"]])
                (h/render [:ul
-                        [:li {:key "0"} "Item #1"]
-                        [:li {:key "2"} "Item #3"]
-                        [:li {:key "1"} "Item #2"]])
+                          [:li {:key "0"} "Item #1"]
+                          [:li {:key "2"} "Item #3"]
+                          [:li {:key "1"} "Item #2"]])
                h/get-mutation-log-events
                h/summarize)
            [[:create-element "li"]
@@ -251,20 +272,20 @@
 
   (testing "Does not re-add child nodes that did not move"
     (is (= (-> (h/render [:ul
-                        [:li {:key "0"} "Item #1"]
-                        [:li {:key "1"} "Item #2"]
-                        [:li {:key "2"} "Item #3"]
-                        [:li {:key "3"} "Item #4"]
-                        [:li {:key "4"} "Item #5"]
-                        [:li {:key "5"} "Item #6"]])
+                          [:li {:key "0"} "Item #1"]
+                          [:li {:key "1"} "Item #2"]
+                          [:li {:key "2"} "Item #3"]
+                          [:li {:key "3"} "Item #4"]
+                          [:li {:key "4"} "Item #5"]
+                          [:li {:key "5"} "Item #6"]])
                (h/render [:ul
-                        [:li {:key "0"} "Item #1"] ;; Same pos
-                        [:li {:key "4"} "Item #5"]
-                        [:li {:key "2"} "Item #3"] ;; Same pos
-                        [:li {:key "1"} "Item #2"]
-                        [:li {:key "3"} "Item #4"]
-                        [:li {:key "5"} "Item #6"] ;; Same pos
-                        ])
+                          [:li {:key "0"} "Item #1"] ;; Same pos
+                          [:li {:key "4"} "Item #5"]
+                          [:li {:key "2"} "Item #3"] ;; Same pos
+                          [:li {:key "1"} "Item #2"]
+                          [:li {:key "3"} "Item #4"]
+                          [:li {:key "5"} "Item #6"] ;; Same pos
+                          ])
                h/get-mutation-log-events
                h/summarize)
            [[:insert-before [:li "Item #5"] [:li "Item #2"] :in "ul"]
@@ -272,28 +293,28 @@
 
   (testing "Swaps adjacent nodes"
     (is (= (-> (h/render [:ul
-                        [:li {:key "0"} "Item #1"]
-                        [:li {:key "1"} "Item #2"]
-                        [:li {:key "2"} "Item #3"]
-                        [:li {:key "3"} "Item #4"]
-                        [:li {:key "4"} "Item #5"]])
+                          [:li {:key "0"} "Item #1"]
+                          [:li {:key "1"} "Item #2"]
+                          [:li {:key "2"} "Item #3"]
+                          [:li {:key "3"} "Item #4"]
+                          [:li {:key "4"} "Item #5"]])
                (h/render [:ul
-                        [:li {:key "0"} "Item #1"]
-                        [:li {:key "2"} "Item #3"]
-                        [:li {:key "1"} "Item #2"]
-                        [:li {:key "3"} "Item #4"]
-                        [:li {:key "4"} "Item #5"]])
+                          [:li {:key "0"} "Item #1"]
+                          [:li {:key "2"} "Item #3"]
+                          [:li {:key "1"} "Item #2"]
+                          [:li {:key "3"} "Item #4"]
+                          [:li {:key "4"} "Item #5"]])
                h/get-mutation-log-events
                h/summarize)
            [[:insert-before [:li "Item #3"] [:li "Item #2"] :in "ul"]])))
 
   (testing "Swaps nodes and adjusts attributes"
     (is (= (-> (h/render [:ul
-                        [:li {:key "0" :title "Numero uno"} "Item #1"]
-                        [:li {:key "1" :title "Numero dos"} "Item #2"]])
+                          [:li {:key "0" :title "Numero uno"} "Item #1"]
+                          [:li {:key "1" :title "Numero dos"} "Item #2"]])
                (h/render [:ul
-                        [:li {:key "1" :title "Number two"} "Item #2"]
-                        [:li {:key "0" :title "Number one"} "Item #1"]])
+                          [:li {:key "1" :title "Number two"} "Item #2"]
+                          [:li {:key "0" :title "Number one"} "Item #1"]])
                h/get-mutation-log-events
                h/summarize)
            [[:insert-before [:li "Item #2"] [:li "Item #1"] :in "ul"]
@@ -302,19 +323,19 @@
 
   (testing "Surgically swaps nodes"
     (is (= (-> (h/render [:ul
-                        [:li {:key "0"} "Item #1"]
-                        [:li {:key "1"} "Item #2"]
-                        [:li {:key "2"} "Item #3"]
-                        [:li {:key "3"} "Item #4"]
-                        [:li {:key "4"} "Item #5"]
-                        [:li {:key "5"} "Item #6"]])
+                          [:li {:key "0"} "Item #1"]
+                          [:li {:key "1"} "Item #2"]
+                          [:li {:key "2"} "Item #3"]
+                          [:li {:key "3"} "Item #4"]
+                          [:li {:key "4"} "Item #5"]
+                          [:li {:key "5"} "Item #6"]])
                (h/render [:ul
-                        [:li {:key "0"} "Item #1"]
-                        [:li {:key "4"} "Item #5"]
-                        [:li {:key "2"} "Item #3"]
-                        [:li {:key "3"} "Item #4"]
-                        [:li {:key "1"} "Item #2"]
-                        [:li {:key "5"} "Item #6"]])
+                          [:li {:key "0"} "Item #1"]
+                          [:li {:key "4"} "Item #5"]
+                          [:li {:key "2"} "Item #3"]
+                          [:li {:key "3"} "Item #4"]
+                          [:li {:key "1"} "Item #2"]
+                          [:li {:key "5"} "Item #6"]])
                h/get-mutation-log-events
                h/summarize)
            [[:insert-before [:li "Item #5"] [:li "Item #2"] :in "ul"]
@@ -322,13 +343,13 @@
 
   (testing "Surgically swaps nodes at the end"
     (is (= (-> (h/render [:ul
-                        [:li {:key "0"} "Item #1"]
-                        [:li {:key "1"} "Item #2"]
-                        [:li {:key "2"} "Item #3"]])
+                          [:li {:key "0"} "Item #1"]
+                          [:li {:key "1"} "Item #2"]
+                          [:li {:key "2"} "Item #3"]])
                (h/render [:ul
-                        [:li {:key "2"} "Item #3"]
-                        [:li {:key "1"} "Item #2"]
-                        [:li {:key "0"} "Item #1"]])
+                          [:li {:key "2"} "Item #3"]
+                          [:li {:key "1"} "Item #2"]
+                          [:li {:key "0"} "Item #1"]])
                h/get-mutation-log-events
                h/summarize)
            [[:insert-before [:li "Item #3"] [:li "Item #1"] :in "ul"]
@@ -336,13 +357,13 @@
 
   (testing "Replaces text content when elements are not keyed"
     (is (= (-> (h/render [:ul
-                        [:li "Item #1"]
-                        [:li "Item #2"]
-                        [:li "Item #3"]])
+                          [:li "Item #1"]
+                          [:li "Item #2"]
+                          [:li "Item #3"]])
                (h/render [:ul
-                        [:li "Item #1"]
-                        [:li "Item #3"]
-                        [:li "Item #2"]])
+                          [:li "Item #1"]
+                          [:li "Item #3"]
+                          [:li "Item #2"]])
                h/get-mutation-log-events
                h/summarize)
            [[:create-text-node "Item #3"]
@@ -352,12 +373,12 @@
 
   (testing "Moves and removes nodes"
     (is (= (-> (h/render [:ul
-                        [:li {:key 1} "Item #1"]
-                        [:li {:key 2} "Item #2"]
-                        [:li {:key 3} "Item #3"]])
+                          [:li {:key 1} "Item #1"]
+                          [:li {:key 2} "Item #2"]
+                          [:li {:key 3} "Item #3"]])
                (h/render [:ul
-                        [:li {:key 2} "Item #2"]
-                        [:li {:key 1} "Item #1"]])
+                          [:li {:key 2} "Item #2"]
+                          [:li {:key 1} "Item #1"]])
                h/get-mutation-log-events
                h/summarize)
            [[:insert-before [:li "Item #2"] [:li "Item #1"] :in "ul"]
@@ -365,9 +386,9 @@
 
   (testing "Clears out child nodes"
     (is (= (-> (h/render [:ul
-                        [:li {:key 1} "Item #1"]
-                        [:li {:key 2} "Item #2"]
-                        [:li {:key 3} "Item #3"]])
+                          [:li {:key 1} "Item #1"]
+                          [:li {:key 2} "Item #2"]
+                          [:li {:key 3} "Item #3"]])
                (h/render [:ul])
                h/get-mutation-log-events
                h/summarize)
@@ -377,26 +398,26 @@
 
   (testing "Deletes single child node"
     (is (= (-> (h/render [:ul
-                        [:li {:key 1} "Item #1"]
-                        [:li {:key 2} "Item #2"]
-                        [:li {:key 3} "Item #3"]])
+                          [:li {:key 1} "Item #1"]
+                          [:li {:key 2} "Item #2"]
+                          [:li {:key 3} "Item #3"]])
                (h/render [:ul
-                        [:li {:key 2} "Item #2"]
-                        [:li {:key 3} "Item #3"]])
+                          [:li {:key 2} "Item #2"]
+                          [:li {:key 3} "Item #3"]])
                h/get-mutation-log-events
                h/summarize)
            [[:remove-child [:li "Item #1"] :from "ul"]])))
 
   (testing "Adds node in the middle of existing nodes"
     (is (= (-> (h/render [:div
-                        [:h1 {} "Title"]
-                        [:p {:key :p1} "Paragraph 1"]
-                        [:p {:key :p2} "Paragraph 2"]])
+                          [:h1 {} "Title"]
+                          [:p {:key :p1} "Paragraph 1"]
+                          [:p {:key :p2} "Paragraph 2"]])
                (h/render [:div
-                        [:h1 {} "Title"]
-                        [:p {:key :p0} "Paragraph 0"]
-                        [:p {:key :p1} "Paragraph 1"]
-                        [:p {:key :p2} "Paragraph 2"]])
+                          [:h1 {} "Title"]
+                          [:p {:key :p0} "Paragraph 0"]
+                          [:p {:key :p1} "Paragraph 1"]
+                          [:p {:key :p2} "Paragraph 2"]])
                h/get-mutation-log-events
                h/summarize)
            [[:create-element "p"]
@@ -406,13 +427,13 @@
 
   (testing "Adds more nodes than there previously were children"
     (is (= (-> (h/render [:div
-                        [:h1 {} "Title"]
-                        [:p {:key :p2} "Paragraph 2"]])
+                          [:h1 {} "Title"]
+                          [:p {:key :p2} "Paragraph 2"]])
                (h/render [:div
-                        [:h1 {} "Title"]
-                        [:p {:key :p0} "Paragraph 0"]
-                        [:p {:key :p1} "Paragraph 1"]
-                        [:p {:key :p2} "Paragraph 2"]])
+                          [:h1 {} "Title"]
+                          [:p {:key :p0} "Paragraph 0"]
+                          [:p {:key :p1} "Paragraph 1"]
+                          [:p {:key :p2} "Paragraph 2"]])
                h/get-mutation-log-events
                h/summarize)
            [[:create-element "p"]
@@ -426,14 +447,14 @@
 
   (testing "Adds node at the end of existing nodes"
     (is (= (-> (h/render [:div
-                        [:h1 {} "Title"]
-                        [:p {:key :p1} "Paragraph 1"]
-                        [:p {:key :p2} "Paragraph 2"]])
+                          [:h1 {} "Title"]
+                          [:p {:key :p1} "Paragraph 1"]
+                          [:p {:key :p2} "Paragraph 2"]])
                (h/render [:div
-                        [:h1 {} "Title"]
-                        [:p {:key :p1} "Paragraph 1"]
-                        [:p {:key :p2} "Paragraph 2"]
-                        [:p {:key :p0} "Paragraph 3"]])
+                          [:h1 {} "Title"]
+                          [:p {:key :p1} "Paragraph 1"]
+                          [:p {:key :p2} "Paragraph 2"]
+                          [:p {:key :p0} "Paragraph 3"]])
                h/get-mutation-log-events
                h/summarize)
            [[:create-element "p"]
@@ -522,7 +543,8 @@
                  (binding [sut/*dispatch* (fn [e data] (reset! res {:e e :data data}))]
                    (h/render [:h1 {:replicant/on-update ["Update data"]} "Hi!"])
                    @res))
-               (update-in [:e :replicant/node] deref))
+               (update-in [:e :replicant/node] deref)
+               (update-in [:e :replicant/node] dissoc :replicant.mutation-log/id))
            {:e
             {:replicant/event :replicant.event/life-cycle
              :replicant/life-cycle :replicant/mount
@@ -534,7 +556,8 @@
     (is (= (-> (let [res (atom nil)]
                  (h/render [:h1 {:replicant/on-update #(reset! res %)} "Hi!"])
                  @res)
-               (update :replicant/node deref))
+               (update :replicant/node deref)
+               (update :replicant/node dissoc :replicant.mutation-log/id))
            {:replicant/event :replicant.event/life-cycle
             :replicant/life-cycle :replicant/mount
             :replicant/node {:tag-name "h1"
@@ -567,7 +590,7 @@
                  f (fn [e] (swap! res conj e))]
              (-> (h/render [:h1 {:replicant/on-update f} "Hi!"])
                  (h/render [:h1 {:title "Heading"
-                               :replicant/on-update f} "Hi!"]))
+                                 :replicant/on-update f} "Hi!"]))
              (h/summarize-events @res))
            [[:replicant/mount "h1"]
             [:replicant/update [:replicant/updated-attrs] "h1"]])))
@@ -576,7 +599,7 @@
     (is (= (let [res (atom [])
                  f (fn [e] (swap! res conj e))]
              (-> (h/render [:h1 {:title "Heading"
-                               :replicant/on-update f} "Hi!"])
+                                 :replicant/on-update f} "Hi!"])
                  (h/render nil))
              (map :replicant/life-cycle @res))
            [:replicant/mount
@@ -595,8 +618,8 @@
                  f (fn [e] (swap! res conj e))]
              (-> (h/render [:div [:h1 "Hi!"]])
                  (h/render [:div
-                          [:h1 "Hi!"]
-                          [:p {:replicant/on-update f} "New paragraph!"]]))
+                            [:h1 "Hi!"]
+                            [:p {:replicant/on-update f} "New paragraph!"]]))
              (map :replicant/life-cycle @res))
            [:replicant/mount])))
 
@@ -605,8 +628,8 @@
                  f (fn [e] (swap! res conj e))]
              (-> (h/render [:div [:h1 "Hi!"]])
                  (h/render [:div {:replicant/on-update f}
-                          [:h1 "Hi!"]
-                          [:p {:replicant/on-update f} "New paragraph!"]]))
+                            [:h1 "Hi!"]
+                            [:p {:replicant/on-update f} "New paragraph!"]]))
              (h/summarize-events @res))
            [[:replicant/mount "p"]
             [:replicant/update [:replicant/updated-attrs
@@ -617,11 +640,11 @@
                  f (fn [e] (swap! res conj e))]
              (-> (h/render [:div {:replicant/on-update f} [:h1 "Hi!"]])
                  (h/render [:div {:lang "en"
-                                :replicant/on-update f} [:h1 "Hi!"]])
+                                  :replicant/on-update f} [:h1 "Hi!"]])
                  (h/render [:div {:lang "en"
-                                :replicant/on-update f}
-                          [:h1 "Hi!"]
-                          [:p {:replicant/on-update f} "New paragraph!"]]))
+                                  :replicant/on-update f}
+                            [:h1 "Hi!"]
+                            [:p {:replicant/on-update f} "New paragraph!"]]))
              (h/summarize-events @res))
            [[:replicant/mount "div"]
             [:replicant/update [:replicant/updated-attrs] "div"]
@@ -639,17 +662,17 @@
     (is (= (let [res (atom [])
                  f (fn [e] (swap! res conj e))]
              (-> (h/render [:div
-                          [:h1 {:replicant/on-update f} "One"]
-                          [:p.p1 {:key :p1 :replicant/on-update f} "Two"]
-                          [:p.p2 {:key :p2 :replicant/on-update f} "Three"]
-                          [:p.p3 {:key :p3 :replicant/on-update f} "Four"]
-                          [:p.p4 {:key :p4 :replicant/on-update f} "Five"]])
+                            [:h1 {:replicant/on-update f} "One"]
+                            [:p.p1 {:key :p1 :replicant/on-update f} "Two"]
+                            [:p.p2 {:key :p2 :replicant/on-update f} "Three"]
+                            [:p.p3 {:key :p3 :replicant/on-update f} "Four"]
+                            [:p.p4 {:key :p4 :replicant/on-update f} "Five"]])
                  (h/render [:div
-                          [:h1 {:replicant/on-update f} "One"]
-                          [:p.p2 {:key :p2 :replicant/on-update f} "Three"]
-                          [:p.p3 {:key :p3 :replicant/on-update f} "Four"]
-                          [:p.p1 {:key :p1 :replicant/on-update f} "Two"]
-                          [:p.p4 {:key :p4 :replicant/on-update f} "Five"]]))
+                            [:h1 {:replicant/on-update f} "One"]
+                            [:p.p2 {:key :p2 :replicant/on-update f} "Three"]
+                            [:p.p3 {:key :p3 :replicant/on-update f} "Four"]
+                            [:p.p1 {:key :p1 :replicant/on-update f} "Two"]
+                            [:p.p4 {:key :p4 :replicant/on-update f} "Five"]]))
              (h/summarize-events @res))
            [[:replicant/mount "h1"]
             [:replicant/mount "p.p1"]
@@ -664,11 +687,15 @@
     (is (= (let [res (atom [])
                  f (fn [e] (swap! res conj e))]
              (-> (h/render [:div
-                          [:h1 {:replicant/on-update f} "One"]
-                          [:p {:replicant/on-update f} "Two"]])
+                            [:h1 {:key "h1"
+                                  :replicant/on-update f} "One"]
+                            [:p {:key "p"
+                                 :replicant/on-update f} "Two"]])
                  (h/render [:div
-                          [:p {:replicant/on-update f} "Two"]
-                          [:h1 {:replicant/on-update f} "One"]]))
+                            [:p {:key "p"
+                                 :replicant/on-update f} "Two"]
+                            [:h1 {:key "h1"
+                                  :replicant/on-update f} "One"]]))
              (h/summarize-events @res))
            [[:replicant/mount "h1"]
             [:replicant/mount "p"]
@@ -679,25 +706,25 @@
     (is (= (let [res (atom [])
                  f (fn [e] (swap! res conj e))]
              (-> (h/render [:div.mmm-container.mmm-section
-                          [:div.mmm-media.mmm-media-at
-                           [:article.mmm-vert-layout-spread
-                            [:div
-                             [:h1.mmm-h1 {:replicant/on-update f} "Banana"]
-                             [:p.mmm-p "03.456"]]
-                            [:div.mmm-vert-layout-s.mmm-mtm
-                             [:h2.mmm-p.mmm-desktop "Energy in 100 g"]
-                             [:h2.mmm-p.mmm-mobile.mmm-mbs "Energy"]
-                             [:p.mmm-h3.mmm-mbs.mmm-desktop "455 kJ"]]]]])
+                            [:div.mmm-media.mmm-media-at
+                             [:article.mmm-vert-layout-spread
+                              [:div
+                               [:h1.mmm-h1 {:replicant/on-update f} "Banana"]
+                               [:p.mmm-p "03.456"]]
+                              [:div.mmm-vert-layout-s.mmm-mtm
+                               [:h2.mmm-p.mmm-desktop "Energy in 100 g"]
+                               [:h2.mmm-p.mmm-mobile.mmm-mbs "Energy"]
+                               [:p.mmm-h3.mmm-mbs.mmm-desktop "455 kJ"]]]]])
                  (h/render [:div.mmm-container.mmm-section
-                          [:div.mmm-media.mmm-media-at
-                           [:article.mmm-vert-layout-spread
-                            [:div
-                             [:h1.mmm-h1 {:replicant/on-update f} "Banana!"]
-                             [:p.mmm-p "03.456"]]
-                            [:div.mmm-vert-layout-s.mmm-mtm
-                             [:h2.mmm-p.mmm-desktop "Energy in 100 g"]
-                             [:h2.mmm-p.mmm-mobile.mmm-mbs "Energy"]
-                             [:p.mmm-h3.mmm-mbs.mmm-desktop "455 kJ"]]]]]))
+                            [:div.mmm-media.mmm-media-at
+                             [:article.mmm-vert-layout-spread
+                              [:div
+                               [:h1.mmm-h1 {:replicant/on-update f} "Banana!"]
+                               [:p.mmm-p "03.456"]]
+                              [:div.mmm-vert-layout-s.mmm-mtm
+                               [:h2.mmm-p.mmm-desktop "Energy in 100 g"]
+                               [:h2.mmm-p.mmm-mobile.mmm-mbs "Energy"]
+                               [:p.mmm-h3.mmm-mbs.mmm-desktop "455 kJ"]]]]]))
              (h/summarize-events @res))
            [[:replicant/mount "h1.mmm-h1"]
             [:replicant/update [:replicant/updated-children] "h1.mmm-h1"]]))))
@@ -729,93 +756,69 @@
            [[:create-element "li"]
             [:insert-before [:li "#4"] [:li "#1"] :in "ul"]])))
 
-  ;; TODO: Suspicious behaviour
   (testing "Prepend two nodes"
     (is (= (-> (scenarios/prepend-two-nodes scenarios/vdom)
                h/get-mutation-log-events
+               h/summarize
                h/remove-text-node-events)
            [[:create-element "li"]
-            [:append-child {:tag-name "li"} "#4"]
-            [:insert-before
-             {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
-             {:tag-name "li", :children ["#4"]}
-             {:tag-name "li", :children ["#1"]}]
+            [:insert-before [:li "#4"] [:li "#1"] :in "ul"]
             [:create-element "li"]
-            [:append-child {:tag-name "li"} "#5"]
-            [:insert-before
-             {:tag-name "ul", :children [{:tag-name "li", :children ["#4"]} {:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
-             {:tag-name "li", :children ["#5"]}
-             {:tag-name "li", :children ["#1"]}]])))
+            [:insert-before [:li "#5"] [:li "#1"] :in "ul"]])))
 
-  ;; TODO: Suspicious behaviour
   (testing "Insert node"
     (is (= (-> (scenarios/insert-node scenarios/vdom)
                h/get-mutation-log-events
+               h/summarize
                h/remove-text-node-events)
            [[:create-element "li"]
-            [:append-child {:tag-name "li"} "#4"]
-            [:insert-before
-             {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
-             {:tag-name "li", :children ["#4"]}
-             {:tag-name "li", :children ["#2"]}]])))
+            [:insert-before [:li "#4"] [:li "#2"] :in "ul"]])))
 
-  ;; TODO: Suspicious behaviour
   (testing "Insert two consecutive nodes"
     (is (= (-> (scenarios/insert-two-consecutive-nodes scenarios/vdom)
                h/get-mutation-log-events
+               h/summarize
                h/remove-text-node-events)
            [[:create-element "li"]
-            [:append-child {:tag-name "li"} "#4"]
-            [:insert-before
-             {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
-             {:tag-name "li", :children ["#4"]}
-             {:tag-name "li", :children ["#2"]}]
+            [:insert-before [:li "#4"] [:li "#2"] :in "ul"]
             [:create-element "li"]
-            [:append-child {:tag-name "li"} "#5"]
-            [:insert-before
-             {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#4"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
-             {:tag-name "li", :children ["#5"]}
-             {:tag-name "li", :children ["#2"]}]])))
+            [:insert-before [:li "#5"] [:li "#2"] :in "ul"]])))
 
-  ;; TODO: Suspicious behaviour
   (testing "Insert two nodes"
     (is (= (-> (scenarios/insert-two-nodes scenarios/vdom)
                h/get-mutation-log-events
+               h/summarize
                h/remove-text-node-events)
            [[:create-element "li"]
-            [:append-child {:tag-name "li"} "#4"]
-            [:insert-before
-             {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
-             {:tag-name "li", :children ["#4"]}
-             {:tag-name "li", :children ["#2"]}]
+            [:insert-before [:li "#4"] [:li "#2"] :in "ul"]
             [:create-element "li"]
-            [:append-child {:tag-name "li"} "#5"]
-            [:insert-before
-             {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#4"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
-             {:tag-name "li", :children ["#5"]}
-             {:tag-name "li", :children ["#3"]}]])))
+            [:insert-before [:li "#5"] [:li "#3"] :in "ul"]])))
 
   (testing "Remove last node"
     (is (= (-> (scenarios/remove-last-node scenarios/vdom)
                h/get-mutation-log-events
+               h/summarize
                h/remove-text-node-events)
-           [[:remove-child {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]} {:tag-name "li", :children ["#3"]}]])))
+           [[:remove-child [:li "#3"] :from "ul"]])))
 
   (testing "Remove first node"
     (is (= (-> (scenarios/remove-first-node scenarios/vdom)
                h/get-mutation-log-events
+               h/summarize
                h/remove-text-node-events)
-           [[:remove-child {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]} {:tag-name "li", :children ["#1"]}]])))
+           [[:remove-child [:li "#1"] :from "ul"]])))
 
   (testing "Remove middle node"
     (is (= (-> (scenarios/remove-middle-node scenarios/vdom)
                h/get-mutation-log-events
+               h/summarize
                h/remove-text-node-events)
-           [[:remove-child {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]} {:tag-name "li", :children ["#2"]}]])))
+           [[:remove-child [:li "#2"] :from "ul"]])))
 
   (testing "Swap nodes"
     (is (= (-> (scenarios/swap-nodes scenarios/vdom)
                h/get-mutation-log-events
+               h/summarize
                h/remove-text-node-events)
-           [[:insert-before {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]} {:tag-name "li", :children ["#3"]} {:tag-name "li", :children ["#1"]}]
-            [:insert-before {:tag-name "ul", :children [{:tag-name "li", :children ["#3"]} {:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]}]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#1"]}]]))))
+           [[:insert-before [:li "#3"] [:li "#1"] :in "ul"]
+            [:insert-before [:li "#2"] [:li "#1"] :in "ul"]]))))

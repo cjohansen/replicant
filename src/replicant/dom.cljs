@@ -85,14 +85,14 @@
     (get-child [_this el idx]
       (aget (.-childNodes el) idx))))
 
-(defonce state (atom {}))
+(defonce state (volatile! {}))
 
 (defn ^:export render [el hiccup]
   (when-not (contains? @state el)
-    (swap! state assoc el {:renderer (create-renderer)}))
-  (let [{:keys [renderer current]} (get @state el)]
-    (r/reconcile renderer el hiccup current))
-  (swap! state assoc-in [el :current] hiccup)
+    (vswap! state assoc el {:renderer (create-renderer)}))
+  (let [{:keys [renderer current]} (get @state el)
+        {:keys [vdom]} (r/reconcile renderer el hiccup current)]
+    (vswap! state assoc-in [el :current] vdom))
   el)
 
 (defn ^:export set-dispatch! [f]

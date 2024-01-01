@@ -71,9 +71,9 @@
       event)))
 
 (defn render
-  ([vdom] (assoc (mutation-log/render nil vdom) :current vdom))
-  ([{:keys [current el]} vdom]
-   (assoc (mutation-log/render (:element el) vdom current) :current vdom)))
+  ([vdom] (mutation-log/render nil vdom))
+  ([{:keys [vdom el]} new-vdom]
+   (mutation-log/render (:element el) new-vdom vdom)))
 
 (defn text-node-event? [event]
   (or (= :create-text-node (first event))
