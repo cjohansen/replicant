@@ -125,14 +125,15 @@
      :element (or element (atom {}))}
     mutation-log-impl))
 
-(defn render [element new-hiccup & [old-hiccup]]
+(defn render [element new-hiccup & [old-vdom]]
   (let [el (atom (or element {}))
         renderer (create-renderer {:log (atom []) :element el})
-        hooks (d/reconcile renderer el new-hiccup old-hiccup)]
+        {:keys [hooks vdom]} (d/reconcile renderer el new-hiccup old-vdom)]
     {:el (-> renderer
              (update :log deref)
              (update :element deref))
-     :hooks hooks}))
+     :hooks hooks
+     :vdom vdom}))
 
 (comment
   (do
