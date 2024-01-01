@@ -1,6 +1,7 @@
 (ns replicant.core-test
   (:require [clojure.test :refer [deftest is testing]]
             [replicant.core :as sut]
+            [replicant.scenarios :as scenarios]
             [replicant.test-helper :as h]))
 
 (deftest hiccup-test
@@ -700,3 +701,121 @@
              (h/summarize-events @res))
            [[:replicant/mount "h1.mmm-h1"]
             [:replicant/update [:replicant/updated-children] "h1.mmm-h1"]]))))
+
+(deftest update-children-test
+  (testing "Append node"
+    (is (= (-> (scenarios/append-node scenarios/vdom)
+               h/get-mutation-log-events
+               h/summarize
+               h/remove-text-node-events)
+           [[:create-element "li"]
+            [:append-child [:li "#4"] :to "ul"]])))
+
+  (testing "Append two nodes"
+    (is (= (-> (scenarios/append-two-nodes scenarios/vdom)
+               h/get-mutation-log-events
+               h/summarize
+               h/remove-text-node-events)
+           [[:create-element "li"]
+            [:append-child [:li "#4"] :to "ul"]
+            [:create-element "li"]
+            [:append-child [:li "#5"] :to "ul"]])))
+
+  (testing "Prepend node"
+    (is (= (-> (scenarios/prepend-node scenarios/vdom)
+               h/get-mutation-log-events
+               h/summarize
+               h/remove-text-node-events)
+           [[:create-element "li"]
+            [:insert-before [:li "#4"] [:li "#1"] :in "ul"]])))
+
+  ;; TODO: Suspicious behaviour
+  (testing "Prepend two nodes"
+    (is (= (-> (scenarios/prepend-two-nodes scenarios/vdom)
+               h/get-mutation-log-events
+               h/remove-text-node-events)
+           [[:create-element "li"]
+            [:append-child {:tag-name "li"} "#4"]
+            [:insert-before
+             {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
+             {:tag-name "li", :children ["#4"]}
+             {:tag-name "li", :children ["#1"]}]
+            [:create-element "li"]
+            [:append-child {:tag-name "li"} "#5"]
+            [:insert-before
+             {:tag-name "ul", :children [{:tag-name "li", :children ["#4"]} {:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
+             {:tag-name "li", :children ["#5"]}
+             {:tag-name "li", :children ["#1"]}]])))
+
+  ;; TODO: Suspicious behaviour
+  (testing "Insert node"
+    (is (= (-> (scenarios/insert-node scenarios/vdom)
+               h/get-mutation-log-events
+               h/remove-text-node-events)
+           [[:create-element "li"]
+            [:append-child {:tag-name "li"} "#4"]
+            [:insert-before
+             {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
+             {:tag-name "li", :children ["#4"]}
+             {:tag-name "li", :children ["#2"]}]])))
+
+  ;; TODO: Suspicious behaviour
+  (testing "Insert two consecutive nodes"
+    (is (= (-> (scenarios/insert-two-consecutive-nodes scenarios/vdom)
+               h/get-mutation-log-events
+               h/remove-text-node-events)
+           [[:create-element "li"]
+            [:append-child {:tag-name "li"} "#4"]
+            [:insert-before
+             {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
+             {:tag-name "li", :children ["#4"]}
+             {:tag-name "li", :children ["#2"]}]
+            [:create-element "li"]
+            [:append-child {:tag-name "li"} "#5"]
+            [:insert-before
+             {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#4"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
+             {:tag-name "li", :children ["#5"]}
+             {:tag-name "li", :children ["#2"]}]])))
+
+  ;; TODO: Suspicious behaviour
+  (testing "Insert two nodes"
+    (is (= (-> (scenarios/insert-two-nodes scenarios/vdom)
+               h/get-mutation-log-events
+               h/remove-text-node-events)
+           [[:create-element "li"]
+            [:append-child {:tag-name "li"} "#4"]
+            [:insert-before
+             {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
+             {:tag-name "li", :children ["#4"]}
+             {:tag-name "li", :children ["#2"]}]
+            [:create-element "li"]
+            [:append-child {:tag-name "li"} "#5"]
+            [:insert-before
+             {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#4"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
+             {:tag-name "li", :children ["#5"]}
+             {:tag-name "li", :children ["#3"]}]])))
+
+  (testing "Remove last node"
+    (is (= (-> (scenarios/remove-last-node scenarios/vdom)
+               h/get-mutation-log-events
+               h/remove-text-node-events)
+           [[:remove-child {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]} {:tag-name "li", :children ["#3"]}]])))
+
+  (testing "Remove first node"
+    (is (= (-> (scenarios/remove-first-node scenarios/vdom)
+               h/get-mutation-log-events
+               h/remove-text-node-events)
+           [[:remove-child {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]} {:tag-name "li", :children ["#1"]}]])))
+
+  (testing "Remove middle node"
+    (is (= (-> (scenarios/remove-middle-node scenarios/vdom)
+               h/get-mutation-log-events
+               h/remove-text-node-events)
+           [[:remove-child {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]} {:tag-name "li", :children ["#2"]}]])))
+
+  (testing "Swap nodes"
+    (is (= (-> (scenarios/swap-nodes scenarios/vdom)
+               h/get-mutation-log-events
+               h/remove-text-node-events)
+           [[:insert-before {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]} {:tag-name "li", :children ["#3"]} {:tag-name "li", :children ["#1"]}]
+            [:insert-before {:tag-name "ul", :children [{:tag-name "li", :children ["#3"]} {:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]}]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#1"]}]]))))
