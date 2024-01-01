@@ -9,7 +9,7 @@
 (defmacro class [headers]
   `(nth ~headers 2))
 
-(defmacro key [headers]
+(defmacro rkey [headers]
   `(nth ~headers 3))
 
 (defmacro attrs [headers]
@@ -18,7 +18,7 @@
 (defmacro children [headers]
   `(nth ~headers 5))
 
-(defmacro namespace [headers]
+(defmacro html-ns [headers]
   `(nth ~headers 6))
 
 (defmacro sexp [headers]

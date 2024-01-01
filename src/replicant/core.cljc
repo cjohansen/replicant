@@ -1,4 +1,38 @@
 (ns replicant.core
+  "To postpone as much processing as possible, Replicant uses three separate
+  representations of the DOM:
+
+  ## hiccup
+
+  This is whatever the consumer uses to express the DOM structure of their
+  components. This format is very permissive and is designed to be convenient to
+  work with. In hiccup, the attribute map is optional, tag names are keywords,
+  and can even include id and classes, like a CSS selector. Because of its
+  leniency, replicant must process it to work with it.
+
+  ## hiccup \"headers\"
+
+  Hiccup \"headers\" is a partially processed version of the hiccup. It gives
+  access to the string tag name, and key, if any. This version is used to make
+  decisions about the hiccup being rendered - is it an update to existing nodes
+  or new nodes, etc.
+
+  For performance reasons, the hiccup headers is a positional tuple. Individual
+  values are accessed through some macros for readability, while maintaining
+  maximum performance.
+
+  The headers contains raw hiccup children. `get-children` returns a structured,
+  flattened representation of all children as hiccup headers.
+
+  ## vdom
+
+  vdom is the fully parsed representation. This format is only used for
+  previously rendered hiccup. hiccup must be fully processed to actually be
+  rendered, and Replicant keeps the previously rendered vdom around to speed up
+  subsequent renders.
+
+  vdom is another positional tuple, and has similar macro accessors as the
+  hiccup headers."
   (:require [replicant.hiccup :as hiccup]
             [replicant.protocols :as r]
             [replicant.vdom :as vdom]))
@@ -341,7 +375,7 @@
   (if (string? headers)
     [(r/create-text-node renderer headers) headers]
     (let [tag-name (hiccup/tag-name headers)
-          ns (or (hiccup/namespace headers)
+          ns (or (hiccup/html-ns headers)
                  (when (= "svg" tag-name)
                    "http://www.w3.org/2000/svg"))
           node (r/create-element renderer tag-name (when ns {:ns ns}))
@@ -367,7 +401,7 @@
   instead of creating a new node from scratch."
   [headers vdom]
   (or (and (string? headers) (string? vdom))
-      (and (= (hiccup/key headers) (:key (vdom/attrs vdom)))
+      (and (= (hiccup/rkey headers) (:key (vdom/attrs vdom)))
            (= (hiccup/tag-name headers) (vdom/tag-name vdom)))))
 
 (defn changed?
@@ -391,7 +425,7 @@
       :else (recur (unchecked-inc-int n) (next xs)))))
 
 (defn get-ns [headers]
-  (or (hiccup/namespace headers)
+  (or (hiccup/html-ns headers)
       (when (= "svg" (hiccup/tag-name headers))
         "http://www.w3.org/2000/svg")))
 
@@ -442,7 +476,7 @@
 
           ;; New node did not previously exist, create it
           (and (not (string? new-headers))
-               (not (old-ks (hiccup/key new-headers))))
+               (not (old-ks (hiccup/rkey new-headers))))
           (let [[child child-vdom] (create-node impl new-headers)]
             (if (<= n-children n)
               (r/append-child r el child)
@@ -461,7 +495,7 @@
           ;; currently being considered, and update the DOM accordingly.
           :else
           (let [o-idx (if (and (not (string? new-headers))
-                               (hiccup/key new-headers))
+                               (hiccup/rkey new-headers))
                         (int (index-of #(reusable? new-headers %) old-c))
                         -1)
                 n-idx (if (when (not (string? old-vdom))
