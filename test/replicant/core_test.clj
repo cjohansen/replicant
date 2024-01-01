@@ -117,18 +117,20 @@
 
   (testing "Sets innerHTML at the expense of any children"
     (is (= (-> (h/render [:h1 {:innerHTML "Whoa!"} "Hello world"])
-               h/get-mutation-log-events)
+               h/get-mutation-log-events
+               h/summarize)
            [[:create-element "h1"]
-            [:set-attribute {:tag-name "h1"} "innerHTML" "Whoa!"]
-            [:append-child {} {:tag-name "h1" "innerHTML" "Whoa!"}]])))
+            [:set-attribute [:h1 ""] "innerHTML" nil :to "Whoa!"]
+            [:append-child [:h1 ""] :to "Document"]])))
 
   (testing "Removes innerHTML from node"
     (is (= (-> (h/render [:h1 {:innerHTML "Whoa!"} "Hello world"])
                (h/render [:h1 {} "Hello world"])
-               h/get-mutation-log-events)
+               h/get-mutation-log-events
+               h/summarize)
            [[:remove-attribute "innerHTML"]
             [:create-text-node "Hello world"]
-            [:append-child {:tag-name "h1"} "Hello world"]])))
+            [:append-child "Hello world" :to "h1"]])))
 
   (testing "Builds svg nodes"
     (is (= (-> (h/render [:svg {:viewBox "0 0 100 100"}
@@ -172,7 +174,7 @@
                first)
            [:create-element "g" "http://www.w3.org/2000/svg"])))
 
-  (testing "Moves existing nodes"
+(testing "Re-creates unkeyed moved nodes"
     (is (= (-> (h/render [:div
                           [:h1 {} "Title"]
                           [:p "Paragraph 1"]
@@ -183,21 +185,40 @@
                           [:p "Paragraph 1"]])
                h/get-mutation-log-events
                h/summarize)
+           [[:create-element "ul"]
+            [:create-element "li"]
+            [:create-text-node "List"]
+            [:append-child "List" :to "li"]
+            [:append-child [:li "List"] :to "ul"]
+            [:insert-before [:ul "List"] [:h1 "Title"] :in "div"]
+            [:remove-child [:ul "List"] :from "div"]])))
+
+  (testing "Moves existing nodes when keyed"
+    (is (= (-> (h/render [:div
+                          [:h1 {:key "h1"} "Title"]
+                          [:p {:key "p"} "Paragraph 1"]
+                          [:ul {:key "ul"} [:li "List"]]])
+               (h/render [:div
+                          [:ul {:key "ul"} [:li "List"]]
+                          [:h1 {:key "h1"} "Title"]
+                          [:p {:key "p"} "Paragraph 1"]])
+               h/get-mutation-log-events
+               h/summarize)
            [[:insert-before [:ul "List"] [:h1 "Title"] :in "div"]])))
 
   (testing "Does not move initial nodes in the desired position"
     (is (= (-> (h/render [:div
-                          [:h1 "Item #1"]
-                          [:h2 "Item #2"]
-                          [:h3 "Item #3"]
-                          [:h4 "Item #4"]
-                          [:h5 "Item #5"]])
+                          [:h1 {:key "1"} "Item #1"]
+                          [:h2 {:key "2"} "Item #2"]
+                          [:h3 {:key "3"} "Item #3"]
+                          [:h4 {:key "4"} "Item #4"]
+                          [:h5 {:key "5"} "Item #5"]])
                (h/render [:div
-                          [:h1 "Item #1"]
-                          [:h2 "Item #2"]
-                          [:h5 "Item #5"]
-                          [:h3 "Item #3"]
-                          [:h4 "Item #4"]])
+                          [:h1 {:key "1"} "Item #1"]
+                          [:h2 {:key "2"} "Item #2"]
+                          [:h5 {:key "5"} "Item #5"]
+                          [:h3 {:key "3"} "Item #3"]
+                          [:h4 {:key "4"} "Item #4"]])
                h/get-mutation-log-events
                h/summarize)
            [[:insert-before [:h5 "Item #5"] [:h3 "Item #3"] :in "div"]])))
@@ -522,7 +543,8 @@
                  (binding [sut/*dispatch* (fn [e data] (reset! res {:e e :data data}))]
                    (h/render [:h1 {:replicant/on-update ["Update data"]} "Hi!"])
                    @res))
-               (update-in [:e :replicant/node] deref))
+               (update-in [:e :replicant/node] deref)
+               (update-in [:e :replicant/node] dissoc :replicant.mutation-log/id))
            {:e
             {:replicant/event :replicant.event/life-cycle
              :replicant/life-cycle :replicant/mount
@@ -534,7 +556,8 @@
     (is (= (-> (let [res (atom nil)]
                  (h/render [:h1 {:replicant/on-update #(reset! res %)} "Hi!"])
                  @res)
-               (update :replicant/node deref))
+               (update :replicant/node deref)
+               (update :replicant/node dissoc :replicant.mutation-log/id))
            {:replicant/event :replicant.event/life-cycle
             :replicant/life-cycle :replicant/mount
             :replicant/node {:tag-name "h1"
@@ -664,11 +687,15 @@
     (is (= (let [res (atom [])
                  f (fn [e] (swap! res conj e))]
              (-> (h/render [:div
-                            [:h1 {:replicant/on-update f} "One"]
-                            [:p {:replicant/on-update f} "Two"]])
+                            [:h1 {:key "h1"
+                                  :replicant/on-update f} "One"]
+                            [:p {:key "p"
+                                 :replicant/on-update f} "Two"]])
                  (h/render [:div
-                            [:p {:replicant/on-update f} "Two"]
-                            [:h1 {:replicant/on-update f} "One"]]))
+                            [:p {:key "p"
+                                 :replicant/on-update f} "Two"]
+                            [:h1 {:key "h1"
+                                  :replicant/on-update f} "One"]]))
              (h/summarize-events @res))
            [[:replicant/mount "h1"]
             [:replicant/mount "p"]
@@ -729,93 +756,69 @@
            [[:create-element "li"]
             [:insert-before [:li "#4"] [:li "#1"] :in "ul"]])))
 
-  ;; TODO: Suspicious behaviour
   (testing "Prepend two nodes"
     (is (= (-> (scenarios/prepend-two-nodes scenarios/vdom)
                h/get-mutation-log-events
+               h/summarize
                h/remove-text-node-events)
            [[:create-element "li"]
-            [:append-child {:tag-name "li"} "#4"]
-            [:insert-before
-             {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
-             {:tag-name "li", :children ["#4"]}
-             {:tag-name "li", :children ["#1"]}]
+            [:insert-before [:li "#4"] [:li "#1"] :in "ul"]
             [:create-element "li"]
-            [:append-child {:tag-name "li"} "#5"]
-            [:insert-before
-             {:tag-name "ul", :children [{:tag-name "li", :children ["#4"]} {:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
-             {:tag-name "li", :children ["#5"]}
-             {:tag-name "li", :children ["#1"]}]])))
+            [:insert-before [:li "#5"] [:li "#1"] :in "ul"]])))
 
-  ;; TODO: Suspicious behaviour
   (testing "Insert node"
     (is (= (-> (scenarios/insert-node scenarios/vdom)
                h/get-mutation-log-events
+               h/summarize
                h/remove-text-node-events)
            [[:create-element "li"]
-            [:append-child {:tag-name "li"} "#4"]
-            [:insert-before
-             {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
-             {:tag-name "li", :children ["#4"]}
-             {:tag-name "li", :children ["#2"]}]])))
+            [:insert-before [:li "#4"] [:li "#2"] :in "ul"]])))
 
-  ;; TODO: Suspicious behaviour
   (testing "Insert two consecutive nodes"
     (is (= (-> (scenarios/insert-two-consecutive-nodes scenarios/vdom)
                h/get-mutation-log-events
+               h/summarize
                h/remove-text-node-events)
            [[:create-element "li"]
-            [:append-child {:tag-name "li"} "#4"]
-            [:insert-before
-             {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
-             {:tag-name "li", :children ["#4"]}
-             {:tag-name "li", :children ["#2"]}]
+            [:insert-before [:li "#4"] [:li "#2"] :in "ul"]
             [:create-element "li"]
-            [:append-child {:tag-name "li"} "#5"]
-            [:insert-before
-             {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#4"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
-             {:tag-name "li", :children ["#5"]}
-             {:tag-name "li", :children ["#2"]}]])))
+            [:insert-before [:li "#5"] [:li "#2"] :in "ul"]])))
 
-  ;; TODO: Suspicious behaviour
   (testing "Insert two nodes"
     (is (= (-> (scenarios/insert-two-nodes scenarios/vdom)
                h/get-mutation-log-events
+               h/summarize
                h/remove-text-node-events)
            [[:create-element "li"]
-            [:append-child {:tag-name "li"} "#4"]
-            [:insert-before
-             {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
-             {:tag-name "li", :children ["#4"]}
-             {:tag-name "li", :children ["#2"]}]
+            [:insert-before [:li "#4"] [:li "#2"] :in "ul"]
             [:create-element "li"]
-            [:append-child {:tag-name "li"} "#5"]
-            [:insert-before
-             {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#4"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]}
-             {:tag-name "li", :children ["#5"]}
-             {:tag-name "li", :children ["#3"]}]])))
+            [:insert-before [:li "#5"] [:li "#3"] :in "ul"]])))
 
   (testing "Remove last node"
     (is (= (-> (scenarios/remove-last-node scenarios/vdom)
                h/get-mutation-log-events
+               h/summarize
                h/remove-text-node-events)
-           [[:remove-child {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]} {:tag-name "li", :children ["#3"]}]])))
+           [[:remove-child [:li "#3"] :from "ul"]])))
 
   (testing "Remove first node"
     (is (= (-> (scenarios/remove-first-node scenarios/vdom)
                h/get-mutation-log-events
+               h/summarize
                h/remove-text-node-events)
-           [[:remove-child {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]} {:tag-name "li", :children ["#1"]}]])))
+           [[:remove-child [:li "#1"] :from "ul"]])))
 
   (testing "Remove middle node"
     (is (= (-> (scenarios/remove-middle-node scenarios/vdom)
                h/get-mutation-log-events
+               h/summarize
                h/remove-text-node-events)
-           [[:remove-child {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]} {:tag-name "li", :children ["#2"]}]])))
+           [[:remove-child [:li "#2"] :from "ul"]])))
 
   (testing "Swap nodes"
     (is (= (-> (scenarios/swap-nodes scenarios/vdom)
                h/get-mutation-log-events
+               h/summarize
                h/remove-text-node-events)
-           [[:insert-before {:tag-name "ul", :children [{:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#3"]}]} {:tag-name "li", :children ["#3"]} {:tag-name "li", :children ["#1"]}]
-            [:insert-before {:tag-name "ul", :children [{:tag-name "li", :children ["#3"]} {:tag-name "li", :children ["#1"]} {:tag-name "li", :children ["#2"]}]} {:tag-name "li", :children ["#2"]} {:tag-name "li", :children ["#1"]}]]))))
+           [[:insert-before [:li "#3"] [:li "#1"] :in "ul"]
+            [:insert-before [:li "#2"] [:li "#1"] :in "ul"]]))))

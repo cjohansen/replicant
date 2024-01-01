@@ -438,7 +438,10 @@
           ;; original position of the two nodes currently being considered, to
           ;; determine which it is.
           :else
-          (let [o-idx (int (index-of #(reusable? new-headers %) old-c))]
+          (let [o-idx (if (and (not (string? new-headers))
+                               (nth new-headers hiccup-key))
+                        (int (index-of #(reusable? new-headers %) old-c))
+                        -1)]
             (if (< o-idx 0)
               ;; new-hiccup represents a node that did not previously exist,
               ;; create it
@@ -447,7 +450,10 @@
                   (r/append-child r el child)
                   (r/insert-before r el child (r/get-child r el n)))
                 (recur (next new-c) old-c (unchecked-inc-int n) move-n (unchecked-inc-int n-children) true (conj! vdom child-vdom)))
-              (let [n-idx (int (index-of #(reusable? % old-vdom) new-c))]
+              (let [n-idx (if (and (not (string? old-vdom))
+                                   (:key (nth old-vdom vdom-attrs)))
+                            (int (index-of #(reusable? % old-vdom) new-c))
+                            -1)]
                 (cond
                   ;; the old node no longer exists, remove it
                   (< n-idx 0)
