@@ -385,7 +385,7 @@
           [children ks] (->> (get-children headers ns)
                              (reduce (fn [[children ks] child-headers]
                                        (let [[child-node vdom] (create-node impl child-headers)
-                                             k (when (vector? vdom)
+                                             k (when (vdom/vdom? vdom)
                                                  (:key (vdom/attrs vdom)))]
                                          (r/append-child renderer node child-node)
                                          [(conj! children vdom) (cond-> ks k (conj! k))]))
