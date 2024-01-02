@@ -93,13 +93,13 @@
             has-args? (map? (first args))
             attrs (if has-args? (first args) {})]
         #?(:clj (-> (parse-tag (name sym))
-                    (conj (:key attrs))
+                    (conj (:replicant/key attrs))
                     (conj attrs)
                     (conj (if has-args? (rest args) args))
                     (conj ns)
                     (conj sexp))
            :cljs (doto (parse-tag (name sym))
-                   (.push (:key attrs))
+                   (.push (:replicant/key attrs))
                    (.push attrs)
                    (.push (if has-args? (rest args) args))
                    (.push ns)
@@ -213,7 +213,7 @@
                (mapv (fn [hiccup]
                        (let [headers (get-hiccup-headers hiccup ns)]
                          (when (hiccup/headers? headers)
-                           (some->> (hiccup/attrs headers) :key (conj! ks)))
+                           (some->> (hiccup/attrs headers) :replicant/key (conj! ks)))
                          headers))))]
       [children (persistent! ks)])))
 
@@ -326,7 +326,7 @@
 
 (defn update-attr [renderer el attr new old]
   (case attr
-    :key nil
+    :replicant/key nil
     :replicant/on-update nil
     :style (update-styles renderer el (:style new) (:style old))
     :classes (update-classes renderer el (:classes new) (:classes old))
@@ -364,7 +364,7 @@
 
 (defn set-attr [renderer el attr new]
   (case attr
-    :key nil
+    :replicant/key nil
     :replicant/on-update nil
     :style (set-styles renderer el (:style new))
     :classes (set-classes renderer el (:classes new))
@@ -394,7 +394,7 @@
                              (reduce (fn [[children ks] child-headers]
                                        (let [[child-node vdom] (create-node impl child-headers)
                                              k (when (vdom/vdom? vdom)
-                                                 (:key (vdom/attrs vdom)))]
+                                                 (:replicant/key (vdom/attrs vdom)))]
                                          (r/append-child renderer node child-node)
                                          [(conj! children vdom) (cond-> ks k (conj! k))]))
                                      [(transient []) (transient #{})]))]
@@ -410,7 +410,7 @@
   instead of creating a new node from scratch."
   [headers vdom]
   (or (and (string? headers) (string? vdom))
-      (and (= (hiccup/rkey headers) (:key (vdom/attrs vdom)))
+      (and (= (hiccup/rkey headers) (:replicant/key (vdom/attrs vdom)))
            (= (hiccup/tag-name headers) (vdom/tag-name vdom)))))
 
 (defn changed?
@@ -494,7 +494,7 @@
 
           ;; Old node no longer exists, remove it
           (and (not (string? old-vdom))
-               (not (new-ks (:key (vdom/attrs old-vdom)))))
+               (not (new-ks (:replicant/key (vdom/attrs old-vdom)))))
           (let [child (r/get-child r el n)]
             (r/remove-child r el child)
             (register-hook impl child nil old-vdom)
@@ -508,7 +508,7 @@
                         (int (index-of #(reusable? new-headers %) old-c))
                         -1)
                 n-idx (if (when (not (string? old-vdom))
-                            (:key (vdom/attrs old-vdom)))
+                            (:replicant/key (vdom/attrs old-vdom)))
                         (int (index-of #(reusable? % old-vdom) new-c))
                         -1)]
             (if (< o-idx n-idx)
