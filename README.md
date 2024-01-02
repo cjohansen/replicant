@@ -116,6 +116,44 @@ The second argument, `hook-data` is whatever data you set on
 `:replicant/on-update` can also take a function, in which case it will be called
 with a single argument - the hook details map described above.
 
+## Keys
+
+Replicant uses keys to identify nodes when the overall structure changes. Set
+`:replicant/key` in the attributes map of any element that you do not want
+recreated unnecessarily. This key is local to the parent element (e.g. you may
+reuse the key at different levels). When it is set, Replicant will know to reuse
+the corresponding DOM element, even when it changes positions, etc. If you have
+CSS transitions on an element, you very likely want to give it a key.
+
+## Differences from hiccup
+
+Replicant has a more liberal understanding of hiccup data than the main hiccup
+library.
+
+### Styles
+
+You may express `:style` as a map of styles, e.g.:
+
+```clj
+[:div {:style {:background "red", :width 320}}
+  "A small red thing"]
+```
+
+Using maps for styles is suggested, as string values for the style attribute
+will be parsed to maps.
+
+### Classes
+
+You can specify classes on the hiccup "selector", e.g. `[:h1.heading "Hello"]`.
+In addition, you can use `:class`, which takes a few different values:
+
+- A string
+- A keyword
+- A collection of string|keyword
+
+The suggested value is keywords and collections of keywords. Strings will be
+split on space.
+
 ## API
 
 ### `(replicant.dom/render el hiccup)`
