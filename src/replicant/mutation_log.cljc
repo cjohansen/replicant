@@ -21,6 +21,8 @@
 (defn -remove-child [el child]
   (update el :children #(vec (remove #{child} %))))
 
+(def id (atom 0))
+
 (def mutation-log-impl
   {`replicant/create-text-node
    (fn [this text]
@@ -31,7 +33,8 @@
    (fn [this tag-name options]
      (swap! (:log this) conj (cond-> [:create-element tag-name]
                                (:ns options) (conj (:ns options))))
-     (atom {:tag-name tag-name}))
+     (atom {:tag-name tag-name
+            ::id (swap! id inc)}))
 
    `replicant/set-style
    (fn [this el style v]
