@@ -33,11 +33,9 @@
 
   vdom is another positional tuple (and native JS array in CLJS), and has
   similar macro accessors as the hiccup headers."
-  (:require #?(:clj [replicant.hiccup-clj :as hiccup]
-               :cljs [replicant.hiccup :as hiccup])
+  (:require [replicant.hiccup :as hiccup]
             [replicant.protocols :as r]
-            #?(:clj [replicant.vdom-clj :as vdom]
-               :cljs [replicant.vdom :as vdom])))
+            [replicant.vdom :as vdom]))
 
 ;; Hiccup stuff
 
