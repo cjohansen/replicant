@@ -6,7 +6,7 @@
 (defmacro id [headers]
   `(nth ~headers 1))
 
-(defmacro class [headers]
+(defmacro classes [headers]
   `(nth ~headers 2))
 
 (defmacro rkey [headers]

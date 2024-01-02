@@ -172,7 +172,7 @@
         attrs (hiccup/attrs headers)
         classes (concat
                  (remove empty? (get-classes (:class attrs)))
-                 (hiccup/class headers))]
+                 (hiccup/classes headers))]
     (cond-> attrs
       id (assoc :id id)
       (seq classes) (assoc :classes classes)
