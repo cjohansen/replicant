@@ -33,7 +33,8 @@
 
   vdom is another positional tuple, and has similar macro accessors as the
   hiccup headers."
-  (:require [replicant.hiccup :as hiccup]
+  (:require #?(:clj [replicant.hiccup-clj :as hiccup]
+               :cljs [replicant.hiccup :as hiccup])
             [replicant.protocols :as r]
             [replicant.vdom :as vdom]))
 
@@ -50,18 +51,19 @@
 (defn parse-tag [^String tag]
   ;; Borrowed from hiccup, and adapted to support multiple classes
   (let [id-index (let [index (.indexOf tag "#")] (when (pos? index) index))
-        class-index (let [index (.indexOf tag ".")] (when (pos? index) index))]
-    [(cond
-       id-index (.substring tag 0 id-index)
-       class-index (.substring tag 0 class-index)
-       :else tag)
-     (when id-index
-       (if class-index
-         (.substring tag (unchecked-inc-int id-index) class-index)
-         (.substring tag (unchecked-inc-int id-index))))
-     (when class-index
-       (seq (.split (.substring tag (unchecked-inc-int class-index)) #?(:clj "\\."
-                                                                        :cljs "."))))]))
+        class-index (let [index (.indexOf tag ".")] (when (pos? index) index))
+        tag-name (cond
+                   id-index (.substring tag 0 id-index)
+                   class-index (.substring tag 0 class-index)
+                   :else tag)
+        id (when id-index
+             (if class-index
+               (.substring tag (unchecked-inc-int id-index) class-index)
+               (.substring tag (unchecked-inc-int id-index))))
+        classes (when class-index
+                  (seq (.split (.substring tag (unchecked-inc-int class-index)) #?(:clj "\\." :cljs "."))))]
+    #?(:clj [tag-name id classes]
+       :cljs #js [tag-name id classes])))
 
 (defn get-hiccup-headers
   "Hiccup symbols can include tag name, id and classes. The argument map is
@@ -89,12 +91,18 @@
             args (rest sexp)
             has-args? (map? (first args))
             attrs (if has-args? (first args) {})]
-        (-> (parse-tag (name sym))
-            (conj (:key attrs))
-            (conj attrs)
-            (conj (if has-args? (rest args) args))
-            (conj ns)
-            (conj sexp)))
+        #?(:clj (-> (parse-tag (name sym))
+                    (conj (:key attrs))
+                    (conj attrs)
+                    (conj (if has-args? (rest args) args))
+                    (conj ns)
+                    (conj sexp))
+           :cljs (doto (parse-tag (name sym))
+                   (.push (:key attrs))
+                   (.push attrs)
+                   (.push (if has-args? (rest args) args))
+                   (.push ns)
+                   (.push sexp))))
       (str sexp))))
 
 (defn get-classes [classes]
