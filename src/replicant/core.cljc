@@ -204,16 +204,17 @@
   of the keys in `children`."
   [headers ns]
   (when-not (:innerHTML (hiccup/attrs headers))
-    (let [ks (transient #{})
-          children
+    (let [[children ks]
           (->> (hiccup/children headers)
                flatten-seqs
-               (mapv (fn [hiccup]
-                       (let [headers (get-hiccup-headers hiccup ns)]
-                         (when (hiccup/headers? headers)
-                           (some->> (hiccup/rkey headers) (conj! ks)))
-                         headers))))]
-      [children (persistent! ks)])))
+               (reduce (fn bla [[children ks] hiccup]
+                         (let [headers (get-hiccup-headers hiccup ns)
+                               k (and (hiccup/headers? headers)
+                                      (hiccup/rkey headers))]
+                           [(conj! children headers)
+                            (cond-> ks k (conj! k))]))
+                       [(transient []) (transient #{})]))]
+      [(persistent! children) (persistent! ks)])))
 
 ;; Events and life cycle hooks
 
