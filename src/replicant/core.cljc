@@ -35,7 +35,8 @@
   hiccup headers."
   (:require [replicant.hiccup :as hiccup]
             [replicant.protocols :as r]
-            [replicant.vdom :as vdom]))
+            #?(:clj [replicant.vdom-clj :as vdom]
+               :cljs [replicant.vdom :as vdom])))
 
 ;; Hiccup stuff
 

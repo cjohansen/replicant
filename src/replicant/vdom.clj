@@ -1,19 +1,16 @@
 (ns replicant.vdom)
 
 (defmacro tag-name [vdom]
-  `(nth ~vdom 0))
+  `(aget ~vdom 0))
 
 (defmacro attrs [vdom]
-  `(nth ~vdom 1))
+  `(aget ~vdom 1))
 
 (defmacro children [vdom]
-  `(nth ~vdom 2))
+  `(aget ~vdom 2))
 
 (defmacro child-ks [vdom]
-  `(nth ~vdom 3))
+  `(aget ~vdom 3))
 
 (defmacro sexp [vdom]
-  `(nth ~vdom 4))
-
-(defmacro create [tag-name attrs children child-ks sexp]
-  `[~tag-name ~attrs ~children ~child-ks ~sexp])
+  `(aget ~vdom 4))
