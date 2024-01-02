@@ -8,20 +8,23 @@
 (defmacro tag-name [vdom]
   `(vget ~vdom 0))
 
-(defmacro attrs [vdom]
+(defmacro rkey [vdom]
   `(vget ~vdom 1))
 
-(defmacro children [vdom]
+(defmacro attrs [vdom]
   `(vget ~vdom 2))
 
-(defmacro child-ks [vdom]
+(defmacro children [vdom]
   `(vget ~vdom 3))
 
-(defmacro sexp [vdom]
+(defmacro child-ks [vdom]
   `(vget ~vdom 4))
 
+(defmacro sexp [vdom]
+  `(vget ~vdom 5))
+
 (defn create [tag-name attrs children child-ks sexp]
-  [tag-name attrs children child-ks sexp])
+  [tag-name (:key attrs) attrs children child-ks sexp])
 
 (defn vdom? [x]
   (vector? x))

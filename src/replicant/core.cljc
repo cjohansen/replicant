@@ -392,7 +392,7 @@
                              (reduce (fn [[children ks] child-headers]
                                        (let [[child-node vdom] (create-node impl child-headers)
                                              k (when (vdom/vdom? vdom)
-                                                 (:key (vdom/attrs vdom)))]
+                                                 (vdom/rkey vdom))]
                                          (r/append-child renderer node child-node)
                                          [(conj! children vdom) (cond-> ks k (conj! k))]))
                                      [(transient []) (transient #{})]))]
@@ -408,7 +408,7 @@
   instead of creating a new node from scratch."
   [headers vdom]
   (or (and (string? headers) (string? vdom))
-      (and (= (hiccup/rkey headers) (:key (vdom/attrs vdom)))
+      (and (= (hiccup/rkey headers) (vdom/rkey vdom))
            (= (hiccup/tag-name headers) (vdom/tag-name vdom)))))
 
 (defn changed?
@@ -492,7 +492,7 @@
 
           ;; Old node no longer exists, remove it
           (and (not (string? old-vdom))
-               (not (new-ks (:key (vdom/attrs old-vdom)))))
+               (not (new-ks (vdom/rkey old-vdom))))
           (let [child (r/get-child r el n)]
             (r/remove-child r el child)
             (register-hook impl child nil old-vdom)
@@ -506,7 +506,7 @@
                         (int (index-of #(reusable? new-headers %) old-c))
                         -1)
                 n-idx (if (when (not (string? old-vdom))
-                            (:key (vdom/attrs old-vdom)))
+                            (vdom/rkey old-vdom))
                         (int (index-of #(reusable? % old-vdom) new-c))
                         -1)]
             (if (< o-idx n-idx)
