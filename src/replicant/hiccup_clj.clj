@@ -23,3 +23,6 @@
 
 (defmacro sexp [headers]
   `(nth ~headers 7))
+
+(defn headers? [x]
+  (vector? x))

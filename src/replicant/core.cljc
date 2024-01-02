@@ -211,7 +211,7 @@
                flatten-seqs
                (mapv (fn [hiccup]
                        (let [headers (get-hiccup-headers hiccup ns)]
-                         (when (vector? headers)
+                         (when (hiccup/headers? headers)
                            (some->> (hiccup/attrs headers) :key (conj! ks)))
                          headers))))]
       [children (persistent! ks)])))
