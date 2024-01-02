@@ -17,22 +17,22 @@
   decisions about the hiccup being rendered - is it an update to existing nodes
   or new nodes, etc.
 
-  For performance reasons, the hiccup headers is a positional tuple. Individual
-  values are accessed through some macros for readability, while maintaining
-  maximum performance.
+  For performance, hiccup headers is a positional tuple, and in CLJS even a
+  native array. Individual values are accessed through some macros for
+  readability, whithout sacrificing performance.
 
-  The headers contains raw hiccup children. `get-children` returns a structured,
+  The tuple contains raw hiccup children. `get-children` returns a structured,
   flattened representation of all children as hiccup headers.
 
   ## vdom
 
   vdom is the fully parsed representation. This format is only used for
-  previously rendered hiccup. hiccup must be fully processed to actually be
+  previously rendered hiccup. Hiccup must be fully processed to actually be
   rendered, and Replicant keeps the previously rendered vdom around to speed up
   subsequent renders.
 
-  vdom is another positional tuple, and has similar macro accessors as the
-  hiccup headers."
+  vdom is another positional tuple (and native JS array in CLJS), and has
+  similar macro accessors as the hiccup headers."
   (:require #?(:clj [replicant.hiccup-clj :as hiccup]
                :cljs [replicant.hiccup :as hiccup])
             [replicant.protocols :as r]
