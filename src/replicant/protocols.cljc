@@ -22,5 +22,6 @@
   (append-child [this el child-node])
   (remove-child [this el child-node])
   (replace-child [this el insert-child replace-child])
+  (remove-all-children [this el])
 
   (get-child [this el idx]))

@@ -395,9 +395,7 @@
                (h/render [:ul])
                h/get-mutation-log-events
                h/summarize)
-           [[:remove-child [:li "Item #1"] :from "ul"]
-            [:remove-child [:li "Item #2"] :from "ul"]
-            [:remove-child [:li "Item #3"] :from "ul"]])))
+           [[:remove-all-children :from "ul"]])))
 
   (testing "Deletes single child node"
     (is (= (-> (h/render [:ul
