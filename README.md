@@ -226,10 +226,12 @@ clojure -X:dev:test
 ## Benchmarking
 
 To run the benchmark, check out
-[js-framework-benchmark](https://github.com/krausest/js-framework-benchmark) and
+[js-framework-benchmark](https://github.com/cjohansen/js-framework-benchmark) and
 follow these steps:
 
 ```sh
+git checkout https://github.com/cjohansen/js-framework-benchmark.git
+cd js-framework-benchmark
 npm ci
 npm run install-server
 npm start
