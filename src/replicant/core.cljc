@@ -529,7 +529,7 @@
           old-empty?
           [true (insert-children impl el new-c vdom) new-ks]
 
-          ;; It's "the same node" (e.g. reusable), reconcile
+          ;; It's a reusable node, reconcile
           (reusable? new-headers old-vdom)
           (let [[node-changed? new-vdom] (reconcile* impl el new-headers old-vdom n)]
             (when (and (not node-changed?) (< n move-n))
@@ -537,8 +537,7 @@
             (recur (next new-c) (next old-c) (unchecked-inc-int n) move-n n-children (or changed? node-changed?) (conj! vdom new-vdom)))
 
           ;; New node did not previously exist, create it
-          (and (not (hiccup/text new-headers))
-               (not (old-ks (hiccup/rkey new-headers))))
+          (not (old-ks (hiccup/rkey new-headers)))
           (let [[child child-vdom] (create-node impl new-headers)]
             (if (<= n-children n)
               (r/append-child r el child)
@@ -546,14 +545,13 @@
             (recur (next new-c) old-c (unchecked-inc-int n) move-n (unchecked-inc-int n-children) true (conj! vdom child-vdom)))
 
           ;; Old node no longer exists, remove it
-          (and (not (vdom/text old-vdom))
-               (not (new-ks (vdom/rkey old-vdom))))
+          (not (new-ks (vdom/rkey old-vdom)))
           (let [child (r/get-child r el n)]
             (r/remove-child r el child)
             (register-hook impl child nil old-vdom)
             (recur new-c (next old-c) n move-n (dec n-children) true vdom))
 
-          ;; Nodes have moved
+          ;; Node has moved
           :else
           (let [[nc oc n move-n vdom-node] (move-nodes impl el new-headers new-c old-vdom old-c n n-children)]
             (recur nc oc n move-n n-children true (cond-> vdom vdom-node (conj! vdom-node)))))))))

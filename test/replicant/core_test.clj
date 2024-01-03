@@ -118,6 +118,26 @@
            [[:create-text-node "Hello world!"]
             [:replace-child "Hello world!" "Hello world"]])))
 
+  (testing "Replaces element with text node"
+    (is (= (-> (h/render [:h1 {} [:span "Hello world"] [:span "Opa"]])
+               (h/render [:h1 {} "Hello world!" [:span "Opa"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-text-node "Hello world!"]
+            [:insert-before "Hello world!" [:span "Hello world"] :in "h1"]
+            [:create-text-node "Opa"]
+            [:replace-child "Opa" "Hello world"]
+            [:remove-child [:span "Opa"] :from "h1"]])))
+
+  (testing "Inserts new text node"
+    (is (= (-> (h/render [:h1 {} [:span "Hello world"] [:span {:replicant/key "o"} "Opa"]])
+               (h/render [:h1 {} "Hello world!" [:span {:replicant/key "o"} "Opa"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-text-node "Hello world!"]
+            [:insert-before "Hello world!" [:span "Hello world"] :in "h1"]
+            [:remove-child [:span "Hello world"] :from "h1"]])))
+
   (testing "Sets innerHTML at the expense of any children"
     (is (= (-> (h/render [:h1 {:innerHTML "Whoa!"} "Hello world"])
                h/get-mutation-log-events
