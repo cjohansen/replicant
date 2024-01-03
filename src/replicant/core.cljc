@@ -90,19 +90,12 @@
             args (rest sexp)
             has-args? (map? (first args))
             attrs (if has-args? (first args) {})]
-        #?(:clj (-> (parse-tag (name sym))
-                    (conj (:replicant/key attrs))
-                    (conj attrs)
-                    (conj (if has-args? (rest args) args))
-                    (conj ns)
-                    (conj sexp))
-           :cljs (doto (parse-tag (name sym))
-                   (.push (:replicant/key attrs))
-                   (.push attrs)
-                   (.push (if has-args? (rest args) args))
-                   (.push ns)
-                   (.push sexp))))
-      (str sexp))))
+        (hiccup/create (parse-tag (name sym)) attrs (if has-args? (rest args) args) ns sexp nil))
+      (let [s (str sexp)]
+        (hiccup/create
+         #?(:clj [nil nil nil]
+            :cljs #js [nil nil nil])
+         nil nil nil s s)))))
 
 (defn get-classes [classes]
   (cond
@@ -209,8 +202,7 @@
                flatten-seqs
                (reduce (fn bla [[children ks] hiccup]
                          (let [headers (get-hiccup-headers hiccup ns)
-                               k (and (hiccup/headers? headers)
-                                      (hiccup/rkey headers))]
+                               k (hiccup/rkey headers)]
                            [(conj! children headers)
                             (cond-> ks k (conj! k))]))
                        [(transient []) (transient #{})]))]
@@ -380,8 +372,9 @@
   life-cycle hooks from the new node or its descendants in `impl`. Returns a
   tuple of the newly created node and the fully realized vdom."
   [{:keys [renderer] :as impl} headers]
-  (if (string? headers)
-    [(r/create-text-node renderer headers) headers]
+  (if-let [text (hiccup/text headers)]
+    [(r/create-text-node renderer text)
+     (vdom/create nil nil nil nil text text)]
     (let [tag-name (hiccup/tag-name headers)
           ns (or (hiccup/html-ns headers)
                  (when (= "svg" tag-name)
@@ -392,13 +385,12 @@
           [children ks] (->> (get-children headers ns)
                              (reduce (fn [[children ks] child-headers]
                                        (let [[child-node vdom] (create-node impl child-headers)
-                                             k (when (vdom/vdom? vdom)
-                                                 (vdom/rkey vdom))]
+                                             k (vdom/rkey vdom)]
                                          (r/append-child renderer node child-node)
                                          [(conj! children vdom) (cond-> ks k (conj! k))]))
                                      [(transient []) (transient #{})]))]
       (register-hook impl node headers)
-      [node (vdom/create tag-name attrs (persistent! children) (persistent! ks) (hiccup/sexp headers))])))
+      [node (vdom/create tag-name attrs (persistent! children) (persistent! ks) (hiccup/sexp headers) nil)])))
 
 (defn reusable?
   "Two elements are considered the similar enough for reuse if they are both
@@ -408,7 +400,7 @@
   Similarity in this case indicates that the node can be used for reconciliation
   instead of creating a new node from scratch."
   [headers vdom]
-  (or (and (string? headers) (string? vdom))
+  (or (and (hiccup/text headers) (vdom/text vdom))
       (and (= (hiccup/rkey headers) (vdom/rkey vdom))
            (= (hiccup/tag-name headers) (vdom/tag-name vdom)))))
 
@@ -417,9 +409,8 @@
   created. `changed?` is not the strict complement of `reusable?`, because it
   does not consider any two strings the same - only the exact same string."
   [headers vdom]
-  (if (or (string? headers) (string? vdom))
-    (not= headers vdom)
-    (not= (hiccup/tag-name headers) (vdom/tag-name vdom))))
+  (or (not= (hiccup/text headers) (vdom/text vdom))
+      (not= (hiccup/tag-name headers) (vdom/tag-name vdom))))
 
 ;; reconcile* and update-children are mutually recursive
 (declare reconcile*)
@@ -483,7 +474,7 @@
             (recur (next new-c) (next old-c) (unchecked-inc-int n) move-n n-children (or changed? node-changed?) (conj! vdom new-vdom)))
 
           ;; New node did not previously exist, create it
-          (and (not (string? new-headers))
+          (and (not (hiccup/text new-headers))
                (not (old-ks (hiccup/rkey new-headers))))
           (let [[child child-vdom] (create-node impl new-headers)]
             (if (<= n-children n)
@@ -492,7 +483,7 @@
             (recur (next new-c) old-c (unchecked-inc-int n) move-n (unchecked-inc-int n-children) true (conj! vdom child-vdom)))
 
           ;; Old node no longer exists, remove it
-          (and (not (string? old-vdom))
+          (and (not (vdom/text old-vdom))
                (not (new-ks (vdom/rkey old-vdom))))
           (let [child (r/get-child r el n)]
             (r/remove-child r el child)
@@ -502,12 +493,10 @@
           ;; Nodes have moved. Find the original position of the two nodes
           ;; currently being considered, and update the DOM accordingly.
           :else
-          (let [o-idx (if (and (not (string? new-headers))
-                               (hiccup/rkey new-headers))
+          (let [o-idx (if (hiccup/rkey new-headers)
                         (int (index-of #(reusable? new-headers %) old-c))
                         -1)
-                n-idx (if (when (not (string? old-vdom))
-                            (vdom/rkey old-vdom))
+                n-idx (if (vdom/rkey old-vdom)
                         (int (index-of #(reusable? % old-vdom) new-c))
                         -1)]
             (if (< o-idx n-idx)
@@ -565,9 +554,7 @@
 
 (defn reconcile* [{:keys [renderer] :as impl} el headers vdom index]
   (cond
-    (if (or (string? headers) (string? vdom))
-      (= headers vdom)
-      (= (hiccup/sexp headers) (vdom/sexp vdom)))
+    (= (hiccup/sexp headers) (vdom/sexp vdom))
     [false vdom]
 
     (nil? headers)
@@ -603,7 +590,7 @@
              [:replicant/updated-children])
            (remove nil?)
            (register-hook impl child headers vdom))
-      [true (vdom/create (hiccup/tag-name headers) attrs children child-ks (hiccup/sexp headers))])))
+      [true (vdom/create (hiccup/tag-name headers) attrs children child-ks (hiccup/sexp headers) nil)])))
 
 (defn reconcile
   "Reconcile the DOM in `el` by diffing `hiccup` with `vdom`. If there is no

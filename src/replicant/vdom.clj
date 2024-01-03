@@ -23,8 +23,8 @@
 (defmacro sexp [vdom]
   `(vget ~vdom 5))
 
-(defn create [tag-name attrs children child-ks sexp]
-  [tag-name (:replicant/key attrs) attrs children child-ks sexp])
+(defmacro text [vdom]
+  `(vget ~vdom 6))
 
-(defn vdom? [x]
-  (vector? x))
+(defn create [tag-name attrs children child-ks sexp text]
+  [tag-name (:replicant/key attrs) attrs children child-ks sexp text])

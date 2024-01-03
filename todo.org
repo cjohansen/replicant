@@ -1,0 +1,4 @@
+* Ting å teste [0/3]
+** TODO Kjør en benchmark uten parse-hiccup-symbol
+** TODO Fjern mapcat fra hiccup-klasse-parsing
+** TODO class eller className

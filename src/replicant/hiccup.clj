@@ -29,5 +29,22 @@
 (defmacro sexp [headers]
   `(hget ~headers 7))
 
-(defn headers? [x]
-  (vector? x))
+(defmacro text [headers]
+  `(hget ~headers 8))
+
+(defmacro create [parsed-tag attrs children ns sexp text]
+  (if (:ns &env)
+    `(doto ~parsed-tag
+       (.push (:replicant/key ~attrs))
+       (.push ~attrs)
+       (.push ~children)
+       (.push ~ns)
+       (.push ~sexp)
+       (.push ~text))
+    `(-> ~parsed-tag
+         (conj (:replicant/key ~attrs))
+         (conj ~attrs)
+         (conj ~children)
+         (conj ~ns)
+         (conj ~sexp)
+         (conj ~text))))
