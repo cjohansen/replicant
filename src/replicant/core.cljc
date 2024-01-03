@@ -428,7 +428,76 @@
       (when (= "svg" (hiccup/tag-name headers))
         "http://www.w3.org/2000/svg")))
 
+(defn ^:private insert-children [{:keys [renderer] :as impl} el children vdom]
+  (->> (reduce (fn [res child]
+                 (let [[node vdom] (create-node impl child)]
+                   (r/append-child renderer el node)
+                   (conj! res vdom)))
+               vdom children)
+       persistent!))
+
 (def move-node-details [:replicant/move-node])
+
+(defn ^:private move-nodes [{:keys [renderer] :as impl} el headers new-children vdom old-children n n-children]
+  (let [o-idx (if (hiccup/rkey headers)
+                (int (index-of #(reusable? headers %) old-children))
+                -1)
+        n-idx (if (vdom/rkey vdom)
+                (int (index-of #(reusable? % vdom) new-children))
+                -1)]
+    (if (< o-idx n-idx)
+      ;; The new node needs to be moved back
+      ;;
+      ;; Old: 1 2 3
+      ;; New: 2 3 1
+      ;;
+      ;; vdom: 1, n-idx: 2
+      ;; headers: 2, o-idx: 1
+      ;;
+      ;; The old node is now at the end, move it there and continue. It will be
+      ;; reconciled when the loop reaches it.
+      ;;
+      ;; append-child 0
+      ;; Old: 2 3 1
+      ;; New: 2 3 1
+      (let [idx (unchecked-inc-int (unchecked-add-int n n-idx))
+            child (r/get-child renderer el n)]
+        (if (< idx n-children)
+          (r/insert-before renderer el child (r/get-child renderer el idx))
+          (r/append-child renderer el child))
+        (register-hook impl child (nth new-children n-idx) vdom move-node-details)
+        [new-children
+         (concat (take n-idx (next old-children)) [(first old-children)] (drop (unchecked-inc-int n-idx) old-children))
+         n
+         (unchecked-dec-int idx)])
+
+      ;; The new node needs to be brought to the front
+      ;;
+      ;; Old: 1 2 3
+      ;; New: 3 1 2
+      ;;
+      ;; vdom: 1, n-idx: 1
+      ;; headers: 3, o-idx: 2
+      ;;
+      ;; The new node used to be at the end, move it to the front and reconcile
+      ;; it, then continue with the rest of the nodes.
+      ;;
+      ;; insert-before 3 1
+      ;; Old: 1 2
+      ;; New: 1 2
+      (let [idx (unchecked-add-int n o-idx)
+            child (r/get-child renderer el idx)
+            corresponding-old-vdom (nth old-children o-idx)]
+        (r/insert-before renderer el child (r/get-child renderer el n))
+        (when (not (first (reconcile* impl el headers corresponding-old-vdom n)))
+          ;; If it didn't change, reconcile* did not schedule a hook
+          ;; Because the node just moved we still need the hook
+          (register-hook impl child headers corresponding-old-vdom move-node-details))
+        [(next new-children)
+         (concat (take o-idx old-children) (drop (unchecked-inc-int o-idx) old-children))
+         (unchecked-inc-int n)
+         (unchecked-inc-int (unchecked-add-int n o-idx))
+         corresponding-old-vdom]))))
 
 (defn update-children [impl el new-children new-ks old-children old-ks]
   (let [r (:renderer impl)]
@@ -456,12 +525,7 @@
 
           ;; There are new nodes where there were no old ones: create
           (nil? old-c)
-          [true (->> (reduce (fn [res child]
-                               (let [[node vdom] (create-node impl child)]
-                                 (r/append-child r el node)
-                                 (conj! res vdom)))
-                             vdom new-c)
-                     persistent!) new-ks]
+          [true (insert-children impl el new-c vdom) new-ks]
 
           ;; It's "the same node" (e.g. reusable), reconcile
           (reusable? new-headers old-vdom)
@@ -490,64 +554,8 @@
           ;; Nodes have moved. Find the original position of the two nodes
           ;; currently being considered, and update the DOM accordingly.
           :else
-          (let [o-idx (if (hiccup/rkey new-headers)
-                        (int (index-of #(reusable? new-headers %) old-c))
-                        -1)
-                n-idx (if (vdom/rkey old-vdom)
-                        (int (index-of #(reusable? % old-vdom) new-c))
-                        -1)]
-            (if (< o-idx n-idx)
-              ;; The new node needs to be moved back
-              ;;
-              ;; Old: 1 2 3
-              ;; New: 2 3 1
-              ;;
-              ;; old-hiccup: 1, n-idx: 2
-              ;; new-hiccup: 2, o-idx: 1
-              ;;
-              ;; The old node is now at the end, move it there and continue. It
-              ;; will be reconciled when the loop reaches it.
-              ;;
-              ;; append-child 0
-              ;; Old: 2 3 1
-              ;; New: 2 3 1
-              (let [idx (unchecked-inc-int (unchecked-add-int n n-idx))
-                    child (r/get-child r el n)]
-                (if (< idx n-children)
-                  (r/insert-before r el child (r/get-child r el idx))
-                  (r/append-child r el child))
-                (register-hook impl child (nth new-c n-idx) old-vdom move-node-details)
-                (recur
-                 new-c
-                 (concat (take n-idx (next old-c)) [(first old-c)] (drop (unchecked-inc-int n-idx) old-c))
-                 n
-                 (unchecked-dec-int idx)
-                 n-children
-                 true
-                 vdom))
-              ;; The new node needs to be brought to the front
-              ;;
-              ;; Old: 1 2 3
-              ;; New: 3 1 2
-              ;;
-              ;; old-hiccup: 1, n-idx: 1
-              ;; new-hiccup: 3, o-idx: 2
-              ;;
-              ;; The new node used to be at the end, move it to the front and
-              ;; reconcile it, then continue with the rest of the nodes.
-              ;;
-              ;; insert-before 3 1
-              ;; Old: 1 2
-              ;; New: 1 2
-              (let [idx (unchecked-add-int n o-idx)
-                    child (r/get-child r el idx)
-                    corresponding-old-vdom (nth old-c o-idx)]
-                (r/insert-before r el child (r/get-child r el n))
-                (when (not (first (reconcile* impl el new-headers corresponding-old-vdom n)))
-                  ;; If it didn't change, reconcile* did not schedule a hook
-                  ;; Because the node just moved we still need the hook
-                  (register-hook impl child new-headers corresponding-old-vdom move-node-details))
-                (recur (next new-c) (concat (take o-idx old-c) (drop (unchecked-inc-int o-idx) old-c)) (unchecked-inc-int n) (unchecked-inc-int (unchecked-add-int n o-idx)) n-children true (conj! vdom corresponding-old-vdom))))))))))
+          (let [[nc oc n move-n vdom-node] (move-nodes impl el new-headers new-c old-vdom old-c n n-children)]
+            (recur nc oc n move-n n-children true (cond-> vdom vdom-node (conj! vdom-node)))))))))
 
 (defn wipe? [old-children old-ks new-children new-ks]
   (let [oc (count old-children)]
@@ -573,7 +581,7 @@
     (if (wipe? old-children old-ks new-children new-ks)
       (do
         (r/remove-all-children (:renderer impl) el)
-        (update-children impl el new-children new-ks nil nil))
+        [true (insert-children impl el new-children (transient [])) new-ks])
       (update-children impl el new-children new-ks old-children old-ks))))
 
 (defn reconcile* [{:keys [renderer] :as impl} el headers vdom index]
