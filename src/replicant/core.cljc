@@ -430,11 +430,8 @@
 
 (def move-node-details [:replicant/move-node])
 
-(defn update-children [impl el headers vdom]
-  (let [r (:renderer impl)
-        old-children (vdom/children vdom)
-        old-ks (vdom/child-ks vdom)
-        [new-children new-ks] (get-children-ks headers (get-ns headers))]
+(defn update-children [impl el new-children new-ks old-children old-ks]
+  (let [r (:renderer impl)]
     (loop [new-c (seq new-children)
            old-c (seq old-children)
            n 0
@@ -552,6 +549,33 @@
                   (register-hook impl child new-headers corresponding-old-vdom move-node-details))
                 (recur (next new-c) (concat (take o-idx old-c) (drop (unchecked-inc-int o-idx) old-c)) (unchecked-inc-int n) (unchecked-inc-int (unchecked-add-int n o-idx)) n-children true (conj! vdom corresponding-old-vdom))))))))))
 
+(defn wipe? [old-children old-ks new-children new-ks]
+  (let [oc (count old-children)]
+    (when (< 0 oc)
+      (or
+       ;; No new children, remove any existing ones
+       (= 0 (count new-children))
+
+       (and
+        ;; All the old children have keys, and none of those keys are in use in the
+        ;; new children: remove them all
+        (= oc (count old-ks))
+        (nil? (loop [[k & ks] old-ks]
+                (cond
+                  (nil? k) nil
+                  (new-ks k) k
+                  :else (recur ks)))))))))
+
+(defn reconcile-children [impl el headers vdom]
+  (let [old-children (vdom/children vdom)
+        old-ks (vdom/child-ks vdom)
+        [new-children new-ks] (get-children-ks headers (get-ns headers))]
+    (if (wipe? old-children old-ks new-children new-ks)
+      (do
+        (r/remove-all-children (:renderer impl) el)
+        (update-children impl el new-children new-ks nil nil))
+      (update-children impl el new-children new-ks old-children old-ks))))
+
 (defn reconcile* [{:keys [renderer] :as impl} el headers vdom index]
   (cond
     (= (hiccup/sexp headers) (vdom/sexp vdom))
@@ -574,7 +598,7 @@
     :else
     (let [child (r/get-child renderer el index)
           [attrs-changed? attrs] (update-attributes renderer child headers vdom)
-          [children-changed? children child-ks] (update-children impl child headers vdom)
+          [children-changed? children child-ks] (reconcile-children impl child headers vdom)
           attrs-changed? (or attrs-changed?
                              (not= (:replicant/on-update (hiccup/attrs headers))
                                    (:replicant/on-update (vdom/attrs vdom))))]

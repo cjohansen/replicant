@@ -109,6 +109,12 @@
        (swap! el -remove-child child))
      this)
 
+   `replicant/remove-all-children
+   (fn [this el]
+     (swap! (:log this) conj [:remove-all-children @el])
+     (swap! el assoc :children [])
+     this)
+
    `replicant/replace-child
    (fn [this el insert-child replace-child]
      (let [insert @insert-child
