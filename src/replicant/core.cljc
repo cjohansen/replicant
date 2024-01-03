@@ -103,7 +103,7 @@
     (coll? classes) (map (fn [class]
                            (if (keyword? class)
                              (name class)
-                             (map (fn [^String s] (.trim  s)) (.split ^String class " "))))
+                             (.trim class)))
                          classes)
     (keyword? classes) [(name classes)]
     (string? classes) (map #(.trim ^String %) (.split ^String classes " "))
