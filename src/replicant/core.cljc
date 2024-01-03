@@ -509,14 +509,16 @@
            changed? false
            vdom (transient [])]
       (let [new-headers (first new-c)
-            old-vdom (first old-c)]
+            old-vdom (first old-c)
+            new-empty? (nil? new-c)
+            old-empty? (nil? old-c)]
         (cond
           ;; Both empty, we're done
-          (and (nil? new-c) (nil? old-c))
+          (and new-empty? old-empty?)
           [changed? (persistent! vdom) new-ks]
 
           ;; There are old nodes where there are no new nodes: delete
-          (nil? new-c)
+          new-empty?
           (do
             (run! #(let [child (r/get-child r el n)]
                      (r/remove-child r el child)
@@ -524,7 +526,7 @@
             [true (persistent! vdom) new-ks])
 
           ;; There are new nodes where there were no old ones: create
-          (nil? old-c)
+          old-empty?
           [true (insert-children impl el new-c vdom) new-ks]
 
           ;; It's "the same node" (e.g. reusable), reconcile
@@ -551,8 +553,7 @@
             (register-hook impl child nil old-vdom)
             (recur new-c (next old-c) n move-n (dec n-children) true vdom))
 
-          ;; Nodes have moved. Find the original position of the two nodes
-          ;; currently being considered, and update the DOM accordingly.
+          ;; Nodes have moved
           :else
           (let [[nc oc n move-n vdom-node] (move-nodes impl el new-headers new-c old-vdom old-c n n-children)]
             (recur nc oc n move-n n-children true (cond-> vdom vdom-node (conj! vdom-node)))))))))
