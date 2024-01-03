@@ -11,18 +11,18 @@ dependencies.
 ;; Render to the DOM - creates all elements
 (d/render el
   [:ul.cards
-    [:li {:key 1} "Item #1"]
-    [:li {:key 2} "Item #2"]
-    [:li {:key 3} "Item #3"]
-    [:li {:key 4} "Item #4"]])
+    [:li {:rkey 1} "Item #1"]
+    [:li {:rkey 2} "Item #2"]
+    [:li {:rkey 3} "Item #3"]
+    [:li {:rkey 4} "Item #4"]])
 
 ;; This render call will only result in one DOM node being moved.
 (d/render el
   [:ul.cards
-    [:li {:key 1} "Item #1"]
-    [:li {:key 3} "Item #3"]
-    [:li {:key 2} "Item #2"]
-    [:li {:key 4} "Item #4"]])
+    [:li {:rkey 1} "Item #1"]
+    [:li {:rkey 3} "Item #3"]
+    [:li {:rkey 2} "Item #2"]
+    [:li {:rkey 4} "Item #4"]])
 ```
 
 ## Status
@@ -117,7 +117,7 @@ with a single argument - the hook details map described above.
 ## Keys
 
 Replicant uses keys to identify nodes when the overall structure changes. Set
-`:key` in the attributes map of any element that you do not want recreated
+`:rkey` in the attributes map of any element that you do not want recreated
 unnecessarily. This key is local to the parent element (e.g. you may reuse the
 key at different levels). When it is set, Replicant will know to reuse the
 corresponding DOM element, even when it changes positions, etc. If you have CSS

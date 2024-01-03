@@ -91,13 +91,13 @@
             has-args? (map? (first args))
             attrs (if has-args? (first args) {})]
         #?(:clj (-> (parse-tag (name sym))
-                    (conj (:key attrs))
+                    (conj (:rkey attrs))
                     (conj attrs)
                     (conj (if has-args? (rest args) args))
                     (conj ns)
                     (conj sexp))
            :cljs (doto (parse-tag (name sym))
-                   (.push (:key attrs))
+                   (.push (:rkey attrs))
                    (.push attrs)
                    (.push (if has-args? (rest args) args))
                    (.push ns)
@@ -325,7 +325,7 @@
 
 (defn update-attr [renderer el attr new old]
   (case attr
-    :key nil
+    :rkey nil
     :replicant/on-update nil
     :style (update-styles renderer el (:style new) (:style old))
     :classes (update-classes renderer el (:classes new) (:classes old))
@@ -363,7 +363,7 @@
 
 (defn set-attr [renderer el attr new]
   (case attr
-    :key nil
+    :rkey nil
     :replicant/on-update nil
     :style (set-styles renderer el (:style new))
     :classes (set-classes renderer el (:classes new))

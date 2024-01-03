@@ -24,7 +24,7 @@
   `(vget ~vdom 5))
 
 (defn create [tag-name attrs children child-ks sexp]
-  [tag-name (:key attrs) attrs children child-ks sexp])
+  [tag-name (:rkey attrs) attrs children child-ks sexp])
 
 (defn vdom? [x]
   (vector? x))

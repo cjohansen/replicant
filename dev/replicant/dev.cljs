@@ -13,10 +13,10 @@
   (def el (js/document.getElementById "app"))
 
   (d/render el [:ul.cards
-                [:li {:key 1} [:div.square.wobble]]
-                [:li {:key 2} [:div.square.wobble.green]]
-                [:li {:key 3} [:div.square.wobble.orange]]
-                [:li {:key 4} [:div.square.wobble.yellow]]
+                [:li {:rkey 1} [:div.square.wobble]]
+                [:li {:rkey 2} [:div.square.wobble.green]]
+                [:li {:rkey 3} [:div.square.wobble.orange]]
+                [:li {:rkey 4} [:div.square.wobble.yellow]]
                 ])
 
   )
