@@ -263,15 +263,7 @@ http://localhost:8080/frameworks/keyed/replicant/
 
 ### Run the benchmark
 
-With Replicant built, you can go to the root directory to run the full
-benchmark, validation, and report:
-
-```sh
-npm run rebuild-ci keyed/replicant
-```
-
-This runs the benchmark headlessly. You can also run the verification and
-benchmarks separately:
+With Replicant built, you can go to the root directory to run the benchmark:
 
 ```sh
 npm run bench keyed/replicant
@@ -285,6 +277,13 @@ npm run results
 ```
 
 And open http://localhost:8080/webdriver-ts-results/dist/index.html
+
+It is also possible to run an all-in-one benchmark, validation, and report. This
+will run the benchmark headlessly:
+
+```sh
+npm run rebuild-ci keyed/replicant
+```
 
 ### Comparing frameworks
 
