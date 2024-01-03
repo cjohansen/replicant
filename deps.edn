@@ -12,6 +12,8 @@
                      com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.1.1"}
                      com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}}
         :jvm-opts ["-XX:-OmitStackTraceInFastThrow" "-Djdk.attach.allowAttachSelf=true"]}
+  :test {:exec-fn kaocha.runner/exec-fn
+         :exec-args {}}
   :jar {:extra-deps {pack/pack.alpha {:git/url "https://github.com/juxt/pack.alpha.git"
                                       :sha "e518d9b2b70f4292c9988d2792b8667d88a6f4df"}}
         :main-opts ["-m" "mach.pack.alpha.skinny" "--no-libs" "--project-path" "replicant.jar"]}}}

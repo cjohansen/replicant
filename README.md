@@ -32,11 +32,9 @@ subject to change. The current focus is on improving performance.
 
 ## Performance
 
-Replicant performance is being measured with
-https://github.com/krausest/js-framework-benchmark. It is currently a little
-slower than React, but faster than reagent. It is much faster than
-[dumdom](https://github.com/cjohansen/dumdom), which can be considered
-Replicant's predecessor.
+Replicant performance is being tuned using
+https://github.com/krausest/js-framework-benchmark. See [benchmarking
+instructions](#benchmarking) for how to run locally.
 
 ## Data-driven hooks and events
 
@@ -214,3 +212,120 @@ hiccup nodes, and Replicant will trigger them for you.
 ## Contribute
 
 Want to help make it fast? Awesome, please help in any way you can.
+
+## Tests
+
+There are tests. Run them like so:
+
+```sh
+clojure -X:dev:test
+```
+
+...or start a REPL and evaluate at will.
+
+## Benchmarking
+
+To run the benchmark, check out
+[js-framework-benchmark](https://github.com/krausest/js-framework-benchmark) and
+follow these steps:
+
+```sh
+npm ci
+npm run install-server
+npm start
+```
+
+Leave the server running.
+
+### Compiling the test runner
+
+In another terminal:
+
+```sh
+cd webdriver-ts
+npm ci
+npm run compile
+```
+
+### Build Replicant
+
+Finally, build Replicant to run its benchmark:
+
+```sh
+cd frameworks/keyed/replicant
+npm run build-prod
+```
+
+You should now be able to manually interact with Replicant on
+http://localhost:8080/frameworks/keyed/replicant/
+
+### Run the benchmark
+
+With Replicant built, you can go to the root directory to run the full
+benchmark, validation, and report:
+
+```sh
+npm run rebuild-ci keyed/replicant
+```
+
+This runs the benchmark headlessly. You can also run the verification and
+benchmarks separately:
+
+```sh
+npm run bench keyed/replicant
+```
+
+This will take about 5 minutes, and Chrome will open and close several times.
+When it's done, generate the report:
+
+```sh
+npm run results
+```
+
+And open http://localhost:8080/webdriver-ts-results/dist/index.html
+
+### Comparing frameworks
+
+It can be useful to compare to some other frameworks. To do so, build them and
+run the benchmark for each one. Here are some suggestions:
+
+```sh
+cd frameworks/keyed/react
+npm run build-prod
+cd ../..
+npm run bench keyed/react
+
+cd frameworks/keyed/reagent
+npm run build-prod
+cd ../..
+npm run bench keyed/reagent
+
+cd frameworks/keyed/vanillajs
+npm run build-prod
+cd ../..
+npm run bench keyed/vanillajs
+```
+
+### Benchmarking and testing changes
+
+If you want to try to optimize or tweak Replicant, you might want to run several
+benchmarks. For all I know, the directory name is used to key the frameworks in
+the report, so my current workflow consists of copying the
+`frameworks/keyed/replicant` directory, making changes to it, and running the
+benchmark, e.g.:
+
+```sh
+cp -r frameworks/keyed/replicant frameworks/keyed/replicant-20240103
+cd frameworks/keyed/replicant-20240103
+cp -r ~/projects/replicant/src/replicant src/.
+cd ../../../
+npm run bench keyed/replicant-20240103
+npm run results
+```
+
+If you make changes to the code, you can start by running a faster test, to
+avoid running a long benchmark on broken code:
+
+```sh
+npm run isKeyed -- --headless true keyed/replicant-xyz
+```
