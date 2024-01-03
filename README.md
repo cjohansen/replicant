@@ -1,7 +1,7 @@
 # Replicant - A Clojure(Script) DOM rendering library
 
-Replicant takes hiccup and replicates its structure in the browser's DOM. Over
-and over. Efficiently.
+Replicant turns hiccup into DOM. Over and over. Efficiently, and with no
+dependencies.
 
 ```clj
 (require '[replicant.dom :as d])
