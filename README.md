@@ -37,9 +37,11 @@ subject to change. The current focus is on improving performance.
 - Class lists with Clojure collections
 - Rich life-cycle hooks (mount, unmount, update attributes, move, etc)
 - Data-driven hooks and DOM event handlers
+- Represent entire UIs with serializable data
 - Stateless
 - Style/class/attribute overrides during mounting for easy transitions
 - Small API surface: Two functions and a few keywords
+- No dependencies
 
 ## Performance
 
