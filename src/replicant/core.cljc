@@ -99,13 +99,13 @@
 
 (defn get-classes [classes]
   (cond
+    (keyword? classes) [(name classes)]
     (empty? classes) []
     (coll? classes) (map (fn [class]
                            (if (keyword? class)
                              (name class)
                              (.trim class)))
                          classes)
-    (keyword? classes) [(name classes)]
     (string? classes) (map #(.trim ^String %) (.split ^String classes " "))
     :else (throw (ex-info "class name is neither string, keyword, or a collection of those"
                           {:classes classes}))))
