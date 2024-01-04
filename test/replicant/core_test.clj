@@ -95,7 +95,7 @@
                 h/get-mutation-log-events
                 h/summarize
                 (filter (comp #{:set-style} first)))
-           [[:set-style :color "red"]])))
+           [[:set-style [:h1 ""] :color "red"]])))
 
   (testing "Ignores nil style"
     (is (= (->> (h/render [:h1 {:style {:color nil}} "Hello world"])
@@ -109,7 +109,7 @@
                (h/render [:h1 {:style {:color nil}} "Hello world"])
                h/get-mutation-log-events
                h/summarize)
-           [[:remove-style :color]])))
+           [[:remove-style [:h1 "Hello world"] :color]])))
 
   (testing "Replaces text node"
     (is (= (-> (h/render [:h1 {} "Hello world"])

@@ -72,6 +72,18 @@
       (let [[e element event handler] event]
         [e (format-element element) event handler])
 
+      :set-style
+      (let [[e element style v] event]
+        [e (format-element element) style v])
+
+      :remove-style
+      (let [[e element style] event]
+        [e (format-element element) style])
+
+      :add-class
+      (let [[e element cn] event]
+        [e (format-element element) cn])
+
       event)))
 
 (defn render

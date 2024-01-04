@@ -38,25 +38,25 @@
 
    `replicant/set-style
    (fn [this el style v]
-     (swap! (:log this) conj [:set-style style v])
+     (swap! (:log this) conj [:set-style @el style v])
      (swap! el assoc-in [:style style] v)
      this)
 
    `replicant/remove-style
    (fn [this el style]
-     (swap! (:log this) conj [:remove-style style])
+     (swap! (:log this) conj [:remove-style @el style])
      (swap! el update :style dissoc style)
      this)
 
    `replicant/add-class
    (fn [this el cn]
-     (swap! (:log this) conj [:add-class cn])
+     (swap! (:log this) conj [:add-class @el cn])
      (swap! el update :classes #(set (conj % cn)))
      this)
 
    `replicant/remove-class
    (fn [this el cn]
-     (swap! (:log this) conj [:remove-class cn])
+     (swap! (:log this) conj [:remove-class @el cn])
      (swap! el update :classes disj cn)
      this)
 
