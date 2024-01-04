@@ -660,9 +660,11 @@
                  vdom)
                (second (reconcile* impl el (get-hiccup-headers hiccup nil) vdom 0)))
         hooks @(:hooks impl)]
-    (run! call-hooks hooks)
-    (when-let [mounts (seq @(:mounts impl))]
-      (->> (fn [] (run! #(perform-post-mount-update renderer %) mounts))
-           (r/next-frame renderer)))
+    (if-let [mounts (seq @(:mounts impl))]
+      (->> (fn []
+             (run! #(perform-post-mount-update renderer %) mounts)
+             (run! call-hooks hooks))
+           (r/next-frame renderer))
+      (run! call-hooks hooks))
     {:hooks hooks
      :vdom vdom}))

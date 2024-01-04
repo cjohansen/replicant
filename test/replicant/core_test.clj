@@ -799,7 +799,21 @@
            [[:set-style [:h1 ""] :background "red"]
             [:set-style [:h1 ""] :color "green"]
             [:next-frame]
-            [:remove-style [:h1 "Title"] :color]]))))
+            [:remove-style [:h1 "Title"] :color]])))
+
+  (testing "Triggers on-mount hook after mounting is complete"
+    (is (= (let [callbacks (atom [])]
+             (h/render [:h1 {:class :mounted
+                             :replicant/mounting {:class :mounting}
+                             :replicant/on-update
+                             (fn [e]
+                               (swap! callbacks conj (dissoc @(:replicant/node e) :replicant.mutation-log/id)))}
+                        "Title"])
+             @callbacks)
+           [{:tag-name "h1"
+             :classes #{"mounted"}
+             :children [{:text "Title"}]}]))))
+
 
 (deftest update-children-test
   (testing "Append node"
