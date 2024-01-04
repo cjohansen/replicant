@@ -6,6 +6,10 @@
   (when-let [old-handler (some-> el .-replicantHandlers (aget event))]
     (.removeEventListener el event old-handler)))
 
+(defn on-next-frame [f]
+  (js/requestAnimationFrame
+   #(js/requestAnimationFrame f)))
+
 (defn create-renderer []
   (reify
     replicant/IRender
@@ -87,7 +91,10 @@
       this)
 
     (get-child [_this el idx]
-      (aget (.-childNodes el) idx))))
+      (aget (.-childNodes el) idx))
+
+    (next-frame [_this f]
+      (on-next-frame f))))
 
 (defonce state (volatile! {}))
 

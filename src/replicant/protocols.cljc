@@ -24,4 +24,6 @@
   (replace-child [this el insert-child replace-child])
   (remove-all-children [this el])
 
-  (get-child [this el idx]))
+  (get-child [this el idx])
+
+  (next-frame [this f]))

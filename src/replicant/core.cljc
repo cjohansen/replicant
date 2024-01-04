@@ -164,10 +164,21 @@
         classes (concat
                  (remove empty? (get-classes (:class attrs)))
                  (hiccup/classes headers))]
-    (cond-> attrs
+    (cond-> (dissoc attrs :class :replicant/mounting)
       id (assoc :id id)
       (seq classes) (assoc :classes classes)
       (string? (:style attrs)) (update :style explode-styles))))
+
+(defn merge-attrs [attrs overrides]
+  (-> (merge attrs (dissoc overrides :style))
+      (update :style merge (:style overrides))))
+
+(defn get-mounting-attrs [headers]
+  (if-let [mounting (:replicant/mounting (hiccup/attrs headers))]
+    [(get-attrs headers)
+     (get-attrs (cond-> headers
+                  mounting (hiccup/update-attrs merge-attrs mounting)))]
+    [(get-attrs headers)]))
 
 (defn ^:private flatten-seqs* [xs coll]
   (reduce
@@ -269,6 +280,9 @@
   (when-let [hook (:replicant/on-update (if headers (hiccup/attrs headers) (vdom/attrs vdom)))]
     (vswap! hooks conj [hook node (hiccup/sexp headers) (vdom/sexp vdom) details])))
 
+(defn register-mount [{:keys [mounts]} node mounting-attrs attrs]
+  (vswap! mounts conj [node mounting-attrs attrs]))
+
 ;; Perform DOM operations
 
 (defn update-styles [renderer el new-styles old-styles]
@@ -327,14 +341,17 @@
         (set-attr-val renderer el attr v))
       (r/remove-attribute renderer el (name attr)))))
 
-(defn update-attributes [renderer el headers vdom]
+(defn update-attributes [renderer el new-attrs old-attrs]
+  (->> (into (set (keys new-attrs)) (keys old-attrs))
+       (reduce #(update-attr renderer el %2 new-attrs old-attrs) nil)))
+
+(defn reconcile-attributes [renderer el headers vdom]
   (let [new-attrs (get-attrs headers)
         old-attrs (vdom/attrs vdom)]
     (if (= new-attrs old-attrs)
       [false new-attrs]
       (do
-        (->> (into (set (keys new-attrs)) (keys old-attrs))
-             (run! #(update-attr renderer el % new-attrs old-attrs)))
+        (update-attributes renderer el new-attrs old-attrs)
         [true new-attrs]))))
 
 ;; These setters are not strictly necessary - you could just call the update-*
@@ -380,8 +397,8 @@
                  (when (= "svg" tag-name)
                    "http://www.w3.org/2000/svg"))
           node (r/create-element renderer tag-name (when ns {:ns ns}))
-          attrs (get-attrs headers)
-          _ (set-attributes renderer node attrs)
+          [attrs mounting-attrs] (get-mounting-attrs headers)
+          _ (set-attributes renderer node (or mounting-attrs attrs))
           [children ks] (->> (get-children headers ns)
                              (reduce (fn [[children ks] child-headers]
                                        (let [[child-node vdom] (create-node impl child-headers)
@@ -390,6 +407,8 @@
                                          [(conj! children vdom) (cond-> ks k (conj! k))]))
                                      [(transient []) (transient #{})]))]
       (register-hook impl node headers)
+      (when mounting-attrs
+        (register-mount impl node mounting-attrs attrs))
       [node (vdom/create tag-name attrs (persistent! children) (persistent! ks) (hiccup/sexp headers) nil)])))
 
 (defn reusable?
@@ -604,7 +623,7 @@
     ;; Update the node's attributes and reconcile its children
     :else
     (let [child (r/get-child renderer el index)
-          [attrs-changed? attrs] (update-attributes renderer child headers vdom)
+          [attrs-changed? attrs] (reconcile-attributes renderer child headers vdom)
           [children-changed? children child-ks] (reconcile-children impl child headers vdom)
           attrs-changed? (or attrs-changed?
                              (not= (:replicant/on-update (hiccup/attrs headers))
@@ -623,6 +642,9 @@
            (register-hook impl child headers vdom))
       [true (vdom/create (hiccup/tag-name headers) attrs children child-ks (hiccup/sexp headers) nil)])))
 
+(defn perform-post-mount-update [renderer [node mounting-attrs attrs]]
+  (update-attributes renderer node attrs mounting-attrs))
+
 (defn reconcile
   "Reconcile the DOM in `el` by diffing `hiccup` with `vdom`. If there is no
   `vdom`, `reconcile` will create the DOM as per `hiccup`. Assumes that the DOM
@@ -630,7 +652,8 @@
   desired result."
   [renderer el hiccup & [vdom]]
   (let [impl {:renderer renderer
-              :hooks (volatile! [])}
+              :hooks (volatile! [])
+              :mounts (volatile! [])}
         vdom (if (nil? vdom)
                (let [[node vdom] (create-node impl (get-hiccup-headers hiccup nil))]
                  (r/append-child renderer el node)
@@ -638,5 +661,8 @@
                (second (reconcile* impl el (get-hiccup-headers hiccup nil) vdom 0)))
         hooks @(:hooks impl)]
     (run! call-hooks hooks)
+    (when-let [mounts (seq @(:mounts impl))]
+      (->> (fn [] (run! #(perform-post-mount-update renderer %) mounts))
+           (r/next-frame renderer)))
     {:hooks hooks
      :vdom vdom}))

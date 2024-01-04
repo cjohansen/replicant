@@ -12,11 +12,17 @@
 
   (def el (js/document.getElementById "app"))
 
-  (d/render el [:ul.cards
-                [:li {:replicant/key 1} [:div.square.wobble]]
-                [:li {:replicant/key 2} [:div.square.wobble.green]]
-                [:li {:replicant/key 3} [:div.square.wobble.orange]]
-                [:li {:replicant/key 4} [:div.square.wobble.yellow]]
-                ])
+  (->> [:div
+        [:ul.cards
+         [:li {:replicant/key 1} [:div.square.wobble]]
+         [:li {:replicant/key 2} [:div.square.wobble.green]]
+         [:li {:replicant/key 3} [:div.square.wobble.orange]]
+         [:li {:replicant/key 4} [:div.square.wobble.yellow]]]
+        [:div {:style {:transition "width 0.25s"
+                       :width 100
+                       :height 200
+                       :background "red"}
+               :replicant/mounting {:style {:width 0}}}]]
+       (d/render el))
 
   )

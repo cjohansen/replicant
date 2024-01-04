@@ -30,6 +30,17 @@ dependencies.
 Replicant is starting to shape up, but is still under development. Details are
 subject to change. The current focus is on improving performance.
 
+## Features
+
+- Efficient hiccup => DOM renders and re-renders
+- Inline styles with Clojure maps
+- Class lists with Clojure collections
+- Rich life-cycle hooks (mount, unmount, update attributes, move, etc)
+- Data-driven hooks and DOM event handlers
+- Stateless
+- Style/class/attribute overrides during mounting for easy transitions
+- Small API surface: Two functions and a few keywords
+
 ## Performance
 
 Replicant performance is being tuned using
@@ -122,6 +133,74 @@ recreated unnecessarily. This key is local to the parent element (e.g. you may
 reuse the key at different levels). When it is set, Replicant will know to reuse
 the corresponding DOM element, even when it changes positions, etc. If you have
 CSS transitions on an element, you very likely want to give it a key.
+
+## Mounting styles/classes/attributes
+
+Sometimes it's nice when element smoothly transition into being. Replicant
+enables this by supporting overrides for inline styles, classes, and indeed any
+attribute during the initial mount.
+
+```clj
+[:h1 {:style {:transition "left 0.25s"
+              :position "absolute"
+              :left 0}
+      :replicant/mounting {:style {:left "-100%"}}}
+ "Hello world"]
+```
+
+When this element is mounted to the DOM, it will slide in from the left. When
+initially rendered, it will have these styles:
+
+```clj
+{:transition "left 0.25s"
+ :position "absolute"
+ :left "-100%"}
+```
+
+Once mounted, it will be updated to:
+
+
+```clj
+{:transition "left 0.25s"
+ :position "absolute"
+ :left 0}
+```
+
+Which causes the CSS transition to trigger, and move the element in from the
+left.
+
+Mounting styles are merged into your ordinary styles. Other attributes, like
+classes, are completely overwritten.
+
+### Class overrides
+
+Given this CSS:
+
+```css
+.pane {
+  transition: left 0.25s;
+  position: absolute;
+  left: 0;
+}
+
+.mounting {
+  left: -100%;
+}
+```
+
+And this hiccup:
+
+```clj
+[:h1.pane {:replicant/mounting {:class :mounting}}
+  "Hello world"]
+```
+
+The pane would slide in from the left, as it would be mounted with the two
+classes `"pane mounting"` and after mount it would have only `"pane"`. Note that
+classes from the hiccup symbol are added to both mounting and mounted classes.
+
+This feature was inspired by a similar feature in
+[snabbdom](https://github.com/snabbdom/snabbdom].
 
 ## Differences from hiccup
 

@@ -84,6 +84,10 @@
       (let [[e element cn] event]
         [e (format-element element) cn])
 
+      :remove-class
+      (let [[e element cn] event]
+        [e (format-element element) cn])
+
       event)))
 
 (defn render

@@ -750,6 +750,57 @@
            [[:replicant/mount "h1.mmm-h1"]
             [:replicant/update [:replicant/updated-children] "h1.mmm-h1"]]))))
 
+(deftest mounting-test
+  (testing "Applies attribute overrides while mounting"
+    (is (= (-> (h/render [:h1 {:class ["mounted"]
+                               :replicant/mounting {:class ["mounting"]}} "Title"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "h1"]
+            [:add-class [:h1 ""] "mounting"]
+            [:create-text-node "Title"]
+            [:append-child "Title" :to "h1"]
+            [:append-child [:h1 "Title"] :to "Document"]
+            [:next-frame]
+            [:remove-class [:h1 "Title"] "mounting"]
+            [:add-class [:h1 "Title"] "mounted"]])))
+
+  (testing "Combines mounting classes with hiccup symbol classes"
+    (is (= (-> (h/render [:h1.heading {:replicant/mounting {:class ["mounting"]}}
+                          "Title"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "h1"]
+            [:add-class [:h1 ""] "mounting"]
+            [:add-class [:h1 ""] "heading"]
+            [:create-text-node "Title"]
+            [:append-child "Title" :to "h1"]
+            [:append-child [:h1 "Title"] :to "Document"]
+            [:next-frame]
+            [:remove-class [:h1 "Title"] "mounting"]])))
+
+  (testing "Does not use mounting class for update"
+    (is (= (-> (h/render [:h1 {:class ["mounted"]
+                               :replicant/mounting {:class ["mounting"]}} "Title"])
+               (h/render [:h1 {:class ["different"]
+                               :replicant/mounting {:class ["mounting"]}} "Title"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:remove-class [:h1 "Title"] "mounted"]
+            [:add-class [:h1 "Title"] "different"]])))
+
+  (testing "Merges mounting styles into styles"
+    (is (= (->> (h/render [:h1 {:style {:background "red"}
+                                :replicant/mounting {:style {:color "green"}}}
+                           "Title"])
+                h/get-mutation-log-events
+                h/summarize
+                (filter (comp #{:set-style :remove-style :next-frame} first)))
+           [[:set-style [:h1 ""] :background "red"]
+            [:set-style [:h1 ""] :color "green"]
+            [:next-frame]
+            [:remove-style [:h1 "Title"] :color]]))))
+
 (deftest update-children-test
   (testing "Append node"
     (is (= (-> (scenarios/append-node scenarios/vdom)

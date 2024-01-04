@@ -48,3 +48,10 @@
          (conj ~ns)
          (conj ~sexp)
          (conj ~text))))
+
+(defmacro update-attrs [headers & args]
+  (if (:ns &env)
+    `(do
+       (aset ~headers 4 (~(first args) (aget ~headers 4) ~@(rest args)))
+       ~headers)
+    `(update ~headers 4 ~@args)))

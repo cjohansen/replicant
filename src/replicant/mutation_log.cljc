@@ -126,7 +126,12 @@
    `replicant/get-child
    (fn [this el idx]
      (swap! (:log this) conj [:get-child idx])
-     (atom (-get-child el idx)))})
+     (atom (-get-child el idx)))
+
+   `replicant/next-frame
+   (fn [this f]
+     (swap! (:log this) conj [:next-frame])
+     (f))})
 
 (defn create-renderer [{:keys [log element]}]
   (with-meta

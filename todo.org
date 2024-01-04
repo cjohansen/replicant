@@ -1,4 +1,8 @@
-* Ting å teste [0/3]
-** TODO Kjør en benchmark uten parse-hiccup-symbol
-** TODO Fjern mapcat fra hiccup-klasse-parsing
-** TODO class eller className
+* Features [1/3]
+** DONE replicant/mounting
+** TODO replicant/unmounting
+** TODO dev-mode assert
+* Asserts [0/3]
+** TODO Using :className :classes
+** TODO Using spaced strings for :class
+** TODO Using string style
