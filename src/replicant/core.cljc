@@ -101,12 +101,12 @@
   (cond
     (keyword? classes) [(name classes)]
     (empty? classes) []
-    (coll? classes) (map (fn [class]
-                           (if (keyword? class)
-                             (name class)
-                             (.trim class)))
+    (coll? classes) (keep (fn [class]
+                            (if (keyword? class)
+                              (name class)
+                              (not-empty (.trim class))))
                          classes)
-    (string? classes) (map #(.trim ^String %) (.split ^String classes " "))
+    (string? classes) (keep #(not-empty (.trim ^String %)) (.split ^String classes " "))
     :else (throw (ex-info "class name is neither string, keyword, or a collection of those"
                           {:classes classes}))))
 
