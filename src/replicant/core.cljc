@@ -346,14 +346,12 @@
   (->> (into (set (keys new-attrs)) (keys old-attrs))
        (reduce #(update-attr renderer el %2 new-attrs old-attrs) nil)))
 
-(defn reconcile-attributes [renderer el headers vdom]
-  (let [new-attrs (get-attrs headers)
-        old-attrs (vdom/attrs vdom)]
-    (if (= new-attrs old-attrs)
-      [false new-attrs]
-      (do
-        (update-attributes renderer el new-attrs old-attrs)
-        [true new-attrs]))))
+(defn reconcile-attributes [renderer el new-attrs old-attrs]
+  (if (= new-attrs old-attrs)
+    false
+    (do
+      (update-attributes renderer el new-attrs old-attrs)
+      true)))
 
 ;; These setters are not strictly necessary - you could just call the update-*
 ;; functions with `nil` for `old`. The pure setters improve performance for
@@ -458,6 +456,9 @@
 
 (def move-node-details [:replicant/move-node])
 
+(defn unchanged? [headers vdom]
+  (= (hiccup/sexp headers) (vdom/sexp vdom)))
+
 (defn ^:private move-nodes [{:keys [renderer] :as impl} el headers new-children vdom old-children n n-children]
   (let [o-idx (if (hiccup/rkey headers)
                 (int (index-of #(reusable? headers %) old-children))
@@ -509,7 +510,8 @@
             child (r/get-child renderer el idx)
             corresponding-old-vdom (nth old-children o-idx)]
         (r/insert-before renderer el child (r/get-child renderer el n))
-        (when (not (first (reconcile* impl el headers corresponding-old-vdom n)))
+        (reconcile* impl el headers corresponding-old-vdom n)
+        (when (unchanged? headers corresponding-old-vdom)
           ;; If it didn't change, reconcile* did not schedule a hook
           ;; Because the node just moved we still need the hook
           (register-hook impl child headers corresponding-old-vdom move-node-details))
@@ -551,10 +553,11 @@
 
           ;; It's a reusable node, reconcile
           (reusable? new-headers old-vdom)
-          (let [[node-changed? new-vdom] (reconcile* impl el new-headers old-vdom n)]
-            (when (and (not node-changed?) (< n move-n))
+          (let [new-vdom (reconcile* impl el new-headers old-vdom n)
+                node-unchanged? (unchanged? new-headers old-vdom)]
+            (when (and node-unchanged? (< n move-n))
               (register-hook impl (r/get-child r el n) new-headers old-vdom move-node-details))
-            (recur (next new-c) (next old-c) (unchecked-inc-int n) move-n n-children (or changed? node-changed?) (conj! vdom new-vdom)))
+            (recur (next new-c) (next old-c) (unchecked-inc-int n) move-n n-children (or changed? (not node-unchanged?)) (conj! vdom new-vdom)))
 
           ;; New node did not previously exist, create it
           (not (old-ks (hiccup/rkey new-headers)))
@@ -603,28 +606,30 @@
         [true (insert-children impl el new-children (transient [])) new-ks])
       (update-children impl el new-children new-ks old-children old-ks))))
 
+
 (defn reconcile* [{:keys [renderer] :as impl} el headers vdom index]
   (cond
-    (= (hiccup/sexp headers) (vdom/sexp vdom))
-    [false vdom]
+    (unchanged? headers vdom)
+    vdom
 
     (nil? headers)
     (let [child (r/get-child renderer el index)]
       (r/remove-child renderer el child)
       (register-hook impl child headers vdom)
-      [true nil])
+      nil)
 
     ;; The node at this index is of a different type than before, replace it
     ;; with a fresh one. Use keys to avoid ending up here.
     (changed? headers vdom)
     (let [[node vdom] (create-node impl headers)]
       (r/replace-child renderer el node (r/get-child renderer el index))
-      [true vdom])
+      vdom)
 
     ;; Update the node's attributes and reconcile its children
     :else
     (let [child (r/get-child renderer el index)
-          [attrs-changed? attrs] (reconcile-attributes renderer child headers vdom)
+          attrs (get-attrs headers)
+          attrs-changed? (reconcile-attributes renderer child attrs (vdom/attrs vdom))
           [children-changed? children child-ks] (reconcile-children impl child headers vdom)
           attrs-changed? (or attrs-changed?
                              (not= (:replicant/on-update (hiccup/attrs headers))
@@ -641,7 +646,7 @@
              [:replicant/updated-children])
            (remove nil?)
            (register-hook impl child headers vdom))
-      [true (vdom/create (hiccup/tag-name headers) attrs children child-ks (hiccup/sexp headers) nil)])))
+      (vdom/create (hiccup/tag-name headers) attrs children child-ks (hiccup/sexp headers) nil))))
 
 (defn perform-post-mount-update [renderer [node mounting-attrs attrs]]
   (update-attributes renderer node attrs mounting-attrs))
@@ -659,7 +664,7 @@
                (let [[node vdom] (create-node impl (get-hiccup-headers hiccup nil))]
                  (r/append-child renderer el node)
                  vdom)
-               (second (reconcile* impl el (get-hiccup-headers hiccup nil) vdom 0)))
+               (reconcile* impl el (get-hiccup-headers hiccup nil) vdom 0))
         hooks @(:hooks impl)]
     (if-let [mounts (seq @(:mounts impl))]
       (->> (fn []
