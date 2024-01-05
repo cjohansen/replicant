@@ -79,8 +79,8 @@
   - original s-expression
 
   Attributes and children are completely untouched. Headers can be used to
-  quickly determine tag name and key, or sent to `get-attrs` and `get-children`
-  for usable information about those things.
+  quickly determine tag name and key, or sent to `get-attrs` and
+  `get-children` for usable information about those things.
 
   Returns a tuple (instead of a map) for speed."
   [sexp ns]
