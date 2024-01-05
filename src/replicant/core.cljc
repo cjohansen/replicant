@@ -155,23 +155,24 @@
       (str v "px"))
     v))
 
-(defn get-attrs
-  "Given `headers` as produced by `get-hiccup-headers`, returns a map of all HTML
-  attributes."
-  [headers]
-  (let [id (hiccup/id headers)
-        attrs (hiccup/attrs headers)
-        classes (concat
-                 (remove empty? (get-classes (:class attrs)))
-                 (hiccup/classes headers))]
-    (cond-> (dissoc attrs :class :replicant/mounting)
+(defn prep-attrs [attrs id classes]
+  (let [classes (concat (get-classes (:class attrs)) classes)]
+    (cond-> (dissoc attrs :class :replicant/mounting :replicant/unmounting)
       id (assoc :id id)
       (seq classes) (assoc :classes classes)
       (string? (:style attrs)) (update :style explode-styles))))
 
+(defn get-attrs
+  "Given `headers` as produced by `get-hiccup-headers`, returns a map of all HTML
+  attributes."
+  [headers]
+  (prep-attrs (hiccup/attrs headers) (hiccup/id headers) (hiccup/classes headers)))
+
 (defn merge-attrs [attrs overrides]
-  (-> (merge attrs (dissoc overrides :style))
-      (update :style merge (:style overrides))))
+  (cond-> (merge attrs (dissoc overrides :style))
+    (or (:style attrs)
+        (:style overrides))
+    (update :style merge (:style overrides))))
 
 (defn get-mounting-attrs [headers]
   (if-let [mounting (:replicant/mounting (hiccup/attrs headers))]
