@@ -644,7 +644,6 @@
 
              :else
              [:replicant/updated-children])
-           (remove nil?)
            (register-hook impl child headers vdom))
       (vdom/create (hiccup/tag-name headers) attrs children child-ks (hiccup/sexp headers) nil))))
 
