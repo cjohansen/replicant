@@ -10,6 +10,41 @@
   (js/requestAnimationFrame
    #(js/requestAnimationFrame f)))
 
+(defn -on-transition-end [el f]
+  (let [[n dur] (-> (js/window.getComputedStyle el)
+                    (.getPropertyValue "transition-duration")
+                    transition/get-transition-stats)]
+    (if (= n 0)
+      (f)
+      (let [complete (volatile! 0)
+            timer (volatile! nil)
+            started (js/Date.)
+            callback (fn listener [& _args]
+                       (let [cn (vswap! complete inc)]
+                         (when (or (<= n cn)
+                                   (< dur (- (js/Date.) started)))
+                           (.removeEventListener el "transitionend" listener)
+                           (js/clearTimeout @timer)
+                           (f))))]
+        (.addEventListener el "transitionend" callback)
+        ;; The timer is a fail-safe. You could have set transition properties
+        ;; that either don't change, or don't change in a way that triggers an
+        ;; actual transition on unmount (e.g. changing height from auto to 0
+        ;; causes no transition). When this happens, there will not be as many
+        ;; transitionend events as there are transition durations. To avoid
+        ;; getting stuck, the timer will come in and clean up.
+        ;;
+        ;; The timer is set with a hefty delay to avoid cutting a transition
+        ;; short, in the case of a backed up browser working on overtime. Not
+        ;; sure how realistic this is, but better safe than sorry, and the
+        ;; important part is that the element doesn't get stuck forever.
+        (vreset! timer (js/setTimeout callback (+ dur 200)))))))
+
+(defn summarize [el]
+  (if el
+    (str (.toLowerCase (.-tagName el)) ": "(.-innerText el))
+    "Nil! Will blow"))
+
 (defn create-renderer []
   (reify
     replicant/IRender
@@ -80,6 +115,10 @@
 
     (remove-child [this el child-node]
       (.removeChild el child-node)
+      this)
+
+    (on-transition-end [this el f]
+      (-on-transition-end el f)
       this)
 
     (remove-all-children [this el]

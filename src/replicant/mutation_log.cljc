@@ -127,6 +127,12 @@
      (swap! el -remove-child child-node)
      this)
 
+   `replicant/on-transition-end
+   (fn [this el f]
+     (log this [:on-transition-end el])
+     (swap! (:callbacks this) conj f)
+     this)
+
    `replicant/remove-all-children
    (fn [this el]
      (log this [:remove-all-children el])

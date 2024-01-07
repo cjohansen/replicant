@@ -94,6 +94,10 @@
       (let [[e element cn] event]
         [e (format-element element) cn])
 
+      :on-transition-end
+      (let [[e element _f] event]
+        [e (format-element element)])
+
       event)))
 
 (defn render
