@@ -26,9 +26,11 @@
            (empty? x))))
 
 (defn format-element [el]
-  (if (:tag-name el)
-    (vec (remove blank? [(keyword (:tag-name el)) (get-text el)]))
-    el))
+  (if (instance? clojure.lang.Atom el)
+    (format-element @el)
+    (if (:tag-name el)
+      (vec (remove blank? [(keyword (:tag-name el)) (get-text el)]))
+      el)))
 
 (defn hiccup-tag [{:keys [tag-name classes]}]
   (str tag-name
@@ -72,6 +74,10 @@
       (let [[e element event handler] event]
         [e (format-element element) event handler])
 
+      :remove-event-handler
+      (let [[e element event] event]
+        [e (format-element element) event])
+
       :set-style
       (let [[e element style v] event]
         [e (format-element element) style v])
@@ -102,3 +108,29 @@
 
 (defn remove-text-node-events [events]
   (remove text-node-event? events))
+
+(defn ->hiccup [element]
+  (when-let [el (some-> element deref)]
+    (if-let [tag-name (:tag-name el)]
+      (into [(keyword tag-name)]
+            (map ->hiccup (:children el)))
+      (:text el))))
+
+(defn ->dom [{:keys [el]}]
+  (->> (:element el)
+       :children
+       first
+       ->hiccup))
+
+(defn strip-id [data]
+  (walk/postwalk
+   (fn [x]
+     (cond-> x
+       (::mutation-log/id x) (dissoc ::mutation-log/id)))
+   data))
+
+(defn get-snapshot [el]
+  (strip-id (mutation-log/get-snapshot el)))
+
+(defn summarize-event [e]
+  (update e :replicant/node get-snapshot))

@@ -516,7 +516,7 @@
                (h/render [:h1 {:on {:click nil}} "Hi!"])
                h/get-mutation-log-events
                h/summarize)
-           [[:remove-event-handler :click]])))
+           [[:remove-event-handler [:h1 "Hi!"] :click]])))
 
   (testing "Dispatches data handler globally"
     (is (= (binding [sut/*dispatch* (fn [& args] args)]
@@ -556,7 +556,7 @@
                (h/render [:h1 "Hi!"])
                h/get-mutation-log-events
                h/summarize)
-           [[:remove-event-handler :click]]))))
+           [[:remove-event-handler [:h1 "Hi!"] :click]]))))
 
 (deftest lifecycle-test
   (testing "Triggers on-update on first mount"
@@ -564,8 +564,7 @@
                  (binding [sut/*dispatch* (fn [e data] (reset! res {:e e :data data}))]
                    (h/render [:h1 {:replicant/on-update ["Update data"]} "Hi!"])
                    @res))
-               (update-in [:e :replicant/node] deref)
-               (update-in [:e :replicant/node] dissoc :replicant.mutation-log/id))
+               (update :e h/summarize-event))
            {:e
             {:replicant/event :replicant.event/life-cycle
              :replicant/life-cycle :replicant/mount
@@ -577,8 +576,7 @@
     (is (= (-> (let [res (atom nil)]
                  (h/render [:h1 {:replicant/on-update #(reset! res %)} "Hi!"])
                  @res)
-               (update :replicant/node deref)
-               (update :replicant/node dissoc :replicant.mutation-log/id))
+               h/summarize-event)
            {:replicant/event :replicant.event/life-cycle
             :replicant/life-cycle :replicant/mount
             :replicant/node {:tag-name "h1"
@@ -807,7 +805,7 @@
                              :replicant/mounting {:class :mounting}
                              :replicant/on-update
                              (fn [e]
-                               (swap! callbacks conj (dissoc @(:replicant/node e) :replicant.mutation-log/id)))}
+                               (swap! callbacks conj (h/get-snapshot (:replicant/node e))))}
                         "Title"])
              @callbacks)
            [{:tag-name "h1"
@@ -817,7 +815,7 @@
 
 (deftest update-children-test
   (testing "Append node"
-    (is (= (-> (scenarios/append-node scenarios/vdom)
+    (is (= (-> (scenarios/append-node (scenarios/vdom))
                h/get-mutation-log-events
                h/summarize
                h/remove-text-node-events)
@@ -825,7 +823,7 @@
             [:append-child [:li "#4"] :to "ul"]])))
 
   (testing "Append two nodes"
-    (is (= (-> (scenarios/append-two-nodes scenarios/vdom)
+    (is (= (-> (scenarios/append-two-nodes (scenarios/vdom))
                h/get-mutation-log-events
                h/summarize
                h/remove-text-node-events)
@@ -835,7 +833,7 @@
             [:append-child [:li "#5"] :to "ul"]])))
 
   (testing "Prepend node"
-    (is (= (-> (scenarios/prepend-node scenarios/vdom)
+    (is (= (-> (scenarios/prepend-node (scenarios/vdom))
                h/get-mutation-log-events
                h/summarize
                h/remove-text-node-events)
@@ -843,7 +841,7 @@
             [:insert-before [:li "#4"] [:li "#1"] :in "ul"]])))
 
   (testing "Prepend two nodes"
-    (is (= (-> (scenarios/prepend-two-nodes scenarios/vdom)
+    (is (= (-> (scenarios/prepend-two-nodes (scenarios/vdom))
                h/get-mutation-log-events
                h/summarize
                h/remove-text-node-events)
@@ -853,7 +851,7 @@
             [:insert-before [:li "#5"] [:li "#1"] :in "ul"]])))
 
   (testing "Insert node"
-    (is (= (-> (scenarios/insert-node scenarios/vdom)
+    (is (= (-> (scenarios/insert-node (scenarios/vdom))
                h/get-mutation-log-events
                h/summarize
                h/remove-text-node-events)
@@ -861,7 +859,7 @@
             [:insert-before [:li "#4"] [:li "#2"] :in "ul"]])))
 
   (testing "Insert two consecutive nodes"
-    (is (= (-> (scenarios/insert-two-consecutive-nodes scenarios/vdom)
+    (is (= (-> (scenarios/insert-two-consecutive-nodes (scenarios/vdom))
                h/get-mutation-log-events
                h/summarize
                h/remove-text-node-events)
@@ -871,7 +869,7 @@
             [:insert-before [:li "#5"] [:li "#2"] :in "ul"]])))
 
   (testing "Insert two nodes"
-    (is (= (-> (scenarios/insert-two-nodes scenarios/vdom)
+    (is (= (-> (scenarios/insert-two-nodes (scenarios/vdom))
                h/get-mutation-log-events
                h/summarize
                h/remove-text-node-events)
@@ -881,28 +879,28 @@
             [:insert-before [:li "#5"] [:li "#3"] :in "ul"]])))
 
   (testing "Remove last node"
-    (is (= (-> (scenarios/remove-last-node scenarios/vdom)
+    (is (= (-> (scenarios/remove-last-node (scenarios/vdom))
                h/get-mutation-log-events
                h/summarize
                h/remove-text-node-events)
            [[:remove-child [:li "#3"] :from "ul"]])))
 
   (testing "Remove first node"
-    (is (= (-> (scenarios/remove-first-node scenarios/vdom)
+    (is (= (-> (scenarios/remove-first-node (scenarios/vdom))
                h/get-mutation-log-events
                h/summarize
                h/remove-text-node-events)
            [[:remove-child [:li "#1"] :from "ul"]])))
 
   (testing "Remove middle node"
-    (is (= (-> (scenarios/remove-middle-node scenarios/vdom)
+    (is (= (-> (scenarios/remove-middle-node (scenarios/vdom))
                h/get-mutation-log-events
                h/summarize
                h/remove-text-node-events)
            [[:remove-child [:li "#2"] :from "ul"]])))
 
   (testing "Swap nodes"
-    (is (= (-> (scenarios/swap-nodes scenarios/vdom)
+    (is (= (-> (scenarios/swap-nodes (scenarios/vdom))
                h/get-mutation-log-events
                h/summarize
                h/remove-text-node-events)

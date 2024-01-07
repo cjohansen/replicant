@@ -4,7 +4,7 @@
   for performance tuning/diagnostics."
   (:require [replicant.test-helper :as h]))
 
-(def vdom
+(defn vdom []
   (h/render
    [:ul
     [:li {:replicant/key "1"} "#1"]
