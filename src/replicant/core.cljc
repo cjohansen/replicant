@@ -181,6 +181,12 @@
                   mounting (hiccup/update-attrs merge-attrs mounting)))]
     [(get-attrs headers)]))
 
+(defn get-unmounting-attrs [vdom]
+  (when (vdom/async-unmount? vdom)
+    (let [attrs (nth (vdom/sexp vdom) 1)
+          unmounting (:replicant/unmounting attrs)]
+      (prep-attrs (merge-attrs attrs unmounting) nil (vdom/classes vdom)))))
+
 (defn ^:private flatten-seqs* [xs coll]
   (reduce
    (fn [_ x]
