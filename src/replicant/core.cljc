@@ -580,6 +580,10 @@
                 persistent!)
            new-ks]
 
+          ;; There are new nodes where there were no old ones: create
+          old-empty?
+          [true (insert-children impl el new-c vdom) new-ks]
+
           ;; Old node is already on its way out from a previous render
           (vdom/unmount-id old-vdom)
           (if (unmounts (vdom/unmount-id old-vdom))
@@ -587,10 +591,6 @@
             (recur new-c (next old-c) (unchecked-inc-int n) move-n n-children changed? (conj! vdom old-vdom))
             ;; It's gone!
             (recur new-c (next old-c) n (unchecked-dec-int move-n) (unchecked-dec-int n-children) changed? vdom))
-
-          ;; There are new nodes where there were no old ones: create
-          old-empty?
-          [true (insert-children impl el new-c vdom) new-ks]
 
           ;; It's a reusable node, reconcile
           (reusable? new-headers old-vdom)
@@ -694,7 +694,7 @@
               :unmounts (or unmounts (volatile! #{}))}
         vdom (let [headers (get-hiccup-headers hiccup nil)]
                ;; Not strictly necessary, but it makes noop renders faster
-               (if (and (unchanged? headers (first vdom)) (= 1 (count vdom)))
+               (if (and headers vdom (unchanged? headers (first vdom)) (= 1 (count vdom)))
                  vdom
                  (let [k (hiccup/rkey headers)]
                    (-> (update-children
