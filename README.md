@@ -113,13 +113,7 @@ kind of event occurred:
 - `:replicant/unmount`
 - `:replicant/update`
 
-`:replicant/node` will contain a reference to the DOM element in question. For
-some operations, `:replicant/details` will contain a vector with keywords about
-the kind(s) of change occurred:
-
-- `:replicant/move-node`
-- `:replicant/updated-attrs`
-- `:replicant/updated-children`
+`:replicant/node` will contain a reference to the DOM element in question.
 
 The second argument, `hook-data` is whatever data you set on
 `:replicant/on-update`.
