@@ -1,4 +1,5 @@
-(ns replicant.vdom)
+(ns replicant.vdom
+  (:require [replicant.hiccup :as h]))
 
 (defmacro vget [x k]
   (if (:ns &env)
@@ -11,20 +12,45 @@
 (defmacro rkey [vdom]
   `(vget ~vdom 1))
 
-(defmacro attrs [vdom]
+(defmacro classes [vdom]
   `(vget ~vdom 2))
 
-(defmacro children [vdom]
+(defmacro attrs [vdom]
   `(vget ~vdom 3))
 
-(defmacro child-ks [vdom]
+(defmacro children [vdom]
   `(vget ~vdom 4))
 
-(defmacro sexp [vdom]
+(defmacro child-ks [vdom]
   `(vget ~vdom 5))
 
-(defmacro text [vdom]
+(defmacro async-unmount? [vdom]
   `(vget ~vdom 6))
 
-(defn create [tag-name attrs children child-ks sexp text]
-  [tag-name (:replicant/key attrs) attrs children child-ks sexp text])
+(defmacro sexp [vdom]
+  `(vget ~vdom 7))
+
+(defmacro text [vdom]
+  `(vget ~vdom 8))
+
+(defmacro unmount-id [vdom]
+  `(vget ~vdom 9))
+
+(def id (volatile! 0))
+
+(defmacro mark-unmounting [vdom]
+  (if (:ns &env)
+    `(do
+       (aset ~vdom 9 (vswap! id inc))
+       ~vdom)
+    `(assoc ~vdom 9 (vswap! id inc))))
+
+(defmacro create-text-node [text]
+  (if (:ns &env)
+    `(js/Array. nil nil nil nil nil nil false ~text ~text nil)
+    `[nil nil nil nil nil nil false ~text ~text nil]))
+
+(defmacro from-hiccup [headers attrs children children-ks]
+  (if (:ns &env)
+    `(js/Array. (h/tag-name ~headers) (:replicant/key ~attrs) (h/classes ~headers) ~attrs ~children ~children-ks (boolean (:replicant/unmounting (h/attrs ~headers))) (h/sexp ~headers))
+    `[(h/tag-name ~headers) (:replicant/key ~attrs) (h/classes ~headers) ~attrs ~children ~children-ks (boolean (:replicant/unmounting (h/attrs ~headers))) (h/sexp ~headers) nil nil]))

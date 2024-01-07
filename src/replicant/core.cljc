@@ -390,7 +390,7 @@
   [{:keys [renderer] :as impl} headers]
   (if-let [text (hiccup/text headers)]
     [(r/create-text-node renderer text)
-     (vdom/create nil nil nil nil text text)]
+     (vdom/create-text-node text)]
     (let [tag-name (hiccup/tag-name headers)
           ns (or (hiccup/html-ns headers)
                  (when (= "svg" tag-name)
@@ -408,7 +408,7 @@
       (register-hook impl node headers)
       (when mounting-attrs
         (register-mount impl node mounting-attrs attrs))
-      [node (vdom/create tag-name attrs (persistent! children) (persistent! ks) (hiccup/sexp headers) nil)])))
+      [node (vdom/from-hiccup headers attrs (persistent! children) (persistent! ks))])))
 
 (defn reusable?
   "Two elements are considered the similar enough for reuse if they are both
@@ -645,7 +645,7 @@
              :else
              [:replicant/updated-children])
            (register-hook impl child headers vdom))
-      (vdom/create (hiccup/tag-name headers) attrs children child-ks (hiccup/sexp headers) nil))))
+      (vdom/from-hiccup headers attrs children child-ks))))
 
 (defn perform-post-mount-update [renderer [node mounting-attrs attrs]]
   (update-attributes renderer node attrs mounting-attrs))
