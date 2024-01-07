@@ -5,14 +5,15 @@
   [:div
    [:h1 "Watch it go!"]
    (when square?
-     [:div {:style {:transition "width 0.5s"
+     [:div {:style {:transition "width 0.5s, height 200ms"
                     :width 100
                     :height 200
-                    :background "red"}
-            :replicant/mounting {:style {:width 0}}
-            :replicant/unmounting {:style {:width 0}}}
+                    :background "red"
+                    :overflow "hidden"}
+            :replicant/mounting {:style {:width 0 :height 0}}
+            :replicant/unmounting {:style {:width 0 :height 0}}}
       "Colored square"])
-   [:p (if square? "Square!" "It's gone!")]
+   [:p {:replicant/key "p"} (if square? "Square!" "It's gone!")]
    ])
 
 (comment
@@ -28,7 +29,8 @@
   (do
     (set! (.-innerHTML js/document.body) "<div id=\"app\"></div>")
     (def el (js/document.getElementById "app"))
-    (d/render el (app {:square? true})))
+    (d/render el (app {:square? true}))
+    )
 
   (d/render el (app {}))
 
