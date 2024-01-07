@@ -265,9 +265,7 @@
                         {:handler handler
                          :dispatch *dispatch*})))))
 
-(defn call-hooks
-  "Call the lifecycle hooks gathered during reconciliation."
-  [[hook node new old details]]
+(defn call-hook [[hook node new old details]]
   (let [f (get-life-cycle-hook hook)]
     (f (cond-> {:replicant/event :replicant.event/life-cycle
                 :replicant/life-cycle
@@ -470,7 +468,10 @@
                          ;; We're done, remove it from the set of unmounting
                          ;; nodes
                          (vswap! (:unmounts impl) disj (vdom/unmount-id vdom))
-                         (r/remove-child renderer el child))
+                         (r/remove-child renderer el child)
+                         (when-let [hook (:replicant/on-update (vdom/attrs vdom))]
+                           (call-hook [hook child nil vdom]))
+                         renderer)
                        (r/on-transition-end renderer child))
                   marked-vdom)
                 (let [child (r/get-child renderer el n)]
@@ -708,9 +709,9 @@
     (if-let [mounts (seq @(:mounts impl))]
       (->> (fn []
              (run! #(perform-post-mount-update renderer %) mounts)
-             (run! call-hooks hooks))
+             (run! call-hook hooks))
            (r/next-frame renderer))
-      (run! call-hooks hooks))
+      (run! call-hook hooks))
     {:hooks hooks
      :vdom vdom
      :unmounts (:unmounts impl)}))

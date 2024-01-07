@@ -1003,12 +1003,72 @@
            [[:create-element "h2"]
             [:create-text-node "Hello"]
             [:append-child "Hello" :to "h2"]
-            [:insert-before [:h2 "Hello"] [:p "It's gone!"] :in "article"]]))))
+            [:insert-before [:h2 "Hello"] [:p "It's gone!"] :in "article"]])))
 
-;; Trykk for å fjerne:
-;; Nummer 2, 3, 1
-;; Nummer 3, 2, 1
-;; Nummer 1, 2, 3
+  (testing "Applies attribute overrides when unmounting root node"
+    (is (= (-> (h/render [:p {:class ["mounted"]
+                              :replicant/unmounting {:class ["unmounting"]}}
+                          "Text"])
+               (h/render nil)
+               h/get-mutation-log-events
+               h/summarize)
+           [[:remove-class [:p "Text"] "mounted"]
+            [:add-class [:p "Text"] "unmounting"]
+            [:on-transition-end [:p "Text"]]])))
+
+  (testing "Unmounts root node after transition ends"
+    (is (= (-> (h/render [:p {:class ["mounted"]
+                              :replicant/unmounting {:class ["unmounting"]}}
+                          "Text"])
+               (h/render nil)
+               (h/get-callback-events 0)
+               h/summarize)
+           [[:remove-child [:p "Text"] :from "body"]])))
+
+  (testing "Renders new root node while the previous one is unmounting"
+    (is (= (-> (h/render [:p {:class ["mounted"]
+                              :replicant/unmounting {:class ["unmounting"]}}
+                          "Text"])
+               (h/render [:h1 "Allo allo"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "h1"]
+            [:create-text-node "Allo allo"]
+            [:append-child "Allo allo" :to "h1"]
+            [:insert-before [:h1 "Allo allo"] [:p "Text"] :in "body"]
+            [:remove-class [:p "Text"] "mounted"]
+            [:add-class [:p "Text"] "unmounting"]
+            [:on-transition-end [:p "Text"]]])))
+
+  (testing "Does not trigger on-update hook while unmounting"
+    (is (= (let [callbacks (atom [])]
+             (-> (h/render [:p {:class ["mounted"]
+                                :replicant/unmounting {:class ["unmounting"]}
+                                :replicant/on-update #(swap! callbacks conj [(:replicant/life-cycle %)
+                                                                             (h/get-snapshot (:replicant/node %))])}
+                            "Text"])
+                 (h/render nil))
+             @callbacks)
+           [[:replicant/mount {:tag-name "p"
+                               :classes #{"mounted"}
+                               :children [{:text "Text"}]}]])))
+
+  (testing "Triggers on-update hook after unmounting is complete"
+    (is (= (let [callbacks (atom [])]
+             (-> (h/render [:p {:class ["mounted"]
+                                :replicant/unmounting {:class ["unmounting"]}
+                                :replicant/on-update #(swap! callbacks conj [(:replicant/life-cycle %)
+                                                                             (h/get-snapshot (:replicant/node %))])}
+                            "Text"])
+                 (h/render nil)
+                 (h/call-callback 0))
+             @callbacks)
+           [[:replicant/mount {:tag-name "p"
+                               :classes #{"mounted"}
+                               :children [{:text "Text"}]}]
+            [:replicant/unmount {:tag-name "p"
+                                 :classes #{"unmounting"}
+                                 :children [{:text "Text"}]}]]))))
 
 (deftest update-children-test
   (testing "Append node"
