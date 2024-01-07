@@ -1,6 +1,7 @@
 (ns replicant.dom
   (:require [replicant.core :as r]
-            [replicant.protocols :as replicant]))
+            [replicant.protocols :as replicant]
+            [replicant.transition :as transition]))
 
 (defn remove-listener [el event]
   (when-let [old-handler (some-> el .-replicantHandlers (aget event))]
@@ -139,9 +140,10 @@
 
 (defn ^:export render [el hiccup]
   (when-not (contains? @state el)
-    (vswap! state assoc el {:renderer (create-renderer)}))
-  (let [{:keys [renderer current]} (get @state el)
-        {:keys [vdom]} (r/reconcile renderer el hiccup current)]
+    (vswap! state assoc el {:renderer (create-renderer)
+                            :removals (volatile! #{})}))
+  (let [{:keys [renderer current removals]} (get @state el)
+        {:keys [vdom]} (r/reconcile renderer el hiccup current removals)]
     (vswap! state assoc-in [el :current] vdom))
   el)
 

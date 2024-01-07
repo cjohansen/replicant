@@ -812,6 +812,203 @@
              :classes #{"mounted"}
              :children [{:text "Title"}]}]))))
 
+(deftest unmounting-test
+  (testing "Applies attribute overrides and waits for transitions while unmounting"
+    (is (= (-> (h/render [:div
+                          [:h1 "Title"]
+                          [:p {:class ["mounted"]
+                               :replicant/unmounting {:class ["unmounting"]}}
+                           "Text"]])
+               (h/render [:div [:h1 "Title"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:remove-class [:p "Text"] "mounted"]
+            [:add-class [:p "Text"] "unmounting"]
+            [:on-transition-end [:p "Text"]]])))
+
+  (testing "Unmounts node after transition ends"
+    (is (= (-> (h/render [:div
+                          [:h1 "Title"]
+                          [:p {:class ["mounted"]
+                               :replicant/unmounting {:class ["unmounting"]}}
+                           "Text"]])
+               (h/render [:div [:h1 "Title"]])
+               (h/get-callback-events 0)
+               h/summarize)
+           [[:remove-child [:p "Text"] :from "div"]])))
+
+  (testing "Skips over still unmounting node"
+    (is (= (-> (h/render [:div
+                          [:h1 "Title"]
+                          [:p {:class ["mounted"]
+                               :replicant/unmounting {:class ["unmounting"]}}
+                           "Text"]
+                          [:footer {:replicant/key "footer"} "Footer"]])
+               ;; Remove the p. Because it has unmounting attrs, it will just be
+               ;; scheduled for removal with on-transition-end.
+               (h/render [:div
+                          [:h1 "Title"]
+                          [:footer {:replicant/key "footer"} "Footer"]])
+               ;; Because the on-transition-end callback has not yet been
+               ;; called, the p is still there, so the h2 should be placed after
+               ;; it. When the p is eventually unmounted, the resulting DOM will
+               ;; be as prescribed.
+               (h/render [:div
+                          [:h1 "Title"]
+                          [:h2 "A sub heading"]
+                          [:footer {:replicant/key "footer"} "Footer"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "h2"]
+            [:create-text-node "A sub heading"]
+            [:append-child "A sub heading" :to "h2"]
+            [:insert-before [:h2 "A sub heading"] [:p "Text"] :in "div"]])))
+
+  (testing "Applies attribute overrides while unmounting first child"
+    (is (= (-> (h/render [:div
+                          [:h1 {:class ["mounted"]
+                                :replicant/unmounting {:class ["unmounting"]}}
+                           "Title"]
+                            [:p {:replicant/key "p"} "Text"]])
+               (h/render [:div [:p {:replicant/key "p"} "Text"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:remove-class [:h1 "Title"] "mounted"]
+            [:add-class [:h1 "Title"] "unmounting"]
+            [:on-transition-end [:h1 "Title"]]])))
+
+  (testing "Unmounts asynchronously and updates nodes"
+    (is (= (-> (h/render
+                [:article
+                 [:h1 "Watch it go!"]
+                 [:div
+                  {:style {:transition "width 0.25s"
+                           :width 100}
+                   :replicant/unmounting {:style {:width 0}}}]
+                 [:p "Square!"]])
+               (h/render
+                [:article
+                 [:h1 "Watch it go!"]
+                 nil
+                 [:p "It's gone!"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "p"]
+            [:create-text-node "It's gone!"]
+            [:append-child "It's gone!" :to "p"]
+            [:insert-before [:p "It's gone!"] [:div ""] :in "article"]
+            [:set-style [:div ""] :width "0px"]
+            [:on-transition-end [:div ""]]
+            [:remove-child [:p "Square!"] :from "article"]])))
+
+  (testing "Adds node after unmounting node"
+    (is (= (-> (h/render
+                [:article
+                 [:h1 "Watch it go!"]
+                 [:div
+                  {:style {:transition "width 0.25s"
+                           :width 100}
+                   :replicant/unmounting {:style {:width 0}}}
+                  "Transitioning square"]
+                 [:p {:replicant/key "p"} "Square!"]])
+               (h/render
+                [:article
+                 [:h1 "Watch it go!"]
+                 nil
+                 [:p {:replicant/key "p"} "It's gone!"]])
+               (h/render
+                [:article
+                 [:h1 "Watch it go!"]
+                 nil
+                 [:h2 "Hello"]
+                 [:p {:replicant/key "p"} "It's gone!"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "h2"]
+            [:create-text-node "Hello"]
+            [:append-child "Hello" :to "h2"]
+            ;; The div in question is the still unmounting one
+            [:insert-before [:h2 "Hello"] [:div "Transitioning square"] :in "article"]])))
+
+  (testing "Unmounting node is still present"
+    (is (= (-> (h/render
+                [:article
+                 [:h1 "Watch it go!"]
+                 [:div
+                  {:style {:transition "width 0.25s"
+                           :width 100}
+                   :replicant/unmounting {:style {:width 0}}}]
+                 [:p "Square!"]])
+               (h/render
+                [:article
+                 [:h1 "Watch it go!"]
+                 nil
+                 [:p "It's gone!"]])
+               (h/render
+                [:article
+                 [:h1 "Watch it go!"]
+                 nil
+                 [:h2 "Hello"]
+                 [:p "It's gone!"]])
+               h/->dom)
+           [:article
+            [:h1 "Watch it go!"]
+            [:h2 "Hello"]
+            [:p "It's gone!"]
+            [:div]])))
+
+  (testing "Calling the callback unmounts the node"
+    (is (= (-> (h/render
+                [:article
+                 [:h1 "Watch it go!"]
+                 [:div
+                  {:style {:transition "width 0.25s"
+                           :width 100}
+                   :replicant/unmounting {:style {:width 0}}}]
+                 [:p "Square!"]])
+               (h/render
+                [:article
+                 [:h1 "Watch it go!"]
+                 nil
+                 [:p "It's gone!"]])
+               (h/call-callback 0)
+               h/->dom)
+           [:article
+            [:h1 "Watch it go!"]
+            [:p "It's gone!"]])))
+
+  (testing "Ignores async unmounting node after it fully unmounts"
+    (is (= (-> (h/render
+                [:article
+                 [:h1 "Watch it go!"]
+                 [:div
+                  {:style {:transition "width 0.25s"
+                           :width 100}
+                   :replicant/unmounting {:style {:width 0}}}]
+                 [:p "Square!"]])
+               (h/render
+                [:article
+                 [:h1 "Watch it go!"]
+                 nil
+                 [:p "It's gone!"]])
+               (h/call-callback 0)
+               (h/render
+                [:article
+                 [:h1 "Watch it go!"]
+                 nil
+                 [:h2 "Hello"]
+                 [:p "It's gone!"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "h2"]
+            [:create-text-node "Hello"]
+            [:append-child "Hello" :to "h2"]
+            [:insert-before [:h2 "Hello"] [:p "It's gone!"] :in "article"]]))))
+
+;; Trykk for å fjerne:
+;; Nummer 2, 3, 1
+;; Nummer 3, 2, 1
+;; Nummer 1, 2, 3
 
 (deftest update-children-test
   (testing "Append node"

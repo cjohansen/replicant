@@ -1,16 +1,51 @@
 (ns replicant.dev
   (:require [replicant.dom :as d]))
 
+(defn app [{:keys [square?]}]
+  [:div
+   [:h1 "Watch it go!"]
+   (when square?
+     [:div {:style {:transition "width 0.5s"
+                    :width 100
+                    :height 200
+                    :background "red"}
+            :replicant/mounting {:style {:width 0}}
+            :replicant/unmounting {:style {:width 0}}}
+      "Colored square"])
+   [:p (if square? "Square!" "It's gone!")]
+   ])
+
 (comment
 
+  (enable-console-print!)
+
   (set! *print-namespace-maps* false)
-  (set! (.-innerHTML js/document.body) "<div id=\"app\"></div>")
 
   (d/set-dispatch!
    (fn [& args]
      (prn "OHOI!" args)))
 
-  (def el (js/document.getElementById "app"))
+  (do
+    (set! (.-innerHTML js/document.body) "<div id=\"app\"></div>")
+    (def el (js/document.getElementById "app"))
+    (d/render el (app {:square? true})))
+
+  (d/render el (app {}))
+
+
+  (->> [:div
+        [:h1 "Watch it go!"]]
+       (d/render el))
+
+  )
+
+
+
+
+
+
+(comment
+
 
   (->> [:div
         [:ul.cards
@@ -25,4 +60,5 @@
                :replicant/mounting {:style {:width 0}}}]]
        (d/render el))
 
-  )
+
+)

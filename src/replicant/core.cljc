@@ -460,6 +460,33 @@
                vdom children)
        persistent!))
 
+(defn remove-child [{:keys [renderer] :as impl} unmounts el n vdom]
+  ;; An assigned id means the node has already started unmounting
+  (if-let [id (vdom/unmount-id vdom)]
+    ;; If the id is in the unmounts set, it has not yet finished unmounting
+    (when (unmounts id)
+      vdom)
+    (let [res (if-let [attrs (get-unmounting-attrs vdom)]
+                ;; The node has unmounting attributes: mark it as unmounting,
+                ;; and start the process
+                (let [marked-vdom (vdom/mark-unmounting vdom)
+                      child (r/get-child renderer el n)]
+                  (update-attributes renderer child attrs (vdom/attrs vdom))
+                  ;; Record the node as unmounting
+                  (vswap! (:unmounts impl) conj (vdom/unmount-id vdom))
+                  (->> (fn []
+                         ;; We're done, remove it from the set of unmounting
+                         ;; nodes
+                         (vswap! (:unmounts impl) disj (vdom/unmount-id vdom))
+                         (r/remove-child renderer el child))
+                       (r/on-transition-end renderer child))
+                  marked-vdom)
+                (let [child (r/get-child renderer el n)]
+                  (r/remove-child renderer el child)
+                  (register-hook impl child nil vdom)
+                  nil))]
+      res)))
+
 (def move-node-details [:replicant/move-node])
 
 (defn unchanged? [headers vdom]
@@ -528,7 +555,8 @@
          corresponding-old-vdom]))))
 
 (defn update-children [impl el new-children new-ks old-children old-ks]
-  (let [r (:renderer impl)]
+  (let [r (:renderer impl)
+        unmounts @(:unmounts impl)]
     (loop [new-c (seq new-children)
            old-c (seq old-children)
            n 0
@@ -547,11 +575,25 @@
 
           ;; There are old nodes where there are no new nodes: delete
           new-empty?
-          (do
-            (run! #(let [child (r/get-child r el n)]
-                     (r/remove-child r el child)
-                     (register-hook impl child nil %)) old-c)
-            [true (persistent! vdom) new-ks])
+          [true
+           (->> (reduce
+                 (fn [[vd n] c]
+                   (if-let [pending-vdom (remove-child impl unmounts el n c)]
+                     [(conj! vd pending-vdom) (unchecked-inc-int n)]
+                     [vd n]))
+                 [vdom n]
+                 old-c)
+                first
+                persistent!)
+           new-ks]
+
+          ;; Old node is already on its way out from a previous render
+          (vdom/unmount-id old-vdom)
+          (if (unmounts (vdom/unmount-id old-vdom))
+            ;; Still unmounting
+            (recur new-c (next old-c) (unchecked-inc-int n) move-n n-children changed? (conj! vdom old-vdom))
+            ;; It's gone!
+            (recur new-c (next old-c) n (unchecked-dec-int move-n) (unchecked-dec-int n-children) changed? vdom))
 
           ;; There are new nodes where there were no old ones: create
           old-empty?
@@ -575,10 +617,9 @@
 
           ;; Old node no longer exists, remove it
           (not (new-ks (vdom/rkey old-vdom)))
-          (let [child (r/get-child r el n)]
-            (r/remove-child r el child)
-            (register-hook impl child nil old-vdom)
-            (recur new-c (next old-c) n move-n (dec n-children) true vdom))
+          (if-let [unmounting-node (remove-child impl unmounts el n old-vdom)]
+            (recur new-c (next old-c) (unchecked-inc-int n) move-n n-children true (conj! vdom unmounting-node))
+            (recur new-c (next old-c) n move-n (unchecked-dec-int move-n) true vdom))
 
           ;; Node has moved
           :else
@@ -661,10 +702,11 @@
   `vdom`, `reconcile` will create the DOM as per `hiccup`. Assumes that the DOM
   in `el` is in sync with `vdom` - if not, this will certainly not produce the
   desired result."
-  [renderer el hiccup & [vdom]]
+  [renderer el hiccup & [vdom unmounts]]
   (let [impl {:renderer renderer
               :hooks (volatile! [])
-              :mounts (volatile! [])}
+              :mounts (volatile! [])
+              :unmounts (or unmounts (volatile! #{}))}
         vdom (if (nil? vdom)
                (let [[node vdom] (create-node impl (get-hiccup-headers hiccup nil))]
                  (r/append-child renderer el node)
@@ -678,4 +720,5 @@
            (r/next-frame renderer))
       (run! call-hooks hooks))
     {:hooks hooks
-     :vdom vdom}))
+     :vdom vdom
+     :unmounts (:unmounts impl)}))
