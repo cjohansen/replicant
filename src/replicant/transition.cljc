@@ -15,7 +15,7 @@
            (#?(:cljs .trimLeft
                :clj .trim) (.substring str (unchecked-inc-int comma))))
          (unchecked-inc-int n)
-         (+ duration
-            (if (or (< s ms) (< ms 0))
-              (* 1000 (parse-double (.substring str 0 s)))
-              (parse-long (.substring str 0 ms)))))))))
+         (max duration
+              (if (or (< s ms) (< ms 0))
+                (* 1000 (parse-double (.substring str 0 s)))
+                (parse-long (.substring str 0 ms)))))))))

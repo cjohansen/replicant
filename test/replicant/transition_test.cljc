@@ -16,4 +16,4 @@
     (is (= (sut/get-transition-stats "250ms") [1 250])))
 
   (testing "Finds multiple transitions"
-    (is (= (sut/get-transition-stats "250ms, 0.1s") [2 350]))))
+    (is (= (sut/get-transition-stats "250ms, 0.1s") [2 250]))))
