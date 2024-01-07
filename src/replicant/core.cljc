@@ -428,14 +428,6 @@
       (and (= (hiccup/rkey headers) (vdom/rkey vdom))
            (= (hiccup/tag-name headers) (vdom/tag-name vdom)))))
 
-(defn changed?
-  "Returns `true` when nodes have changed in such a way that a new node should be
-  created. `changed?` is not the strict complement of `reusable?`, because it
-  does not consider any two strings the same - only the exact same string."
-  [headers vdom]
-  (or (not= (hiccup/text headers) (vdom/text vdom))
-      (not= (hiccup/tag-name headers) (vdom/tag-name vdom))))
-
 ;; reconcile* and update-children are mutually recursive
 (declare reconcile*)
 
@@ -653,21 +645,13 @@
         [true (insert-children impl el new-children (transient [])) new-ks])
       (update-children impl el new-children new-ks old-children old-ks))))
 
-
 (defn reconcile* [{:keys [renderer] :as impl} el headers vdom index]
   (cond
     (unchanged? headers vdom)
     vdom
 
-    (nil? headers)
-    (let [child (r/get-child renderer el index)]
-      (r/remove-child renderer el child)
-      (register-hook impl child headers vdom)
-      nil)
-
-    ;; The node at this index is of a different type than before, replace it
-    ;; with a fresh one. Use keys to avoid ending up here.
-    (changed? headers vdom)
+    ;; Replace the text node at this index with a new one
+    (not= (hiccup/text headers) (vdom/text vdom))
     (let [[node vdom] (create-node impl headers)]
       (r/replace-child renderer el node (r/get-child renderer el index))
       vdom)
@@ -707,11 +691,19 @@
               :hooks (volatile! [])
               :mounts (volatile! [])
               :unmounts (or unmounts (volatile! #{}))}
-        vdom (if (nil? vdom)
-               (let [[node vdom] (create-node impl (get-hiccup-headers hiccup nil))]
-                 (r/append-child renderer el node)
-                 vdom)
-               (reconcile* impl el (get-hiccup-headers hiccup nil) vdom 0))
+        vdom (let [headers (get-hiccup-headers hiccup nil)]
+               ;; Not strictly necessary, but it makes noop renders faster
+               (if (and (unchanged? headers (first vdom)) (= 1 (count vdom)))
+                 vdom
+                 (let [k (hiccup/rkey headers)]
+                   (-> (update-children
+                        impl el
+                        (when headers [headers])
+                        (set (keep #(vdom/rkey %) vdom))
+                        vdom
+                        (cond-> #{} k (conj k)))
+                       ;; second, because update-children returns [changed? children]
+                       second))))
         hooks @(:hooks impl)]
     (if-let [mounts (seq @(:mounts impl))]
       (->> (fn []
