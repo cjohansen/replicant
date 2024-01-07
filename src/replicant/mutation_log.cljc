@@ -133,12 +133,6 @@
      (swap! (:callbacks this) conj f)
      this)
 
-   `replicant/remove-all-children
-   (fn [this el]
-     (log this [:remove-all-children el])
-     (swap! el assoc :children [])
-     this)
-
    `replicant/replace-child
    (fn [this el insert-child replace-child]
      (log this [:replace-child insert-child replace-child])

@@ -621,30 +621,25 @@
 
 (defn wipe? [old-children old-ks new-children new-ks]
   (let [oc (count old-children)]
-    (when (< 0 oc)
-      (or
-       ;; No new children, remove any existing ones
-       (= 0 (count new-children))
+    (and (when (< 0 oc)
+           (or
+            ;; No new children, remove any existing ones
+            (= 0 (count new-children))
 
-       (and
-        ;; All the old children have keys, and none of those keys are in use in the
-        ;; new children: remove them all
-        (= oc (count old-ks))
-        (nil? (loop [[k & ks] old-ks]
-                (cond
-                  (nil? k) nil
-                  (new-ks k) k
-                  :else (recur ks)))))))))
-
-(defn reconcile-children [impl el headers vdom]
-  (let [old-children (vdom/children vdom)
-        old-ks (vdom/child-ks vdom)
-        [new-children new-ks] (get-children-ks headers (get-ns headers))]
-    (if (wipe? old-children old-ks new-children new-ks)
-      (do
-        (r/remove-all-children (:renderer impl) el)
-        [true (insert-children impl el new-children (transient [])) new-ks])
-      (update-children impl el new-children new-ks old-children old-ks))))
+            (and
+             ;; All the old children have keys, and none of those keys are in use in the
+             ;; new children: remove them all
+             (= oc (count old-ks))
+             (nil? (loop [[k & ks] old-ks]
+                     (cond
+                       (nil? k) nil
+                       (new-ks k) k
+                       :else (recur ks)))))))
+         (loop [xs (seq old-children)]
+           (cond
+             (nil? xs) true
+             (vdom/async-unmount? (first xs)) false
+             :else (recur (next xs)))))))
 
 (defn reconcile* [{:keys [renderer] :as impl} el headers vdom index]
   (cond
@@ -662,7 +657,8 @@
     (let [child (r/get-child renderer el index)
           attrs (get-attrs headers)
           attrs-changed? (reconcile-attributes renderer child attrs (vdom/attrs vdom))
-          [children-changed? children child-ks] (reconcile-children impl child headers vdom)
+          [new-children new-ks] (get-children-ks headers (get-ns headers))
+          [children-changed? children child-ks] (update-children impl child new-children new-ks (vdom/children vdom) (vdom/child-ks vdom))
           attrs-changed? (or attrs-changed?
                              (not= (:replicant/on-update (hiccup/attrs headers))
                                    (:replicant/on-update (vdom/attrs vdom))))]

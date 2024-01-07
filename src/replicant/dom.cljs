@@ -122,10 +122,6 @@
       (-on-transition-end el f)
       this)
 
-    (remove-all-children [this el]
-      (set! (.-textContent el) "")
-      this)
-
     (replace-child [this el insert-child replace-child]
       (.replaceChild el insert-child replace-child)
       this)

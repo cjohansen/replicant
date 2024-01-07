@@ -407,16 +407,6 @@
            [[:insert-before [:li "Item #2"] [:li "Item #1"] :in "ul"]
             [:remove-child [:li "Item #3"] :from "ul"]])))
 
-  (testing "Clears out child nodes"
-    (is (= (-> (h/render [:ul
-                          [:li {:replicant/key 1} "Item #1"]
-                          [:li {:replicant/key 2} "Item #2"]
-                          [:li {:replicant/key 3} "Item #3"]])
-               (h/render [:ul])
-               h/get-mutation-log-events
-               h/summarize)
-           [[:remove-all-children :from "ul"]])))
-
   (testing "Deletes single child node"
     (is (= (-> (h/render [:ul
                           [:li {:replicant/key 1} "Item #1"]
@@ -1068,7 +1058,21 @@
                                :children [{:text "Text"}]}]
             [:replicant/unmount {:tag-name "p"
                                  :classes #{"unmounting"}
-                                 :children [{:text "Text"}]}]]))))
+                                 :children [{:text "Text"}]}]])))
+
+  (testing "Transitions element when wiping all children"
+    (is (= (-> (h/render [:div
+                          [:h1 "Title"]
+                          [:p {:class ["mounted"]
+                               :replicant/unmounting {:class ["unmounting"]}}
+                           "Text"]])
+               (h/render [:div])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:remove-child [:h1 "Title"] :from "div"]
+            [:remove-class [:p "Text"] "mounted"]
+            [:add-class [:p "Text"] "unmounting"]
+            [:on-transition-end [:p "Text"]]]))))
 
 (deftest update-children-test
   (testing "Append node"

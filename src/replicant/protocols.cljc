@@ -23,7 +23,6 @@
   (remove-child [this el child-node])
   (on-transition-end [this el f])
   (replace-child [this el insert-child replace-child])
-  (remove-all-children [this el])
 
   (get-child [this el idx])
 

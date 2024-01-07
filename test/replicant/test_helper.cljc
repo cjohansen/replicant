@@ -61,10 +61,6 @@
       (let [[e from child] event]
         [e (format-element child) :from (:tag-name from)])
 
-      :remove-all-children
-      (let [[e from] event]
-        [e :from (:tag-name from)])
-
       :append-child
       (let [[e to child] event]
         [e (format-element child) :to (or (:tag-name to) "Document")])
