@@ -12,6 +12,16 @@
             (:text x)
             x)))))
 
+(defn get-callback-events [log n]
+  (let [events (-> log :el :log)
+        f (-> log :el :callbacks deref (nth n))]
+    (->> {:el (update (f) :log (comp #(drop (count events) %) deref))}
+         get-mutation-log-events)))
+
+(defn call-callback [log n]
+  (let [f (-> log :el :callbacks deref (nth n))]
+    (assoc log :el (update (dissoc (f) :log) :element deref))))
+
 (defn get-text-nodes [el]
   (if (string? el)
     [el]
@@ -101,9 +111,9 @@
       event)))
 
 (defn render
-  ([vdom] (mutation-log/render nil vdom))
-  ([{:keys [vdom el]} new-vdom]
-   (mutation-log/render (:element el) new-vdom vdom)))
+  ([vdom] (mutation-log/render {:tag-name "body"} vdom))
+  ([{:keys [vdom el unmounts]} new-vdom]
+   (mutation-log/render (:element el) new-vdom vdom unmounts)))
 
 (defn text-node-event? [event]
   (or (= :create-text-node (first event))

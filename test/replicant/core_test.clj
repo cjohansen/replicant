@@ -41,7 +41,7 @@
            [[:create-element "h1"]
             [:create-text-node "Hello world"]
             [:append-child "Hello world" :to "h1"]
-            [:append-child [:h1 "Hello world"] :to "Document"]])))
+            [:append-child [:h1 "Hello world"] :to "body"]])))
 
   (testing "Adds id from hiccup symbol"
     (is (= (->> (h/render [:h1#heading "Hello world"])
@@ -71,7 +71,7 @@
            [[:create-element "h1"]
             [:create-text-node "Hello world"]
             [:append-child "Hello world" :to "h1"]
-            [:append-child [:h1 "Hello world"] :to "Document"]])))
+            [:append-child [:h1 "Hello world"] :to "body"]])))
 
   (testing "Removes previously set attribute when value is nil"
     (is (= (-> (h/render [:h1 {:title "Hello"} "Hello world"])
@@ -144,7 +144,7 @@
                h/summarize)
            [[:create-element "h1"]
             [:set-attribute [:h1 ""] "innerHTML" nil :to "Whoa!"]
-            [:append-child [:h1 ""] :to "Document"]])))
+            [:append-child [:h1 ""] :to "body"]])))
 
   (testing "Removes innerHTML from node"
     (is (= (-> (h/render [:h1 {:innerHTML "Whoa!"} "Hello world"])
@@ -167,7 +167,7 @@
             [:set-attribute [:use ""] "xlink:href" "http://www.w3.org/1999/xlink" nil :to "#icon"]
             [:append-child [:use ""] :to "g"]
             [:append-child [:g ""] :to "svg"]
-            [:append-child [:svg ""] :to "Document"]])))
+            [:append-child [:svg ""] :to "body"]])))
 
   (testing "Properly adds svg to existing nodes"
     (is (= (-> (h/render [:div [:h1 "Hello"]])
@@ -495,7 +495,7 @@
             [:set-event-handler [:h1 ""] :click f1]
             [:create-text-node "Hi!"]
             [:append-child "Hi!" :to "h1"]
-            [:append-child [:h1 "Hi!"] :to "Document"]])))
+            [:append-child [:h1 "Hi!"] :to "body"]])))
 
   (testing "Adds event handler"
     (is (= (-> (h/render [:h1 "Hi!"])
@@ -758,7 +758,7 @@
             [:add-class [:h1 ""] "mounting"]
             [:create-text-node "Title"]
             [:append-child "Title" :to "h1"]
-            [:append-child [:h1 "Title"] :to "Document"]
+            [:append-child [:h1 "Title"] :to "body"]
             [:next-frame]
             [:remove-class [:h1 "Title"] "mounting"]
             [:add-class [:h1 "Title"] "mounted"]])))
@@ -773,7 +773,7 @@
             [:add-class [:h1 ""] "heading"]
             [:create-text-node "Title"]
             [:append-child "Title" :to "h1"]
-            [:append-child [:h1 "Title"] :to "Document"]
+            [:append-child [:h1 "Title"] :to "body"]
             [:next-frame]
             [:remove-class [:h1 "Title"] "mounting"]])))
 
