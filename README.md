@@ -168,6 +168,29 @@ left.
 Mounting styles are merged into your ordinary styles. Other attributes, like
 classes, are completely overwritten.
 
+## Unmounting styles/classes/attributes
+
+Replicant supports changing an element's attributes, classes and styles to
+trigger a transition as the element leaves the DOM. When you do this, the node
+will not be removed from the DOM until its transitions have completed. The
+life-cycle hook will trigger after the element has transitioned and been removed
+from the DOM.
+
+To expand on the mounting example, this component:
+
+```clj
+[:h1 {:style {:transition "left 0.25s"
+              :position "absolute"
+              :left 0}
+      :replicant/mounting {:style {:left "-100%"}}
+      :replicant/unmounting {:style {:left "-100%"}}}
+ "Hello world"]
+```
+
+Would slide in from the left when mounted, and then slide out to the left again
+when unmounted. Only after the slide transition completes will it be removed
+from the DOM.
+
 ### Class overrides
 
 Given this CSS:
