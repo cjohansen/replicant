@@ -1072,7 +1072,27 @@
            [[:remove-child [:h1 "Title"] :from "div"]
             [:remove-class [:p "Text"] "mounted"]
             [:add-class [:p "Text"] "unmounting"]
-            [:on-transition-end [:p "Text"]]]))))
+            [:on-transition-end [:p "Text"]]])))
+
+  (testing "Renders new keyed node when previous node is unmounting"
+    (is (= (-> (h/render [:div
+                          [:p {:class ["mounted"]
+                               :replicant/unmounting {:class ["unmounting"]}
+                               :replicant/key "p"}
+                           "Text"]])
+               (h/render [:div])
+               (h/render [:div
+                          [:p {:class ["mounted"]
+                               :replicant/unmounting {:class ["unmounting"]}
+                               :replicant/key "p"}
+                           "Text"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "p"]
+            [:add-class [:p ""] "mounted"]
+            [:create-text-node "Text"]
+            [:append-child "Text" :to "p"]
+            [:append-child [:p "Text"] :to "div"]]))))
 
 (deftest update-children-test
   (testing "Append node"
