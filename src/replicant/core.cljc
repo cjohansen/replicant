@@ -619,28 +619,6 @@
           (let [[nc oc n move-n vdom-node] (move-nodes impl el new-headers new-c old-vdom old-c n n-children)]
             (recur nc oc n move-n n-children true (cond-> vdom vdom-node (conj! vdom-node)))))))))
 
-(defn wipe? [old-children old-ks new-children new-ks]
-  (let [oc (count old-children)]
-    (and (when (< 0 oc)
-           (or
-            ;; No new children, remove any existing ones
-            (= 0 (count new-children))
-
-            (and
-             ;; All the old children have keys, and none of those keys are in use in the
-             ;; new children: remove them all
-             (= oc (count old-ks))
-             (nil? (loop [[k & ks] old-ks]
-                     (cond
-                       (nil? k) nil
-                       (new-ks k) k
-                       :else (recur ks)))))))
-         (loop [xs (seq old-children)]
-           (cond
-             (nil? xs) true
-             (vdom/async-unmount? (first xs)) false
-             :else (recur (next xs)))))))
-
 (defn reconcile* [{:keys [renderer] :as impl} el headers vdom index]
   (cond
     (unchanged? headers vdom)
