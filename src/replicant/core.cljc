@@ -426,6 +426,10 @@
       (and (= (hiccup/rkey headers) (vdom/rkey vdom))
            (= (hiccup/tag-name headers) (vdom/tag-name vdom)))))
 
+(defn same? [headers vdom]
+  (and (= (hiccup/rkey headers) (vdom/rkey vdom))
+       (= (hiccup/tag-name headers) (vdom/tag-name vdom))))
+
 ;; reconcile* and update-children are mutually recursive
 (declare reconcile*)
 
@@ -487,10 +491,10 @@
 
 (defn ^:private move-nodes [{:keys [renderer] :as impl} el headers new-children vdom old-children n n-children]
   (let [o-idx (if (hiccup/rkey headers)
-                (int (index-of #(reusable? headers %) old-children))
+                (int (index-of #(same? headers %) old-children))
                 -1)
         n-idx (if (vdom/rkey vdom)
-                (int (index-of #(reusable? % vdom) new-children))
+                (int (index-of #(same? % vdom) new-children))
                 -1)]
     (if (< o-idx n-idx)
       ;; The new node needs to be moved back
