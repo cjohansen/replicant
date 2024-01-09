@@ -33,14 +33,15 @@ subject to change. The current focus is on improving performance.
 ## Features
 
 - Efficient hiccup => DOM renders and re-renders
-- Inline styles with Clojure maps
-- Class lists with Clojure collections
+- Represent entire UIs with serializable data
 - Rich life-cycle hooks (mount, unmount, update attributes, move, etc)
 - Data-driven hooks and DOM event handlers
-- Represent entire UIs with serializable data
-- Stateless
-- Style/class/attribute overrides during mounting for easy transitions
+- Stateless and component-free
+- Style/class/attribute overrides during mounting and unmounting for easy
+  transitions
 - Small API surface: Two functions and a few keywords
+- Inline styles with Clojure maps
+- Class lists with Clojure collections
 - No dependencies
 
 ## Performance
@@ -132,7 +133,7 @@ CSS transitions on an element, you very likely want to give it a key.
 
 ## Mounting styles/classes/attributes
 
-Sometimes it's nice when element smoothly transition into being. Replicant
+Sometimes it's nice when elements smoothly transition into being. Replicant
 enables this by supporting overrides for inline styles, classes, and indeed any
 attribute during the initial mount.
 
@@ -165,8 +166,19 @@ Once mounted, it will be updated to:
 Which causes the CSS transition to trigger, and move the element in from the
 left.
 
-Mounting styles are merged into your ordinary styles. Other attributes, like
-classes, are completely overwritten.
+Mounting styles are merged into your ordinary styles. Other attributes are
+completely overwritten. Classes are partly overwritten: the classes from the
+hiccup symbol will always be included, but `:class` will be overwritten:
+
+```clj
+[:h1.heading
+  {:class [:mounted]
+   :replicant/mounting {:class [:mounting]}}
+ "Hello world"]
+```
+
+During mounting, this element will have the classes `"heading mounting"`, and
+after mounting it will have the classes `"heading mounted"`.
 
 ## Unmounting styles/classes/attributes
 
