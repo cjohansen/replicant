@@ -568,17 +568,14 @@
 
           ;; There are old nodes where there are no new nodes: delete
           new-empty?
-          [true
-           (->> (reduce
-                 (fn [[vd n] c]
-                   (if-let [pending-vdom (remove-child impl unmounts el n c)]
-                     [(conj! vd pending-vdom) (unchecked-inc-int n)]
-                     [vd n]))
-                 [vdom n]
-                 old-c)
-                first
-                persistent!)
-           new-ks]
+          (loop [children (seq old-c)
+                 vdom vdom
+                 n n]
+            (if (nil? children)
+              [true (persistent! vdom) new-ks]
+              (if-let [pending-vdom (remove-child impl unmounts el n (first children))]
+                (recur (next children) (conj! vdom pending-vdom) (unchecked-inc-int n))
+                (recur (next children) vdom n))))
 
           ;; There are new nodes where there were no old ones: create
           old-empty?
