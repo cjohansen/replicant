@@ -296,18 +296,13 @@ Replicant does not have components. Some common reasons to have components
 include:
 
 1. Capture UI components in reusable artifacts
-2. Wire in cross-cutting concerns (i18n, theming, etc)
-3. Use knowledge about domain data to short-circuit rendering for performance
-4. Attach life-cycle hooks (used for animations, DOM manipulation, etc)
+2. Use knowledge about domain data to short-circuit rendering for performance
+3. Attach life-cycle hooks (used for animations, DOM manipulation, etc)
+4. Wire in cross-cutting concerns (i18n, theming, etc)
 
-With Replicant, you would use a function to capture UI components, e.g.
-something like `(button {,,,})` which returns the appropriate hiccup for a
-button.
-
-Replicant does not need to know about cross-cutting concerns like i18n, theming,
-etc. The benefit of using hiccup for rendering is that hiccup is data.
-Cross-cutting concerns can be implemented as pure data transformations. These
-can be applied before your pass data to Replicant for rendering.
+Clojure provides the function as a mechanism for creating reusable pieces of
+logic. Components are just functions that return hiccup, e.g. something like
+`(button {,,,})` which returns the appropriate hiccup for a button.
 
 Short-circuiting rendering (e.g. something akin to React's original
 `shouldComponentUpdate`) is generally not necessary, as Replicant is already
@@ -316,8 +311,17 @@ transformations however, you can use `memoize` or other more specialized tools.
 Since "components" are just functions that return hiccup, you don't need
 framework specific tooling to optimize your code.
 
-Life-cycles are genuinly useful. That's why you can attach them directly to
-hiccup nodes, and Replicant will trigger them for you.
+Life-cycles are genuinely useful. That's why you can attach them directly to
+hiccup nodes, and Replicant will trigger them for you. You are not limited to
+placing hooks on "components" - any node in the hiccup tree can have them.
+
+Replicant does not **need** to know about cross-cutting concerns like i18n,
+theming, etc. Since the entire UI can be represented as data, you can implement
+concerns like these with pure data transformations. However, there are speed
+gains to be had if you can postpone such transformations to just in time for
+rendering, which is why Replicant will eventually provide a hook for this. The
+hook will be a global one, and does not necessitate a bespoke component
+abstraction.
 
 ## Contribute
 
