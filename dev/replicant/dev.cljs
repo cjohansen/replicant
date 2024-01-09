@@ -2,12 +2,14 @@
   (:require [replicant.contenteditable-bug :as ceb]
             [replicant.dom :as d]))
 
-(defn app [{:keys [square?]}]
-  [:div
+(defn app [{:keys [square?] :as props}]
+  [:div {:replicant/context {:fn-name "replicant.dev/app"
+                             :data props}}
    [:h1 "Watch it go!"]
    [:input {:type "text" :value "Hehe"}]
    (when square?
-     [:div {:style {:transition "width 0.5s, height 200ms"
+     [:div {:className "some classes"
+            :style {:transition "width 0.5s, height 200ms"
                     :width 100
                     :height 200
                     :background "red"
@@ -75,11 +77,6 @@
        (d/render el))
 
   )
-
-
-
-
-
 
 (comment
 

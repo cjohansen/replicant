@@ -38,7 +38,9 @@
 
   vdom is another positional tuple (and native JS array in CLJS), and has
   similar macro accessors as the hiccup headers."
-  (:require [replicant.hiccup :as hiccup]
+  (:require [replicant.assert :as assert]
+            [replicant.asserts :as asserts]
+            [replicant.hiccup :as hiccup]
             [replicant.protocols :as r]
             [replicant.vdom :as vdom]))
 
@@ -172,6 +174,8 @@
   "Given `headers` as produced by `get-hiccup-headers`, returns a map of all HTML
   attributes."
   [headers]
+  (asserts/assert-no-class-name headers)
+  (asserts/assert-no-space-separated-class headers)
   (prep-attrs (hiccup/attrs headers) (hiccup/id headers) (hiccup/classes headers)))
 
 (defn merge-attrs [attrs overrides]
@@ -183,8 +187,9 @@
 (defn get-mounting-attrs [headers]
   (if-let [mounting (:replicant/mounting (hiccup/attrs headers))]
     [(get-attrs headers)
-     (get-attrs (cond-> headers
-                  mounting (hiccup/update-attrs merge-attrs mounting)))]
+     (let [headers (cond-> headers
+                     mounting (hiccup/update-attrs merge-attrs mounting))]
+       (prep-attrs (hiccup/attrs headers) (hiccup/id headers) (hiccup/classes headers)))]
     [(get-attrs headers)]))
 
 (defn get-unmounting-attrs [vdom]
@@ -359,19 +364,15 @@
          (r/set-attribute renderer el an v))))
 
 (defn update-attr [renderer el attr new old]
-  (case attr
-    :replicant/key nil
-    :replicant/on-render nil
-    :replicant/on-update nil
-    :replicant/on-mount nil
-    :replicant/on-unmount nil
-    :style (update-styles renderer el (:style new) (:style old))
-    :classes (update-classes renderer el (:classes new) (:classes old))
-    :on (update-event-listeners renderer el (:on new) (:on old))
-    (if-let [v (attr new)]
-      (when (not= v (attr old))
-        (set-attr-val renderer el attr v))
-      (r/remove-attribute renderer el (name attr)))))
+  (when-not (namespace attr)
+    (case attr
+      :style (update-styles renderer el (:style new) (:style old))
+      :classes (update-classes renderer el (:classes new) (:classes old))
+      :on (update-event-listeners renderer el (:on new) (:on old))
+      (if-let [v (attr new)]
+        (when (not= v (attr old))
+          (set-attr-val renderer el attr v))
+        (r/remove-attribute renderer el (name attr))))))
 
 (defn update-attributes [renderer el new-attrs old-attrs]
   (->> (into (set (keys new-attrs)) (keys old-attrs))
@@ -401,16 +402,12 @@
   (add-event-listeners renderer el new-handlers))
 
 (defn set-attr [renderer el attr new]
-  (case attr
-    :replicant/key nil
-    :replicant/on-render nil
-    :replicant/on-update nil
-    :replicant/on-mount nil
-    :replicant/on-unmount nil
-    :style (set-styles renderer el (:style new))
-    :classes (set-classes renderer el (:classes new))
-    :on (set-event-listeners renderer el (:on new))
-    (set-attr-val renderer el attr (attr new))))
+  (when-not (namespace attr)
+    (case attr
+      :style (set-styles renderer el (:style new))
+      :classes (set-classes renderer el (:classes new))
+      :on (set-event-listeners renderer el (:on new))
+      (set-attr-val renderer el attr (attr new)))))
 
 (defn set-attributes [renderer el new-attrs]
   (->> (keys new-attrs)
@@ -698,6 +695,7 @@
             (recur nc oc n move-n n-children true (cond-> vdom vdom-node (conj! vdom-node)))))))))
 
 (defn reconcile* [{:keys [renderer] :as impl} el headers vdom index]
+  (assert/enter-node headers)
   (cond
     (unchanged? headers vdom)
     vdom
@@ -766,6 +764,7 @@
               :mounts (volatile! [])
               :unmounts (or unmounts (volatile! #{}))}
         vdom (let [headers (get-hiccup-headers hiccup nil)]
+               (assert/enter-node headers)
                ;; Not strictly necessary, but it makes noop renders faster
                (if (and headers vdom (unchanged? headers (first vdom)) (= 1 (count vdom)))
                  vdom
@@ -788,3 +787,5 @@
     {:hooks hooks
      :vdom vdom
      :unmounts (:unmounts impl)}))
+
+(assert/configure)
