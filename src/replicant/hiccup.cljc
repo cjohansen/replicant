@@ -1,4 +1,5 @@
-(ns replicant.hiccup)
+(ns replicant.hiccup
+  #?(:cljs (:require-macros [replicant.hiccup])))
 
 (defmacro hget [x k]
   (if (:ns &env)

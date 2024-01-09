@@ -1,5 +1,8 @@
 (ns replicant.vdom
-  (:require [replicant.hiccup :as h]))
+  (:require [replicant.hiccup :as h])
+  #?(:cljs (:require-macros [replicant.vdom])))
+
+(def id (volatile! 0))
 
 (defmacro vget [x k]
   (if (:ns &env)
@@ -35,8 +38,6 @@
 
 (defmacro unmount-id [vdom]
   `(vget ~vdom 9))
-
-(def id (volatile! 0))
 
 (defmacro mark-unmounting [vdom]
   (if (:ns &env)
