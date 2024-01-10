@@ -422,13 +422,15 @@
   Similarity in this case indicates that the node can be used for reconciliation
   instead of creating a new node from scratch."
   [headers vdom]
-  (or (and (hiccup/text headers) (vdom/text vdom))
+  (or (identical? (hiccup/sexp headers) (vdom/sexp vdom))
+      (and (hiccup/text headers) (vdom/text vdom))
       (and (= (hiccup/rkey headers) (vdom/rkey vdom))
            (= (hiccup/tag-name headers) (vdom/tag-name vdom)))))
 
 (defn same? [headers vdom]
-  (and (= (hiccup/rkey headers) (vdom/rkey vdom))
-       (= (hiccup/tag-name headers) (vdom/tag-name vdom))))
+  (or (identical? (hiccup/sexp headers) (vdom/sexp vdom))
+      (and (= (hiccup/rkey headers) (vdom/rkey vdom))
+           (= (hiccup/tag-name headers) (vdom/tag-name vdom)))))
 
 ;; reconcile* and update-children are mutually recursive
 (declare reconcile*)
@@ -487,7 +489,10 @@
 (def move-node-details [:replicant/move-node])
 
 (defn unchanged? [headers vdom]
-  (= (hiccup/sexp headers) (vdom/sexp vdom)))
+  (let [hiccup (hiccup/sexp headers)
+        old-hiccup (vdom/sexp vdom)]
+    (or (identical? hiccup old-hiccup)
+        (= hiccup old-hiccup))))
 
 (defn ^:private move-nodes [{:keys [renderer] :as impl} el headers new-children vdom old-children n n-children]
   (let [o-idx (if (hiccup/rkey headers)
