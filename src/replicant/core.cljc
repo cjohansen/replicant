@@ -187,18 +187,14 @@
           unmounting (:replicant/unmounting attrs)]
       (prep-attrs (merge-attrs attrs unmounting) nil (vdom/classes vdom)))))
 
-(defn ^:private flatten-seqs* [xs coll]
+(defn ^:private flatten-seqs [f val xs]
   (reduce
-   (fn [_ x]
-     (cond (nil? x) nil
-           (seq? x) (flatten-seqs* x coll)
-           :else (conj! coll x)))
-   nil xs))
-
-(defn flatten-seqs [xs]
-  (let [coll (transient [])]
-    (flatten-seqs* xs coll)
-    (persistent! coll)))
+   (fn [val x]
+     (cond
+       (nil? x) val
+       (seq? x) (flatten-seqs f val x)
+       :else (f val x)))
+   val xs))
 
 (defn get-children
   "Given an optional tag namespace `ns` (e.g. for SVG nodes) and `headers`, as
@@ -207,8 +203,8 @@
   [headers ns]
   (when-not (:innerHTML (hiccup/attrs headers))
     (->> (hiccup/children headers)
-         flatten-seqs
-         (mapv #(get-hiccup-headers % ns)))))
+         (flatten-seqs #(conj! %1 (get-hiccup-headers %2 ns)) (transient []))
+         persistent!)))
 
 (defn get-children-ks
   "Like `get-children` but returns a tuple of `[children ks]` where `ks` is a set
@@ -217,13 +213,12 @@
   (when-not (:innerHTML (hiccup/attrs headers))
     (let [[children ks]
           (->> (hiccup/children headers)
-               flatten-seqs
-               (reduce (fn bla [[children ks] hiccup]
-                         (let [headers (get-hiccup-headers hiccup ns)
-                               k (hiccup/rkey headers)]
-                           [(conj! children headers)
-                            (cond-> ks k (conj! k))]))
-                       [(transient []) (transient #{})]))]
+               (flatten-seqs (fn [[children ks] hiccup]
+                               (let [headers (get-hiccup-headers hiccup ns)
+                                     k (hiccup/rkey headers)]
+                                 [(conj! children headers)
+                                  (cond-> ks k (conj! k))]))
+                             [(transient []) (transient #{})]))]
       [(persistent! children) (persistent! ks)])))
 
 ;; Events and life cycle hooks
