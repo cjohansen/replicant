@@ -209,16 +209,23 @@
 (defn get-children-ks
   "Like `get-children` but returns a tuple of `[children ks]` where `ks` is a set
   of the keys in `children`."
-  [headers ns]
+  [headers ns old-children]
   (when-not (:innerHTML (hiccup/attrs headers))
     (let [[children ks]
           (->> (hiccup/children headers)
-               (flatten-seqs (fn [[children ks] hiccup]
-                               (let [headers (get-hiccup-headers hiccup ns)
-                                     k (hiccup/rkey headers)]
+               (flatten-seqs (fn [[children ks vdoms] hiccup]
+                               (let [vdom (first vdoms)
+                                     [k sexp] (when vdom
+                                                [(vdom/rkey vdom) (vdom/sexp vdom)])
+                                     same? (identical? sexp hiccup)
+                                     headers (if same?
+                                                   (hiccup/create-shell (vdom/tag-name vdom) k hiccup)
+                                                   (get-hiccup-headers hiccup ns))
+                                     k (if same? k (hiccup/rkey headers))]
                                  [(conj! children headers)
-                                  (cond-> ks k (conj! k))]))
-                             [(transient []) (transient #{})]))]
+                                  (cond-> ks k (conj! k))
+                                  (when same? (next vdoms))]))
+                             [(transient []) (transient #{}) old-children]))]
       [(persistent! children) (persistent! ks)])))
 
 ;; Events and life cycle hooks
@@ -636,8 +643,9 @@
     (let [child (r/get-child renderer el index)
           attrs (get-attrs headers)
           attrs-changed? (reconcile-attributes renderer child attrs (vdom/attrs vdom))
-          [new-children new-ks] (get-children-ks headers (get-ns headers))
-          [children-changed? children child-ks] (update-children impl child new-children new-ks (vdom/children vdom) (vdom/child-ks vdom))
+          old-children (vdom/children vdom)
+          [new-children new-ks] (get-children-ks headers (get-ns headers) old-children)
+          [children-changed? children child-ks] (update-children impl child new-children new-ks old-children (vdom/child-ks vdom))
           attrs-changed? (or attrs-changed?
                              (not= (:replicant/on-update (hiccup/attrs headers))
                                    (:replicant/on-update (vdom/attrs vdom))))]

@@ -50,6 +50,11 @@
          (conj ~sexp)
          (conj ~text))))
 
+(defmacro create-shell [tag-name key sexp]
+  (if (:ns &env)
+    `(cljs.core/array ~tag-name nil nil ~key nil nil nil ~sexp nil)
+    `[~tag-name nil nil ~key nil nil nil ~sexp nil ]))
+
 (defmacro update-attrs [headers & args]
   (if (:ns &env)
     `(do
