@@ -209,23 +209,23 @@
 (defn get-children-ks
   "Like `get-children` but returns a tuple of `[children ks]` where `ks` is a set
   of the keys in `children`."
-  [headers ns old-children]
+  [headers ns old-ks]
   (when-not (:innerHTML (hiccup/attrs headers))
     (let [[children ks]
           (->> (hiccup/children headers)
-               (flatten-seqs (fn [[children ks vdoms] hiccup]
-                               (let [vdom (first vdoms)
+               (flatten-seqs (fn [[children ks] hiccup]
+                               (let [vdom (when (vector? hiccup)
+                                            (old-ks (:replicant/key (second hiccup))))
                                      [k sexp] (when vdom
                                                 [(vdom/rkey vdom) (vdom/sexp vdom)])
                                      same? (identical? sexp hiccup)
                                      headers (if same?
-                                                   (hiccup/create-shell (vdom/tag-name vdom) k hiccup)
-                                                   (get-hiccup-headers hiccup ns))
+                                               (hiccup/create-shell (vdom/tag-name vdom) k hiccup)
+                                               (get-hiccup-headers hiccup ns))
                                      k (if same? k (hiccup/rkey headers))]
                                  [(conj! children headers)
-                                  (cond-> ks k (conj! k))
-                                  (when same? (next vdoms))]))
-                             [(transient []) (transient #{}) old-children]))]
+                                  (cond-> ks k (assoc! k headers))]))
+                             [(transient []) (transient {})]))]
       [(persistent! children) (persistent! ks)])))
 
 ;; Events and life cycle hooks
@@ -409,8 +409,8 @@
                                        (let [[child-node vdom] (create-node impl child-headers)
                                              k (vdom/rkey vdom)]
                                          (r/append-child renderer node child-node)
-                                         [(conj! children vdom) (cond-> ks k (conj! k))]))
-                                     [(transient []) (transient #{})]))]
+                                         [(conj! children vdom) (cond-> ks k (assoc! k vdom))]))
+                                     [(transient []) (transient {})]))]
       (register-hook impl node headers)
       (when mounting-attrs
         (register-mount impl node mounting-attrs attrs))
@@ -643,9 +643,9 @@
     (let [child (r/get-child renderer el index)
           attrs (get-attrs headers)
           attrs-changed? (reconcile-attributes renderer child attrs (vdom/attrs vdom))
-          old-children (vdom/children vdom)
-          [new-children new-ks] (get-children-ks headers (get-ns headers) old-children)
-          [children-changed? children child-ks] (update-children impl child new-children new-ks old-children (vdom/child-ks vdom))
+          old-ks (vdom/child-ks vdom)
+          [new-children new-ks] (get-children-ks headers (get-ns headers) old-ks)
+          [children-changed? children child-ks] (update-children impl child new-children new-ks (vdom/children vdom) old-ks)
           attrs-changed? (or attrs-changed?
                              (not= (:replicant/on-update (hiccup/attrs headers))
                                    (:replicant/on-update (vdom/attrs vdom))))]
