@@ -347,6 +347,24 @@
                h/summarize)
            [[:insert-before [:li "Item #3"] [:li "Item #2"] :in "ul"]])))
 
+  (testing "Swaps second and next-to-last nodes"
+    (is (= (-> (h/render [:ul
+                          [:li {:replicant/key "0"} "Item #1"]
+                          [:li {:replicant/key "1"} "Item #2"]
+                          [:li {:replicant/key "2"} "Item #3"]
+                          [:li {:replicant/key "3"} "Item #4"]
+                          [:li {:replicant/key "4"} "Item #5"]])
+               (h/render [:ul
+                          [:li {:replicant/key "0"} "Item #1"]
+                          [:li {:replicant/key "3"} "Item #4"]
+                          [:li {:replicant/key "2"} "Item #3"]
+                          [:li {:replicant/key "1"} "Item #2"]
+                          [:li {:replicant/key "4"} "Item #5"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:insert-before [:li "Item #4"] [:li "Item #2"] :in "ul"]
+            [:insert-before [:li "Item #3"] [:li "Item #2"] :in "ul"]])))
+
   (testing "Swaps nodes and adjusts attributes"
     (is (= (-> (h/render [:ul
                           [:li {:replicant/key "0" :title "Numero uno"} "Item #1"]
