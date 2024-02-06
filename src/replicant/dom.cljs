@@ -126,6 +126,10 @@
       (.replaceChild el insert-child replace-child)
       this)
 
+    (remove-all-children [this el]
+      (set! (.-textContent el) "")
+      this)
+
     (get-child [_this el idx]
       (aget (.-childNodes el) idx))
 

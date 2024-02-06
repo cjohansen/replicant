@@ -139,6 +139,12 @@
      (swap! el -replace-child insert-child replace-child)
      this)
 
+   `replicant/remove-all-children
+   (fn [this el]
+     (log this [:remove-all-children el])
+     (swap! el assoc :children [])
+     this)
+
    `replicant/get-child
    (fn [this el idx]
      (log this [:get-child idx])

@@ -636,12 +636,18 @@
     :else
     (let [child (r/get-child renderer el index)
           attrs (get-attrs headers)
-          attrs-changed? (reconcile-attributes renderer child attrs (vdom/attrs vdom))
+          vdom-attrs (vdom/attrs vdom)
+          attrs-changed? (reconcile-attributes renderer child attrs vdom-attrs)
+          [old-children old-ks] (if (:contenteditable vdom-attrs)
+                                  (do
+                                    (r/remove-all-children renderer child)
+                                    [])
+                                  [(vdom/children vdom) (vdom/child-ks vdom)])
           [new-children new-ks] (get-children-ks headers (get-ns headers))
-          [children-changed? children child-ks] (update-children impl child new-children new-ks (vdom/children vdom) (vdom/child-ks vdom))
+          [children-changed? children child-ks] (update-children impl child new-children new-ks old-children old-ks)
           attrs-changed? (or attrs-changed?
                              (not= (:replicant/on-update (hiccup/attrs headers))
-                                   (:replicant/on-update (vdom/attrs vdom))))]
+                                   (:replicant/on-update vdom-attrs)))]
       (->> (cond
              (and attrs-changed? children-changed?)
              [:replicant/updated-attrs

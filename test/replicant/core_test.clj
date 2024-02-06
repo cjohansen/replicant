@@ -155,6 +155,22 @@
             [:create-text-node "Hello world"]
             [:append-child "Hello world" :to "h1"]])))
 
+  (testing "Does not reuse children of contenteditable elements"
+    (is (= (-> (h/render [:h1 {:contenteditable true} "Hello world"])
+               (h/render [:h1 {:contenteditable true} "Hello?"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:remove-all-children :from "h1"]
+            [:create-text-node "Hello?"]
+            [:append-child "Hello?" :to "h1"]])))
+
+  (testing "Does not remove children of contenteditable element that does not change"
+    (is (= (-> (h/render [:h1 {:contenteditable true} "Hello world"])
+               (h/render [:h1 {:contenteditable true} "Hello world"])
+               h/get-mutation-log-events
+               h/summarize)
+           [])))
+
   (testing "Builds svg nodes"
     (is (= (-> (h/render [:svg {:viewBox "0 0 100 100"}
                           [:g [:use {:xlink:href "#icon"}]]])
