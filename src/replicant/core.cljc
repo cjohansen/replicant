@@ -640,6 +640,13 @@
           attrs-changed? (reconcile-attributes renderer child attrs vdom-attrs)
           [old-children old-ks] (if (:contenteditable vdom-attrs)
                                   (do
+                                    ;; If the node is contenteditable, users can
+                                    ;; modify the DOM, and we cannot trust that
+                                    ;; the DOM children still reflect the state
+                                    ;; in `vdom`. To avoid problems when
+                                    ;; updating the children, all children are
+                                    ;; cleared here, and the reconciliation
+                                    ;; proceeds as if all new children are new.
                                     (r/remove-all-children renderer child)
                                     [])
                                   [(vdom/children vdom) (vdom/child-ks vdom)])
