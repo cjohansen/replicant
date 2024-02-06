@@ -165,7 +165,7 @@
 (defn render [element new-hiccup & [old-vdom unmounts]]
   (let [el (atom (or element {}))
         renderer (create-renderer {:log (atom []) :element el})]
-    (-> (d/reconcile renderer el new-hiccup old-vdom unmounts)
+    (-> (d/reconcile renderer el new-hiccup old-vdom {:unmounts unmounts})
         (assoc :el (-> renderer
                        (update :log deref)
                        (update :element deref))))))

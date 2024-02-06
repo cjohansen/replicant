@@ -141,9 +141,9 @@
 (defn ^:export render [el hiccup]
   (when-not (contains? @state el)
     (vswap! state assoc el {:renderer (create-renderer)
-                            :removals (volatile! #{})}))
-  (let [{:keys [renderer current removals]} (get @state el)
-        {:keys [vdom]} (r/reconcile renderer el hiccup current removals)]
+                            :unmounts (volatile! #{})}))
+  (let [{:keys [renderer current unmounts]} (get @state el)
+        {:keys [vdom]} (r/reconcile renderer el hiccup current {:unmounts unmounts})]
     (vswap! state assoc-in [el :current] vdom))
   el)
 

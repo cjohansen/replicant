@@ -681,7 +681,7 @@
   `vdom`, `reconcile` will create the DOM as per `hiccup`. Assumes that the DOM
   in `el` is in sync with `vdom` - if not, this will certainly not produce the
   desired result."
-  [renderer el hiccup & [vdom unmounts]]
+  [renderer el hiccup & [vdom {:keys [unmounts]}]]
   (let [impl {:renderer renderer
               :hooks (volatile! [])
               :mounts (volatile! [])
