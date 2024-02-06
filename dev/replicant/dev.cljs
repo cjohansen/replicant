@@ -1,5 +1,6 @@
 (ns replicant.dev
-  (:require [replicant.dom :as d]))
+  (:require [replicant.contenteditable-bug :as ceb]
+            [replicant.dom :as d]))
 
 (defn app [{:keys [square?]}]
   [:div
@@ -25,6 +26,8 @@
   (d/set-dispatch!
    (fn [& args]
      (prn "OHOI!" args)))
+
+  (ceb/start)
 
   (do
     (set! (.-innerHTML js/document.body) "<div id=\"app\"></div>")
