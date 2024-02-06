@@ -1,5 +1,10 @@
 (ns replicant.core
-  "To postpone as much processing as possible, Replicant uses three separate
+  "Beware! This code is written for performance. It does a lot of things that can
+  not be considered idiomatic Clojure. If you find yourself looking at it and
+  asking \"why are things done like that?\" the answer is most likely
+  \"performance\". With that out of the way...
+
+  To postpone as much processing as possible, Replicant uses three separate
   representations of the DOM:
 
   ## hiccup
