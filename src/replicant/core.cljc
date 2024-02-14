@@ -40,7 +40,8 @@
   similar macro accessors as the hiccup headers."
   (:require [replicant.hiccup :as hiccup]
             [replicant.protocols :as r]
-            [replicant.vdom :as vdom]))
+            [replicant.vdom :as vdom]
+            #?(:cljs [replicant.dom2 :as dom])))
 
 ;; Hiccup stuff
 
@@ -301,29 +302,35 @@
    #(let [new-style (% new-styles)]
       (cond
         (nil? new-style)
-        (r/remove-style renderer el %)
+        #?(:clj (r/remove-style renderer el %)
+           :cljs (dom/-remove-style el %))
 
         (not= new-style (% old-styles))
-        (r/set-style renderer el % (get-style-val % new-style))))
+        #?(:clj (r/set-style renderer el % (get-style-val % new-style))
+           :cljs (dom/-set-style el % (get-style-val % new-style)))))
    (into (set (keys new-styles)) (keys old-styles))))
 
 (defn update-classes [renderer el new-classes old-classes]
   (->> (remove (set new-classes) old-classes)
-       (run! #(r/remove-class renderer el %)))
+       (run! #?(:clj #(r/remove-class renderer el %)
+                :cljs #(dom/-remove-class el %))))
   (->> (remove (set old-classes) new-classes)
-       (run! #(r/add-class renderer el %))))
+       (run! #?(:clj #(r/add-class renderer el %)
+                :cljs #(dom/-add-class el %)))))
 
 (defn add-event-listeners [renderer el val]
   (->> val
        (remove (comp nil? second))
        (run! (fn [[event handler]]
                (when-let [handler (get-event-handler handler event)]
-                 (r/set-event-handler renderer el event handler))))))
+                 #?(:clj (r/set-event-handler renderer el event handler)
+                    :cljs (dom/-set-event-handler el event handler)))))))
 
 (defn update-event-listeners [renderer el new-handlers old-handlers]
   (->> (remove (set (filter new-handlers (keys new-handlers)))
                (filter old-handlers (keys old-handlers)))
-       (run! #(r/remove-event-handler renderer el %)))
+       (run! #?(:clj #(r/remove-event-handler renderer el %)
+                :cljs #(dom/-remove-event-handler el %))))
   (->> (remove #(= (val %) (get old-handlers (key %))) new-handlers)
        (add-event-listeners renderer el)))
 
@@ -338,7 +345,8 @@
 
            (= 0 (.indexOf an "xlink:"))
            (assoc :ns xlinkns))
-         (r/set-attribute renderer el an v))))
+         #?(:clj (r/set-attribute renderer el an v)
+            :cljs (dom/-set-attribute el an v)))))
 
 (defn update-attr [renderer el attr new old]
   (case attr
@@ -350,7 +358,8 @@
     (if-let [v (attr new)]
       (when (not= v (attr old))
         (set-attr-val renderer el attr v))
-      (r/remove-attribute renderer el (name attr)))))
+      #?(:clj (r/remove-attribute renderer el (name attr))
+         :cljs (dom/-remove-attribute el (name attr))))))
 
 (defn update-attributes [renderer el new-attrs old-attrs]
   (->> (into (set (keys new-attrs)) (keys old-attrs))
@@ -370,11 +379,13 @@
 (defn set-styles [renderer el new-styles]
   (->> (keys new-styles)
        (filter new-styles)
-       (run! #(r/set-style renderer el % (get-style-val % (% new-styles))))))
+       (run! #?(:clj #(r/set-style renderer el % (get-style-val % (% new-styles)))
+                :cljs #(dom/-set-style el % (get-style-val % (% new-styles)))))))
 
 (defn set-classes [renderer el new-classes]
   (->> new-classes
-       (run! #(r/add-class renderer el %))))
+       (run! #?(:clj #(r/add-class renderer el %)
+                :cljs #(dom/-add-class el %)))))
 
 (defn set-event-listeners [renderer el new-handlers]
   (add-event-listeners renderer el new-handlers))
@@ -399,20 +410,23 @@
   tuple of the newly created node and the fully realized vdom."
   [{:keys [renderer] :as impl} headers]
   (if-let [text (hiccup/text headers)]
-    [(r/create-text-node renderer text)
+    [#?(:clj (r/create-text-node renderer text)
+        :cljs (dom/-create-text-node text))
      (vdom/create-text-node text)]
     (let [tag-name (hiccup/tag-name headers)
           ns (or (hiccup/html-ns headers)
                  (when (= "svg" tag-name)
                    "http://www.w3.org/2000/svg"))
-          node (r/create-element renderer tag-name (when ns {:ns ns}))
+          node #?(:clj (r/create-element renderer tag-name (when ns {:ns ns}))
+                  :cljs (dom/-create-element tag-name (when ns {:ns ns})))
           [attrs mounting-attrs] (get-mounting-attrs headers)
           _ (set-attributes renderer node (or mounting-attrs attrs))
           [children ks] (->> (get-children headers ns)
                              (reduce (fn [[children ks] child-headers]
                                        (let [[child-node vdom] (create-node impl child-headers)
                                              k (vdom/rkey vdom)]
-                                         (r/append-child renderer node child-node)
+                                         #?(:clj (r/append-child renderer node child-node)
+                                            :cljs (dom/-append-child node child-node))
                                          [(conj! children vdom) (cond-> ks k (conj! k))]))
                                      [(transient []) (transient #{})]))]
       (register-hook impl node headers)
@@ -455,7 +469,8 @@
 (defn ^:private insert-children [{:keys [renderer] :as impl} el children vdom]
   (->> (reduce (fn [res child]
                  (let [[node vdom] (create-node impl child)]
-                   (r/append-child renderer el node)
+                   #?(:clj (r/append-child renderer el node)
+                      :cljs (dom/-append-child el node))
                    (conj! res vdom)))
                vdom children)
        persistent!))
@@ -470,7 +485,8 @@
                 ;; The node has unmounting attributes: mark it as unmounting,
                 ;; and start the process
                 (let [marked-vdom (vdom/mark-unmounting vdom)
-                      child (r/get-child renderer el n)]
+                      child #?(:clj (r/get-child renderer el n)
+                               :cljs (dom/-get-child el n))]
                   (update-attributes renderer child attrs (vdom/attrs vdom))
                   ;; Record the node as unmounting
                   (vswap! (:unmounts impl) conj (vdom/unmount-id vdom))
@@ -478,14 +494,18 @@
                          ;; We're done, remove it from the set of unmounting
                          ;; nodes
                          (vswap! (:unmounts impl) disj (vdom/unmount-id vdom))
-                         (r/remove-child renderer el child)
+                         #?(:clj (r/remove-child renderer el child)
+                            :cljs (dom/-remove-child el child))
                          (when-let [hook (:replicant/on-update (vdom/attrs vdom))]
                            (call-hook [hook child nil vdom]))
                          renderer)
-                       (r/on-transition-end renderer child))
+                       #?(:clj (r/on-transition-end renderer child)
+                          :cljs (dom/-on-transition-end child)))
                   marked-vdom)
-                (let [child (r/get-child renderer el n)]
-                  (r/remove-child renderer el child)
+                (let [child #?(:clj (r/get-child renderer el n)
+                               :cljs (dom/-get-child el n))]
+                  #?(:clj (r/remove-child renderer el child)
+                     :cljs (dom/-remove-child el child))
                   (register-hook impl child nil vdom)
                   nil))]
       res)))
@@ -518,10 +538,13 @@
       ;; Old: 2 3 1
       ;; New: 2 3 1
       (let [idx (unchecked-inc-int (unchecked-add-int n n-idx))
-            child (r/get-child renderer el n)]
+            child #?(:clj (r/get-child renderer el n)
+                     :cljs (dom/-get-child el n))]
         (if (< idx n-children)
-          (r/insert-before renderer el child (r/get-child renderer el idx))
-          (r/append-child renderer el child))
+          #?(:clj (r/insert-before renderer el child (r/get-child renderer el idx))
+             :cljs (dom/-insert-before el child (dom/-get-child el idx)))
+          #?(:clj (r/append-child renderer el child)
+             :cljs (dom/-append-child el child)))
         (register-hook impl child (nth new-children n-idx) vdom move-node-details)
         [new-children
          (concat (take n-idx (next old-children)) [(first old-children)] (drop (unchecked-inc-int n-idx) old-children))
@@ -543,9 +566,11 @@
       ;; Old: 1 2
       ;; New: 1 2
       (let [idx (unchecked-add-int n o-idx)
-            child (r/get-child renderer el idx)
+            child #?(:clj (r/get-child renderer el idx)
+                     :cljs (dom/-get-child el idx))
             corresponding-old-vdom (nth old-children o-idx)]
-        (r/insert-before renderer el child (r/get-child renderer el n))
+        #?(:clj (r/insert-before renderer el child (r/get-child renderer el n))
+           :cljs (dom/-insert-before el child (dom/-get-child el n)))
         (reconcile* impl el headers corresponding-old-vdom n)
         (when (unchanged? headers corresponding-old-vdom)
           ;; If it didn't change, reconcile* did not schedule a hook
@@ -604,15 +629,18 @@
           (let [new-vdom (reconcile* impl el new-headers old-vdom n)
                 node-unchanged? (unchanged? new-headers old-vdom)]
             (when (and node-unchanged? (< n move-n))
-              (register-hook impl (r/get-child r el n) new-headers old-vdom move-node-details))
+              (register-hook impl #?(:clj (r/get-child r el n)
+                                     :cljs (dom/-get-child el n)) new-headers old-vdom move-node-details))
             (recur (next new-c) (next old-c) (unchecked-inc-int n) move-n n-children (or changed? (not node-unchanged?)) (conj! vdom new-vdom)))
 
           ;; New node did not previously exist, create it
           (not (old-ks (hiccup/rkey new-headers)))
           (let [[child child-vdom] (create-node impl new-headers)]
             (if (<= n-children n)
-              (r/append-child r el child)
-              (r/insert-before r el child (r/get-child r el n)))
+              #?(:clj (r/append-child r el child)
+                 :cljs (dom/-append-child el child))
+              #?(:clj (r/insert-before r el child (r/get-child r el n))
+                 :cljs (dom/-insert-before el child (dom/-get-child el n))))
             (recur (next new-c) old-c (unchecked-inc-int n) move-n (unchecked-inc-int n-children) true (conj! vdom child-vdom)))
 
           ;; Old node no longer exists, remove it
@@ -634,12 +662,14 @@
     ;; Replace the text node at this index with a new one
     (not= (hiccup/text headers) (vdom/text vdom))
     (let [[node vdom] (create-node impl headers)]
-      (r/replace-child renderer el node (r/get-child renderer el index))
+      #?(:clj (r/replace-child renderer el node (r/get-child renderer el index))
+         :cljs (dom/-replace-child el node (dom/-get-child el index)))
       vdom)
 
     ;; Update the node's attributes and reconcile its children
     :else
-    (let [child (r/get-child renderer el index)
+    (let [child #?(:clj (r/get-child renderer el index)
+                   :cljs (dom/-get-child el index))
           attrs (get-attrs headers)
           vdom-attrs (vdom/attrs vdom)
           attrs-changed? (reconcile-attributes renderer child attrs vdom-attrs)
@@ -652,7 +682,8 @@
                                     ;; updating the children, all children are
                                     ;; cleared here, and the reconciliation
                                     ;; proceeds as if all new children are new.
-                                    (r/remove-all-children renderer child)
+                                    #?(:clj (r/remove-all-children renderer child)
+                                       :cljs (dom/-remove-all-children child))
                                     [])
                                   [(vdom/children vdom) (vdom/child-ks vdom)])
           [new-children new-ks] (get-children-ks headers (get-ns headers))
@@ -704,7 +735,8 @@
       (->> (fn []
              (run! #(perform-post-mount-update renderer %) mounts)
              (run! call-hook hooks))
-           (r/next-frame renderer))
+           #?(:clj (r/next-frame renderer)
+              :cljs (dom/on-next-frame)))
       (run! call-hook hooks))
     {:hooks hooks
      :vdom vdom
