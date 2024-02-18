@@ -289,7 +289,7 @@
   that provide some detail about why the hook is invoked."
   [{:keys [hooks]} node headers & [vdom details]]
   (when-let [hook (:replicant/on-update (if headers (hiccup/attrs headers) (vdom/attrs vdom)))]
-    (vswap! hooks conj [hook node (hiccup/sexp headers) (vdom/sexp vdom) details])))
+    (vswap! hooks conj [hook node (some-> headers hiccup/sexp) (some-> vdom vdom/sexp) details])))
 
 (defn register-mount [{:keys [mounts]} node mounting-attrs attrs]
   (vswap! mounts conj [node mounting-attrs attrs]))
