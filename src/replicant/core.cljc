@@ -246,7 +246,10 @@
         handler)
       (when (ifn? *dispatch*)
         (fn [e]
-          (*dispatch* {:replicant/event :replicant.event/dom-event} e handler)))
+          (let [rd {:replicant/trigger :replicant.trigger/dom-event
+                    :replicant/js-event e}]
+            #?(:clj (*dispatch* rd handler)
+               :cljs (*dispatch* (assoc rd :replicant/node (.-target e)) handler)))))
       (when (string? handler)
         ;; Strings could be inline JavaScript, so will be allowed when there is
         ;; no global event handler.
@@ -273,12 +276,12 @@
 
 (defn call-hook [[hook node new old details]]
   (let [f (get-life-cycle-hook hook)]
-    (f (cond-> {:replicant/event :replicant.event/life-cycle
+    (f (cond-> {:replicant/trigger :replicant.trigger/life-cycle
                 :replicant/life-cycle
                 (cond
-                  (nil? old) :replicant/mount
-                  (nil? new) :replicant/unmount
-                  :else :replicant/update)
+                  (nil? old) :replicant.life-cycle/mount
+                  (nil? new) :replicant.life-cycle/unmount
+                  :else :replicant.life-cycle/update)
                 :replicant/node node}
          details (assoc :replicant/details details)))))
 

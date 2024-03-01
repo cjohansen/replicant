@@ -11,6 +11,7 @@
                     :height 200
                     :background "red"
                     :overflow "hidden"}
+            :on {:click [:some-data-for-your-handler]}
             :replicant/mounting {:style {:width 0 :height 0}}
             :replicant/unmounting {:style {:width 0 :height 0}}}
       "Colored square"])

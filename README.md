@@ -80,8 +80,8 @@ calling `replicant.dom/set-dispatch!`:
 ```
 
 In the above example, `replicant-data` is a map with information about the event
-from Replicant. Specifically, it contains the key `:replicant/event`, which will
-have the value `:replicant.event/dom-event` for DOM events. `event` is the DOM
+from Replicant. Specifically, it contains the key `:replicant/trigger`, which will
+have the value `:replicant.trigger/dom-event` for DOM events. `event` is the DOM
 event object, and `handler-data` is data from the hiccup element, e.g.
 `[:whatever]`. The same global dispatch will be called for all events that are
 expressed as data, and you would typically use the data to decide what to do.
@@ -106,13 +106,13 @@ Replicant life-cycle hooks can also be expressed with data:
 ```
 
 `replicant-data` is the same map from before. For lifecycle hooks,
-`:replicant/event` will have the value `:replicant.event/life-cycle`.
+`:replicant/trigger` will have the value `:replicant.trigger/life-cycle`.
 Additionally, the map will have a key `:replicant/life-cycle` describing what
 kind of event occurred:
 
-- `:replicant/mount`
-- `:replicant/unmount`
-- `:replicant/update`
+- `:replicant.life-cycle/mount`
+- `:replicant.life-cycle/unmount`
+- `:replicant.life-cycle/update`
 
 `:replicant/node` will contain a reference to the DOM element in question.
 
