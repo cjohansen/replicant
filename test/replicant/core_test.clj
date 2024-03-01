@@ -1221,3 +1221,20 @@
                h/remove-text-node-events)
            [[:insert-before [:li "#3"] [:li "#1"] :in "ul"]
             [:insert-before [:li "#2"] [:li "#1"] :in "ul"]]))))
+
+(def res (h/render
+          [:div {:replicant/key ":virtuoso.elements.brain-scenes/brain-1709305790992"}
+           [:svg {:xmlns "http://www.w3.org/2000/svg"
+                  :viewBox "60 30 840 500"
+                  :class nil}]]))
+
+(deftest regression-tests
+  (testing "Replaces element when root node key changes"
+    (is (= (-> res
+               (h/render [:div {:replicant/key "el1"}])
+               (h/render [:div {:replicant/key "el2"}])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "div"]
+            [:insert-before [:div ""] [:div ""] :in "body"]
+            [:remove-child [:div ""] :from "body"]]))))

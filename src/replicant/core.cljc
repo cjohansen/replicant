@@ -694,9 +694,9 @@
                    (-> (update-children
                         impl el
                         (when headers [headers])
-                        (set (keep #(vdom/rkey %) vdom))
+                        (cond-> #{} k (conj k))
                         vdom
-                        (cond-> #{} k (conj k)))
+                        (set (keep #(vdom/rkey %) vdom)))
                        ;; second, because update-children returns [changed? children]
                        second))))
         hooks @(:hooks impl)]
