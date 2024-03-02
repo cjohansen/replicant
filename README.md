@@ -71,7 +71,7 @@ calling `replicant.dom/set-dispatch!`:
 (require '[replicant.dom :as replicant])
 
 (replicant/set-dispatch!
-  (fn [replicant-data event handler-data]
+  (fn [replicant-data handler-data]
     (prn "Click!")))
 
 (replicant/render
@@ -79,10 +79,14 @@ calling `replicant.dom/set-dispatch!`:
   [:h1 {:on {:click [:whatever]}} "Click me"])
 ```
 
-In the above example, `replicant-data` is a map with information about the event
-from Replicant. Specifically, it contains the key `:replicant/trigger`, which will
-have the value `:replicant.trigger/dom-event` for DOM events. `event` is the DOM
-event object, and `handler-data` is data from the hiccup element, e.g.
+In the above example, the first argument `replicant-data` is a map with
+information about the event from Replicant. Specifically, it contains the keys:
+
+- `:replicant/trigger`, which will have the value `:replicant.trigger/dom-event`,
+- `:replicant/js-event`, which will contain a reference to the DOM event object, and
+- `:replicant/node`, which will contain a reference to the DOM node the event occurred in.
+
+The second argument `handler-data` is data from the hiccup element, e.g.
 `[:whatever]`. The same global dispatch will be called for all events that are
 expressed as data, and you would typically use the data to decide what to do.
 
@@ -105,16 +109,14 @@ Replicant life-cycle hooks can also be expressed with data:
   [:h1 {:replicant/on-update ["Update data"]} "Hi!"])
 ```
 
-`replicant-data` is the same map from before. For lifecycle hooks,
-`:replicant/trigger` will have the value `:replicant.trigger/life-cycle`.
-Additionally, the map will have a key `:replicant/life-cycle` describing what
-kind of event occurred:
-
-- `:replicant.life-cycle/mount`
-- `:replicant.life-cycle/unmount`
-- `:replicant.life-cycle/update`
-
-`:replicant/node` will contain a reference to the DOM element in question.
+`replicant-data` is the same map from before. For lifecycle hooks, the map contains:
+- `:replicant/trigger`, which will have the value `:replicant.trigger/life-cycle`,
+- `:replicant/life-cycle`, which describes what kind of event occurred, having
+    one the following values:
+  - `:replicant.life-cycle/mount`
+  - `:replicant.life-cycle/unmount`
+  - `:replicant.life-cycle/update`
+- `:replicant/node` will contain a reference to the DOM node the event occurred in.
 
 The second argument, `hook-data` is whatever data you set on
 `:replicant/on-update`.
