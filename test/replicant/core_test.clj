@@ -550,7 +550,9 @@
                           first
                           last)]
                (f {:dom :event})))
-           [{:replicant/event :replicant.event/dom-event} {:dom :event} [:h1 "Data"]])))
+           [{:replicant/trigger :replicant.trigger/dom-event
+             :replicant/js-event {:dom :event}} 
+            [:h1 "Data"]])))
 
   (testing "Does not re-add current event handler"
     (is (= (-> (h/render [:h1 "Hi!"])
@@ -590,8 +592,8 @@
                    @res))
                (update :e h/summarize-event))
            {:e
-            {:replicant/event :replicant.event/life-cycle
-             :replicant/life-cycle :replicant/mount
+            {:replicant/trigger :replicant.trigger/life-cycle
+             :replicant/life-cycle :replicant.life-cycle/mount
              :replicant/node {:tag-name "h1"
                               :children [{:text "Hi!"}]}}
             :data ["Update data"]})))
@@ -601,8 +603,8 @@
                  (h/render [:h1 {:replicant/on-update #(reset! res %)} "Hi!"])
                  @res)
                h/summarize-event)
-           {:replicant/event :replicant.event/life-cycle
-            :replicant/life-cycle :replicant/mount
+           {:replicant/trigger :replicant.trigger/life-cycle
+            :replicant/life-cycle :replicant.life-cycle/mount
             :replicant/node {:tag-name "h1"
                              :children [{:text "Hi!"}]}})))
 
@@ -626,7 +628,7 @@
              (-> (h/render [:h1 {} "Hi!"])
                  (h/render [:h1 {:replicant/on-update f} "Hi!"]))
              (h/summarize-events @res))
-           [[:replicant/update [:replicant/updated-attrs] "h1"]])))
+           [[:replicant.life-cycle/update [:replicant/updated-attrs] "h1"]])))
 
   (testing "Triggers on-update when attributes change"
     (is (= (let [res (atom [])
@@ -635,8 +637,8 @@
                  (h/render [:h1 {:title "Heading"
                                  :replicant/on-update f} "Hi!"]))
              (h/summarize-events @res))
-           [[:replicant/mount "h1"]
-            [:replicant/update [:replicant/updated-attrs] "h1"]])))
+           [[:replicant.life-cycle/mount "h1"]
+            [:replicant.life-cycle/update [:replicant/updated-attrs] "h1"]])))
 
   (testing "Triggers on-update when unmounting element"
     (is (= (let [res (atom [])
@@ -645,8 +647,8 @@
                                  :replicant/on-update f} "Hi!"])
                  (h/render nil))
              (map :replicant/life-cycle @res))
-           [:replicant/mount
-            :replicant/unmount])))
+           [:replicant.life-cycle/mount
+            :replicant.life-cycle/unmount])))
 
   (testing "Does not trigger on-update when removing hook"
     (is (= (let [res (atom [])
@@ -654,7 +656,7 @@
              (-> (h/render [:h1 {:replicant/on-update f} "Hi!"])
                  (h/render [:h1 {} "Hi!"]))
              (map :replicant/life-cycle @res))
-           [:replicant/mount])))
+           [:replicant.life-cycle/mount])))
 
   (testing "Triggers on-update on mounting child"
     (is (= (let [res (atom [])
@@ -664,7 +666,7 @@
                             [:h1 "Hi!"]
                             [:p {:replicant/on-update f} "New paragraph!"]]))
              (map :replicant/life-cycle @res))
-           [:replicant/mount])))
+           [:replicant.life-cycle/mount])))
 
   (testing "Triggers on-update on mounting child and parent"
     (is (= (let [res (atom [])
@@ -674,9 +676,9 @@
                             [:h1 "Hi!"]
                             [:p {:replicant/on-update f} "New paragraph!"]]))
              (h/summarize-events @res))
-           [[:replicant/mount "p"]
-            [:replicant/update [:replicant/updated-attrs
-                                :replicant/updated-children] "div"]])))
+           [[:replicant.life-cycle/mount "p"]
+            [:replicant.life-cycle/update [:replicant/updated-attrs
+                                           :replicant/updated-children] "div"]])))
 
   (testing "Triggers on-update on updating child and parent"
     (is (= (let [res (atom [])
@@ -689,17 +691,17 @@
                             [:h1 "Hi!"]
                             [:p {:replicant/on-update f} "New paragraph!"]]))
              (h/summarize-events @res))
-           [[:replicant/mount "div"]
-            [:replicant/update [:replicant/updated-attrs] "div"]
-            [:replicant/mount "p"]
-            [:replicant/update [:replicant/updated-children] "div"]])))
+           [[:replicant.life-cycle/mount "div"]
+            [:replicant.life-cycle/update [:replicant/updated-attrs] "div"]
+            [:replicant.life-cycle/mount "p"]
+            [:replicant.life-cycle/update [:replicant/updated-children] "div"]])))
 
   (testing "Triggers on-update on co-mounting child"
     (is (= (let [res (atom [])
                  f (fn [e] (swap! res conj e))]
              (h/render [:div [:h1 {:replicant/on-update f} "One"]])
              (h/summarize-events @res))
-           [[:replicant/mount "h1"]])))
+           [[:replicant.life-cycle/mount "h1"]])))
 
   (testing "Triggers on-update on moving children"
     (is (= (let [res (atom [])
@@ -717,14 +719,14 @@
                             [:p.p1 {:replicant/key :p1 :replicant/on-update f} "Two"]
                             [:p.p4 {:replicant/key :p4 :replicant/on-update f} "Five"]]))
              (h/summarize-events @res))
-           [[:replicant/mount "h1"]
-            [:replicant/mount "p.p1"]
-            [:replicant/mount "p.p2"]
-            [:replicant/mount "p.p3"]
-            [:replicant/mount "p.p4"]
-            [:replicant/update [:replicant/move-node] "p.p1"]
-            [:replicant/update [:replicant/move-node] "p.p2"]
-            [:replicant/update [:replicant/move-node] "p.p3"]])))
+           [[:replicant.life-cycle/mount "h1"]
+            [:replicant.life-cycle/mount "p.p1"]
+            [:replicant.life-cycle/mount "p.p2"]
+            [:replicant.life-cycle/mount "p.p3"]
+            [:replicant.life-cycle/mount "p.p4"]
+            [:replicant.life-cycle/update [:replicant/move-node] "p.p1"]
+            [:replicant.life-cycle/update [:replicant/move-node] "p.p2"]
+            [:replicant.life-cycle/update [:replicant/move-node] "p.p3"]])))
 
   (testing "Triggers on-update on swapping children"
     (is (= (let [res (atom [])
@@ -740,10 +742,10 @@
                             [:h1 {:replicant/key "h1"
                                   :replicant/on-update f} "One"]]))
              (h/summarize-events @res))
-           [[:replicant/mount "h1"]
-            [:replicant/mount "p"]
-            [:replicant/update [:replicant/move-node] "p"]
-            [:replicant/update [:replicant/move-node] "h1"]])))
+           [[:replicant.life-cycle/mount "h1"]
+            [:replicant.life-cycle/mount "p"]
+            [:replicant.life-cycle/update [:replicant/move-node] "p"]
+            [:replicant.life-cycle/update [:replicant/move-node] "h1"]])))
 
   (testing "Triggers on-update on deeply nested change"
     (is (= (let [res (atom [])
@@ -769,8 +771,8 @@
                                [:h2.mmm-p.mmm-mobile.mmm-mbs "Energy"]
                                [:p.mmm-h3.mmm-mbs.mmm-desktop "455 kJ"]]]]]))
              (h/summarize-events @res))
-           [[:replicant/mount "h1.mmm-h1"]
-            [:replicant/update [:replicant/updated-children] "h1.mmm-h1"]]))))
+           [[:replicant.life-cycle/mount "h1.mmm-h1"]
+            [:replicant.life-cycle/update [:replicant/updated-children] "h1.mmm-h1"]]))))
 
 (deftest mounting-test
   (testing "Applies attribute overrides while mounting"
@@ -1073,9 +1075,9 @@
                             "Text"])
                  (h/render nil))
              @callbacks)
-           [[:replicant/mount {:tag-name "p"
-                               :classes #{"mounted"}
-                               :children [{:text "Text"}]}]])))
+           [[:replicant.life-cycle/mount {:tag-name "p"
+                                          :classes #{"mounted"}
+                                          :children [{:text "Text"}]}]])))
 
   (testing "Triggers on-update hook after unmounting is complete"
     (is (= (let [callbacks (atom [])]
@@ -1087,12 +1089,12 @@
                  (h/render nil)
                  (h/call-callback 0))
              @callbacks)
-           [[:replicant/mount {:tag-name "p"
-                               :classes #{"mounted"}
-                               :children [{:text "Text"}]}]
-            [:replicant/unmount {:tag-name "p"
-                                 :classes #{"unmounting"}
-                                 :children [{:text "Text"}]}]])))
+           [[:replicant.life-cycle/mount {:tag-name "p"
+                                          :classes #{"mounted"}
+                                          :children [{:text "Text"}]}]
+            [:replicant.life-cycle/unmount {:tag-name "p"
+                                            :classes #{"unmounting"}
+                                            :children [{:text "Text"}]}]])))
 
   (testing "Transitions element when wiping all children"
     (is (= (-> (h/render [:div
