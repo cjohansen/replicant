@@ -4,3 +4,4 @@ dev-resources/public/domed/js
 /.nrepl-port
 /.lsp/
 /.clj-kondo/
+/replicant.jar
