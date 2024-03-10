@@ -42,6 +42,7 @@ subject to change. The current focus is on improving performance.
 - Small API surface: Two functions and a few keywords
 - Inline styles with Clojure maps
 - Class lists with Clojure collections
+- `innerHTML` support
 - No dependencies
 
 ## Performance
@@ -234,6 +235,18 @@ classes from the hiccup symbol are added to both mounting and mounted classes.
 
 This feature was inspired by a similar feature in
 [snabbdom](https://github.com/snabbdom/snabbdom].
+
+## innerHTML
+
+Sometimes all you have is a string of pre-rendered HTML. Replicant can render it
+for you via `innerHTML`:
+
+```clj
+[:div {:innerHTML "<h1>Oh, well</h1>"}]
+```
+
+When using `:innerHTML` any child elements will be ignored (without warning at
+the time being).
 
 ## Differences from hiccup
 
