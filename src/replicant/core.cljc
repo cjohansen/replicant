@@ -220,17 +220,16 @@
   "Like `get-children` but returns a tuple of `[children ks]` where `ks` is a set
   of the keys in `children`."
   [headers ns]
-  (when-not (:innerHTML (hiccup/attrs headers))
-    (let [[children ks]
-          (->> (hiccup/children headers)
-               flatten-seqs
-               (reduce (fn bla [[children ks] hiccup]
-                         (let [headers (get-hiccup-headers hiccup ns)
-                               k (hiccup/rkey headers)]
-                           [(conj! children headers)
-                            (cond-> ks k (conj! k))]))
-                       [(transient []) (transient #{})]))]
-      [(persistent! children) (persistent! ks)])))
+  (let [[children ks]
+        (->> (hiccup/children headers)
+             flatten-seqs
+             (reduce (fn bla [[children ks] hiccup]
+                       (let [headers (get-hiccup-headers hiccup ns)
+                             k (hiccup/rkey headers)]
+                         [(conj! children headers)
+                          (cond-> ks k (conj! k))]))
+                     [(transient []) (transient #{})]))]
+    [(persistent! children) (persistent! ks)]))
 
 ;; Events and life cycle hooks
 
@@ -646,7 +645,11 @@
           attrs (get-attrs headers)
           vdom-attrs (vdom/attrs vdom)
           attrs-changed? (reconcile-attributes renderer child attrs vdom-attrs)
-          [old-children old-ks] (if (:contenteditable vdom-attrs)
+          [new-children new-ks inner-html?] (if (:innerHTML (hiccup/attrs headers))
+                                              [nil nil true]
+                                              (get-children-ks headers (get-ns headers)))
+          [old-children old-ks] (cond
+                                  (:contenteditable vdom-attrs)
                                   (do
                                     ;; If the node is contenteditable, users can
                                     ;; modify the DOM, and we cannot trust that
@@ -657,8 +660,12 @@
                                     ;; proceeds as if all new children are new.
                                     (r/remove-all-children renderer child)
                                     [])
+
+                                  inner-html?
+                                  []
+
+                                  :else
                                   [(vdom/children vdom) (vdom/child-ks vdom)])
-          [new-children new-ks] (get-children-ks headers (get-ns headers))
           [children-changed? children child-ks] (update-children impl child new-children new-ks old-children old-ks)
           attrs-changed? (or attrs-changed?
                              (not= (:replicant/on-update (hiccup/attrs headers))

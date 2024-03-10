@@ -1239,4 +1239,21 @@
                h/summarize)
            [[:create-element "div"]
             [:insert-before [:div ""] [:div ""] :in "body"]
-            [:remove-child [:div ""] :from "body"]]))))
+            [:remove-child [:div ""] :from "body"]])))
+
+  (testing "Text fragments shouldn't trip Replicant into removing the wrong span"
+    (is (= (-> (h/render [:div
+                          "pre"
+                          [:span#one [:input]]
+                          [:span#two {:innerHTML "post"}]])
+               (h/render [:div
+                          "pre"
+                          "text"
+                          [:span#two {:innerHTML "post"}]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-text-node "text"]
+            [:insert-before "text" [:span#one ""] :in "div"]
+            [:set-attribute [:span#one ""] "innerHTML" nil :to "post"]
+            [:set-attribute [:span#one ""] "id" "one" :to "two"]
+            [:remove-child [:span#two ""] :from "div"]]))))

@@ -35,11 +35,14 @@
       (and (coll? x)
            (empty? x))))
 
+(defn get-tag-name [{:keys [tag-name] :strs [id]}]
+  (keyword (str tag-name (when id (str "#" id)))))
+
 (defn format-element [el]
   (if (instance? clojure.lang.Atom el)
     (format-element @el)
     (if (:tag-name el)
-      (vec (remove blank? [(keyword (:tag-name el)) (get-text el)]))
+      (vec (remove blank? [(get-tag-name el) (get-text el)]))
       el)))
 
 (defn hiccup-tag [{:keys [tag-name classes]}]
@@ -127,7 +130,9 @@
   (when-let [el (some-> element deref)]
     (if-let [tag-name (:tag-name el)]
       (into [(keyword tag-name)]
-            (map ->hiccup (:children el)))
+            (if-let [inner-html (get el "innerHTML")]
+              [inner-html]
+              (map ->hiccup (:children el))))
       (:text el))))
 
 (defn ->dom [{:keys [el]}]
