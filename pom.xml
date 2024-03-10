@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>no.cjohansen</groupId>
+  <artifactId>replicant</artifactId>
+  <version>0.2024.03.10</version>
+  <name>replicant</name>
+  <dependencies>
+  </dependencies>
+  <build>
+    <sourceDirectory>src</sourceDirectory>
+  </build>
+  <repositories>
+    <repository>
+      <id>clojars</id>
+      <url>https://repo.clojars.org/</url>
+    </repository>
+  </repositories>
+  <distributionManagement>
+    <repository>
+      <id>clojars</id>
+      <name>Clojars repository</name>
+      <url>https://clojars.org/repo</url>
+    </repository>
+  </distributionManagement>
+  <description>Efficiently render and rerender DOM from immutable data.</description>
+  <url>https://github.com/cjohansen/replicant</url>
+  <licenses>
+    <license>
+      <name>EPL</name>
+      <url>https://opensource.org/licenses/EPL-2.0</url>
+    </license>
+  </licenses>
+  <scm>
+    <connection>scm:git:git://github.com/cjohansen/replicant.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/cjohansen/replicant.git</developerConnection>
+    <tag>v0.2024.03.10</tag>
+    <url>https://github.com/cjohansen/replicant</url>
+  </scm>
+</project>
