@@ -9,3 +9,11 @@
 ** TODO :keyUp vs keyup
 ** TODO Style keys that are not strings or keywords
 ** TODO Style keys should be dash cased, not camelCased
+* Bugs
+** TODO Keys only make sense with tag name
+  (testing "Does not treat nodes with the same key but different tag as the same"
+    (is (= (-> (h/render [:h1 {:replicant/key "h1"} "Title"])
+               (h/render [:p {:replicant/key "h1"} "Title"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:insert-before [:ul "List"] [:h1 "Title"] :in "div"]])))
