@@ -372,7 +372,7 @@
 (defn set-styles [renderer el new-styles]
   (->> (keys new-styles)
        (filter new-styles)
-       (run! #(r/set-style renderer el % (get-style-val % (% new-styles))))))
+       (run! #(r/set-style renderer el % (get-style-val % (get new-styles %))))))
 
 (defn set-classes [renderer el new-classes]
   (->> new-classes

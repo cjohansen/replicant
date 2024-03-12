@@ -1256,4 +1256,17 @@
             [:insert-before "text" [:span#one ""] :in "div"]
             [:set-attribute [:span#one ""] "innerHTML" nil :to "post"]
             [:set-attribute [:span#one ""] "id" "one" :to "two"]
-            [:remove-child [:span#two ""] :from "div"]]))))
+            [:remove-child [:span#two ""] :from "div"]])))
+
+  (testing "Does not trip on string CSS properties"
+    (is (= (-> (h/render
+                [:h1 {:style {"background" "var(--bg)"
+                              "--bg" "red"}} "Hello"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "h1"]
+            [:set-style [:h1 ""] "background" "var(--bg)"]
+            [:set-style [:h1 ""] "--bg" "red"]
+            [:create-text-node "Hello"]
+            [:append-child "Hello" :to "h1"]
+            [:append-child [:h1 "Hello"] :to "body"]]))))
