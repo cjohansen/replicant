@@ -2,9 +2,10 @@
 ** DONE replicant/mounting
 ** DONE replicant/unmounting
 ** TODO dev-mode assert
-* Asserts [0/5]
+* Asserts [0/6]
 ** TODO Using :className :classes
 ** TODO Using spaced strings for :class
 ** TODO Using string style
 ** TODO :keyUp vs keyup
 ** TODO Style keys that are not strings or keywords
+** TODO Style keys should be dash cased, not camelCased
