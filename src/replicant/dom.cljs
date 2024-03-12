@@ -58,11 +58,11 @@
         (js/document.createElement tag-name)))
 
     (set-style [this el style v]
-      (aset (.-style el) (name style) v)
+      (.setProperty (.-style el) (name style) v)
       this)
 
     (remove-style [this el style]
-      (aset (.-style el) (name style) nil)
+      (.removeProperty (.-style el) (name style))
       this)
 
     (add-class [this el cn]

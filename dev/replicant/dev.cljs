@@ -40,7 +40,8 @@
 
 
   (->> [:div
-        [:h1 "Watch it go!"]]
+        [:h1 {:style {"background" "var(--bg)"
+                      "--bg" "red"}} "Watch it go!"]]
        (d/render el))
 
   )
