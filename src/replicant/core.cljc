@@ -196,8 +196,7 @@
 (defn ^:private flatten-seqs* [xs coll]
   (reduce
    (fn [_ x]
-     (cond (nil? x) nil
-           (seq? x) (flatten-seqs* x coll)
+     (cond (seq? x) (flatten-seqs* x coll)
            :else (conj! coll x)))
    nil xs))
 
@@ -214,7 +213,7 @@
   (when-not (:innerHTML (hiccup/attrs headers))
     (->> (hiccup/children headers)
          flatten-seqs
-         (mapv #(get-hiccup-headers % ns)))))
+         (mapv #(some-> % (get-hiccup-headers ns))))))
 
 (defn get-children-ks
   "Like `get-children` but returns a tuple of `[children ks]` where `ks` is a set
@@ -412,10 +411,12 @@
           _ (set-attributes renderer node (or mounting-attrs attrs))
           [children ks] (->> (get-children headers ns)
                              (reduce (fn [[children ks] child-headers]
-                                       (let [[child-node vdom] (create-node impl child-headers)
-                                             k (vdom/rkey vdom)]
-                                         (r/append-child renderer node child-node)
-                                         [(conj! children vdom) (cond-> ks k (conj! k))]))
+                                       (if child-headers
+                                         (let [[child-node vdom] (create-node impl child-headers)
+                                               k (vdom/rkey vdom)]
+                                           (r/append-child renderer node child-node)
+                                           [(conj! children vdom) (cond-> ks k (conj! k))])
+                                         [children ks]))
                                      [(transient []) (transient #{})]))]
       (register-hook impl node headers)
       (when mounting-attrs
@@ -456,9 +457,11 @@
 
 (defn ^:private insert-children [{:keys [renderer] :as impl} el children vdom]
   (->> (reduce (fn [res child]
-                 (let [[node vdom] (create-node impl child)]
-                   (r/append-child renderer el node)
-                   (conj! res vdom)))
+                 (if child
+                   (let [[node vdom] (create-node impl child)]
+                     (r/append-child renderer el node)
+                     (conj! res vdom))
+                   res))
                vdom children)
        persistent!))
 
@@ -597,9 +600,9 @@
           (vdom/unmount-id old-vdom)
           (if (unmounts (vdom/unmount-id old-vdom))
             ;; Still unmounting
-            (recur new-c (next old-c) (unchecked-inc-int n) move-n n-children changed? (conj! vdom old-vdom))
+            (recur (cond-> new-c (nil? new-headers) next) (next old-c) (unchecked-inc-int n) move-n n-children changed? (conj! vdom old-vdom))
             ;; It's gone!
-            (recur new-c (next old-c) n (unchecked-dec-int move-n) (unchecked-dec-int n-children) changed? vdom))
+            (recur (cond-> new-c (nil? new-headers) next) (next old-c) n (unchecked-dec-int move-n) (unchecked-dec-int n-children) changed? vdom))
 
           ;; It's a reusable node, reconcile
           (reusable? new-headers old-vdom)
@@ -609,16 +612,22 @@
               (register-hook impl (r/get-child r el n) new-headers old-vdom move-node-details))
             (recur (next new-c) (next old-c) (unchecked-inc-int n) move-n n-children (or changed? (not node-unchanged?)) (conj! vdom new-vdom)))
 
+          ;; Node was removed
+          (and old-vdom (nil? new-headers))
+          (if-let [unmounting-node (remove-child impl unmounts el n old-vdom)]
+            (recur (next new-c) (next old-c) (unchecked-inc-int n) move-n n-children true (conj! vdom unmounting-node))
+            (recur (next new-c) (next old-c) n move-n (unchecked-dec-int move-n) true vdom))
+
           ;; New node did not previously exist, create it
-          (not (old-ks (hiccup/rkey new-headers)))
+          (and new-headers (not (old-ks (hiccup/rkey new-headers))))
           (let [[child child-vdom] (create-node impl new-headers)]
             (if (<= n-children n)
               (r/append-child r el child)
               (r/insert-before r el child (r/get-child r el n)))
-            (recur (next new-c) old-c (unchecked-inc-int n) move-n (unchecked-inc-int n-children) true (conj! vdom child-vdom)))
+            (recur (next new-c) (cond-> old-c (nil? old-vdom) next) (unchecked-inc-int n) move-n (unchecked-inc-int n-children) true (conj! vdom child-vdom)))
 
           ;; Old node no longer exists, remove it
-          (not (new-ks (vdom/rkey old-vdom)))
+          (and old-vdom (not (new-ks (vdom/rkey old-vdom))))
           (if-let [unmounting-node (remove-child impl unmounts el n old-vdom)]
             (recur new-c (next old-c) (unchecked-inc-int n) move-n n-children true (conj! vdom unmounting-node))
             (recur new-c (next old-c) n move-n (unchecked-dec-int move-n) true vdom))
