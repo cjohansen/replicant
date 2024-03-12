@@ -56,8 +56,8 @@ instructions](#benchmarking) for how to run locally.
 As originally introduced in [dumdom](https://github.com/cjohansen/dumdom), and
 described in [my talk about data-driven UIs](https://vimeo.com/861600197),
 Replicant allows you to register a global function for handling events and
-life-cycles. This way your hiccup can be all serializable data, setting you up
-for the best possible rendering performance.
+life-cycles. This way your hiccup can be free of opaque functions, setting you
+up for good rendering performance and fully serializable UI data.
 
 ```clj
 [:h1 {:on {:click [:whatever]}}
