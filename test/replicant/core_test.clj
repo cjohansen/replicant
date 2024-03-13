@@ -1166,7 +1166,18 @@
             [:add-class [:p ""] "mounted"]
             [:create-text-node "Text"]
             [:append-child "Text" :to "p"]
-            [:append-child [:p "Text"] :to "div"]]))))
+            [:append-child [:p "Text"] :to "div"]])))
+
+  (testing "Does not treat nodes with the same key but different tag as the same"
+    (is (= (-> (h/render [:h1 {:replicant/key "h1"} "Title"])
+               (h/render [:p {:replicant/key "h1"} "Title"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "p"]
+            [:create-text-node "Title"]
+            [:append-child "Title" :to "p"]
+            [:insert-before [:p "Title"] [:h1 "Title"] :in "body"]
+            [:remove-child [:h1 "Title"] :from "body"]]))))
 
 (deftest update-children-test
   (testing "Append node"

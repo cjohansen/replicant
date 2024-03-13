@@ -53,5 +53,5 @@
 
 (defmacro from-hiccup [headers attrs children children-ks]
   (if (:ns &env)
-    `(js/Array. (h/tag-name ~headers) (:replicant/key ~attrs) (h/classes ~headers) ~attrs ~children ~children-ks (boolean (:replicant/unmounting (h/attrs ~headers))) (h/sexp ~headers))
-    `[(h/tag-name ~headers) (:replicant/key ~attrs) (h/classes ~headers) ~attrs ~children ~children-ks (boolean (:replicant/unmounting (h/attrs ~headers))) (h/sexp ~headers) nil nil]))
+    `(js/Array. (h/tag-name ~headers) (h/rkey) (h/classes ~headers) ~attrs ~children ~children-ks (boolean (:replicant/unmounting (h/attrs ~headers))) (h/sexp ~headers))
+    `[(h/tag-name ~headers) (h/rkey ~headers) (h/classes ~headers) ~attrs ~children ~children-ks (boolean (:replicant/unmounting (h/attrs ~headers))) (h/sexp ~headers) nil nil]))

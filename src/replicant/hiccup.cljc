@@ -33,17 +33,21 @@
 (defmacro text [headers]
   `(hget ~headers 8))
 
+(defmacro get-key [parsed-tag attrs]
+  `(when-let [k# (:replicant/key ~attrs)]
+     [(hget ~parsed-tag 0) k#]))
+
 (defmacro create [parsed-tag attrs children ns sexp text]
   (if (:ns &env)
     `(doto ~parsed-tag
-       (.push (:replicant/key ~attrs))
+       (.push (get-key ~parsed-tag ~attrs))
        (.push ~attrs)
        (.push ~children)
        (.push ~ns)
        (.push ~sexp)
        (.push ~text))
     `(-> ~parsed-tag
-         (conj (:replicant/key ~attrs))
+         (conj (get-key ~parsed-tag ~attrs))
          (conj ~attrs)
          (conj ~children)
          (conj ~ns)
