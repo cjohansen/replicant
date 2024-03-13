@@ -280,7 +280,9 @@
                      :else :replicant.life-cycle/update)]
     (when (or (= :replicant/on-update k)
               (and (= k :replicant/on-mount)
-                   (= life-cycle :replicant.life-cycle/mount)))
+                   (= life-cycle :replicant.life-cycle/mount))
+              (and (= k :replicant/on-unmount)
+                   (= life-cycle :replicant.life-cycle/unmount)))
       (f (cond-> {:replicant/trigger :replicant.trigger/life-cycle
                   :replicant/life-cycle life-cycle
                   :replicant/node node}
@@ -296,7 +298,9 @@
     (when-let [[k hook] (or (when-let [h (:replicant/on-update target)]
                               [:replicant/on-update h])
                             (when-let [h (:replicant/on-mount target)]
-                              [:replicant/on-mount h]))]
+                              [:replicant/on-mount h])
+                            (when-let [h (:replicant/on-unmount target)]
+                              [:replicant/on-unmount h]))]
       (vswap! hooks conj [hook k node (some-> headers hiccup/sexp) (some-> vdom vdom/sexp) details]))))
 
 (defn register-mount [{:keys [mounts]} node mounting-attrs attrs]
@@ -353,6 +357,7 @@
     :replicant/key nil
     :replicant/on-update nil
     :replicant/on-mount nil
+    :replicant/on-unmount nil
     :style (update-styles renderer el (:style new) (:style old))
     :classes (update-classes renderer el (:classes new) (:classes old))
     :on (update-event-listeners renderer el (:on new) (:on old))
@@ -393,6 +398,7 @@
     :replicant/key nil
     :replicant/on-update nil
     :replicant/on-mount nil
+    :replicant/on-unmount nil
     :style (set-styles renderer el (:style new))
     :classes (set-classes renderer el (:classes new))
     :on (set-event-listeners renderer el (:on new))

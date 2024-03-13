@@ -1,9 +1,9 @@
-* Features [3/5]
+* Features [4/5]
 ** DONE replicant/mounting
 ** DONE replicant/unmounting
 ** TODO dev-mode assert
 ** DONE :replicant/on-mount
-** TODO :replicant/on-unmount
+** DONE :replicant/on-unmount
 * Asserts [0/7]
 ** TODO Using :className :classes
 ** TODO Using spaced strings for :class

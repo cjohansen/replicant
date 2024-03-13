@@ -877,6 +877,61 @@
              (map :replicant/life-cycle @res))
            [:replicant.life-cycle/mount]))))
 
+(deftest lifecycle-on-unmount-test
+  (testing "Does not trigger on-unmount on mount"
+    (is (nil? (let [res (atom nil)]
+                (binding [sut/*dispatch* (fn [e data] (reset! res {:e e :data data}))]
+                  (h/render [:h1 {:replicant/on-unmount ["Mount data"]} "Hi!"])
+                  @res)))))
+
+  (testing "Does not set on-unmount as attribute"
+    (is (empty? (->> (h/render [:h1 {:replicant/on-unmount (fn [& _args])} "Hi!"])
+                     h/get-mutation-log-events
+                     h/summarize
+                     (filter (comp #{:set-attribute} first))))))
+
+  (testing "Does not trigger on-unmount on updates"
+    (is (= (let [res (atom [])
+                 f (fn [e] (swap! res conj e))]
+             (-> (h/render [:h1 {:replicant/on-unmount f} "Hi!"])
+                 (h/render [:h1 {:replicant/on-unmount f} "Hello!"]))
+             (count @res))
+           0)))
+
+  (testing "Does not trigger on-unmount when there are no updates"
+    (is (= (let [res (atom [])
+                 f (fn [e] (swap! res conj e))]
+             (-> (h/render [:h1 {:replicant/on-unmount f} "Hi!"])
+                 (h/render [:h1 {:replicant/on-unmount f} "Hi!"]))
+             (count @res))
+           0)))
+
+  (testing "Does not trigger on-unmount when adding hook"
+    (is (empty? (let [res (atom [])
+                      f (fn [e] (swap! res conj e))]
+                  (-> (h/render [:h1 {} "Hi!"])
+                      (h/render [:h1 {:replicant/on-unmount f} "Hi!"]))
+                  (h/summarize-events @res)))))
+
+  (testing "Triggers on-unmount when unmounting element"
+    (is (= (let [res (atom [])
+                 f (fn [e] (swap! res conj e))]
+             (-> (h/render [:h1 {:title "Heading"
+                                 :replicant/on-unmount f} "Hi!"])
+                 (h/render nil))
+             (map :replicant/life-cycle @res))
+           [:replicant.life-cycle/unmount])))
+
+  (testing "Triggers on-unmount on unmounting child"
+    (is (= (let [res (atom [])
+                 f (fn [e] (swap! res conj e))]
+             (-> (h/render [:div
+                            [:h1 "Hi!"]
+                            [:p {:replicant/on-unmount f} "New paragraph!"]])
+                 (h/render [:div [:h1 "Hi!"]]))
+             (map :replicant/life-cycle @res))
+           [:replicant.life-cycle/unmount]))))
+
 (deftest mounting-test
   (testing "Applies attribute overrides while mounting"
     (is (= (-> (h/render [:h1 {:class ["mounted"]
