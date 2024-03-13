@@ -626,10 +626,10 @@
            [[:remove-event-handler [:h1 "Hi!"] :click]]))))
 
 (deftest lifecycle-test
-  (testing "Triggers on-update on first mount"
+  (testing "Triggers on-render on first mount"
     (is (= (-> (let [res (atom nil)]
                  (binding [sut/*dispatch* (fn [e data] (reset! res {:e e :data data}))]
-                   (h/render [:h1 {:replicant/on-update ["Update data"]} "Hi!"])
+                   (h/render [:h1 {:replicant/on-render ["Update data"]} "Hi!"])
                    @res))
                (update :e h/summarize-event))
            {:e
@@ -639,9 +639,9 @@
                               :children [{:text "Hi!"}]}}
             :data ["Update data"]})))
 
-  (testing "Triggers on-update function on first mount"
+  (testing "Triggers on-render function on first mount"
     (is (= (-> (let [res (atom nil)]
-                 (h/render [:h1 {:replicant/on-update #(reset! res %)} "Hi!"])
+                 (h/render [:h1 {:replicant/on-render #(reset! res %)} "Hi!"])
                  @res)
                h/summarize-event)
            {:replicant/trigger :replicant.trigger/life-cycle
@@ -649,116 +649,116 @@
             :replicant/node {:tag-name "h1"
                              :children [{:text "Hi!"}]}})))
 
-  (testing "Does not set on-update as attribute"
-    (is (empty? (->> (h/render [:h1 {:replicant/on-update (fn [& _args])} "Hi!"])
+  (testing "Does not set on-render as attribute"
+    (is (empty? (->> (h/render [:h1 {:replicant/on-render (fn [& _args])} "Hi!"])
                      h/get-mutation-log-events
                      h/summarize
                      (filter (comp #{:set-attribute} first))))))
 
-  (testing "Does not trigger on-update when there are no updates"
+  (testing "Does not trigger on-render when there are no updates"
     (is (= (let [res (atom [])
                  f (fn [e] (swap! res conj e))]
-             (-> (h/render [:h1 {:replicant/on-update f} "Hi!"])
-                 (h/render [:h1 {:replicant/on-update f} "Hi!"]))
+             (-> (h/render [:h1 {:replicant/on-render f} "Hi!"])
+                 (h/render [:h1 {:replicant/on-render f} "Hi!"]))
              (count @res))
            1)))
 
-  (testing "Triggers on-update when adding hook"
+  (testing "Triggers on-render when adding hook"
     (is (= (let [res (atom [])
                  f (fn [e] (swap! res conj e))]
              (-> (h/render [:h1 {} "Hi!"])
-                 (h/render [:h1 {:replicant/on-update f} "Hi!"]))
+                 (h/render [:h1 {:replicant/on-render f} "Hi!"]))
              (h/summarize-events @res))
            [[:replicant.life-cycle/update [:replicant/updated-attrs] "h1"]])))
 
-  (testing "Triggers on-update when attributes change"
+  (testing "Triggers on-render when attributes change"
     (is (= (let [res (atom [])
                  f (fn [e] (swap! res conj e))]
-             (-> (h/render [:h1 {:replicant/on-update f} "Hi!"])
+             (-> (h/render [:h1 {:replicant/on-render f} "Hi!"])
                  (h/render [:h1 {:title "Heading"
-                                 :replicant/on-update f} "Hi!"]))
+                                 :replicant/on-render f} "Hi!"]))
              (h/summarize-events @res))
            [[:replicant.life-cycle/mount "h1"]
             [:replicant.life-cycle/update [:replicant/updated-attrs] "h1"]])))
 
-  (testing "Triggers on-update when unmounting element"
+  (testing "Triggers on-render when unmounting element"
     (is (= (let [res (atom [])
                  f (fn [e] (swap! res conj e))]
              (-> (h/render [:h1 {:title "Heading"
-                                 :replicant/on-update f} "Hi!"])
+                                 :replicant/on-render f} "Hi!"])
                  (h/render nil))
              (map :replicant/life-cycle @res))
            [:replicant.life-cycle/mount
             :replicant.life-cycle/unmount])))
 
-  (testing "Does not trigger on-update when removing hook"
+  (testing "Does not trigger on-render when removing hook"
     (is (= (let [res (atom [])
                  f (fn [e] (swap! res conj e))]
-             (-> (h/render [:h1 {:replicant/on-update f} "Hi!"])
+             (-> (h/render [:h1 {:replicant/on-render f} "Hi!"])
                  (h/render [:h1 {} "Hi!"]))
              (map :replicant/life-cycle @res))
            [:replicant.life-cycle/mount])))
 
-  (testing "Triggers on-update on mounting child"
+  (testing "Triggers on-render on mounting child"
     (is (= (let [res (atom [])
                  f (fn [e] (swap! res conj e))]
              (-> (h/render [:div [:h1 "Hi!"]])
                  (h/render [:div
                             [:h1 "Hi!"]
-                            [:p {:replicant/on-update f} "New paragraph!"]]))
+                            [:p {:replicant/on-render f} "New paragraph!"]]))
              (map :replicant/life-cycle @res))
            [:replicant.life-cycle/mount])))
 
-  (testing "Triggers on-update on mounting child and parent"
+  (testing "Triggers on-render on mounting child and parent"
     (is (= (let [res (atom [])
                  f (fn [e] (swap! res conj e))]
              (-> (h/render [:div [:h1 "Hi!"]])
-                 (h/render [:div {:replicant/on-update f}
+                 (h/render [:div {:replicant/on-render f}
                             [:h1 "Hi!"]
-                            [:p {:replicant/on-update f} "New paragraph!"]]))
+                            [:p {:replicant/on-render f} "New paragraph!"]]))
              (h/summarize-events @res))
            [[:replicant.life-cycle/mount "p"]
             [:replicant.life-cycle/update [:replicant/updated-attrs
                                            :replicant/updated-children] "div"]])))
 
-  (testing "Triggers on-update on updating child and parent"
+  (testing "Triggers on-render on updating child and parent"
     (is (= (let [res (atom [])
                  f (fn [e] (swap! res conj e))]
-             (-> (h/render [:div {:replicant/on-update f} [:h1 "Hi!"]])
+             (-> (h/render [:div {:replicant/on-render f} [:h1 "Hi!"]])
                  (h/render [:div {:lang "en"
-                                  :replicant/on-update f} [:h1 "Hi!"]])
+                                  :replicant/on-render f} [:h1 "Hi!"]])
                  (h/render [:div {:lang "en"
-                                  :replicant/on-update f}
+                                  :replicant/on-render f}
                             [:h1 "Hi!"]
-                            [:p {:replicant/on-update f} "New paragraph!"]]))
+                            [:p {:replicant/on-render f} "New paragraph!"]]))
              (h/summarize-events @res))
            [[:replicant.life-cycle/mount "div"]
             [:replicant.life-cycle/update [:replicant/updated-attrs] "div"]
             [:replicant.life-cycle/mount "p"]
             [:replicant.life-cycle/update [:replicant/updated-children] "div"]])))
 
-  (testing "Triggers on-update on co-mounting child"
+  (testing "Triggers on-render on co-mounting child"
     (is (= (let [res (atom [])
                  f (fn [e] (swap! res conj e))]
-             (h/render [:div [:h1 {:replicant/on-update f} "One"]])
+             (h/render [:div [:h1 {:replicant/on-render f} "One"]])
              (h/summarize-events @res))
            [[:replicant.life-cycle/mount "h1"]])))
 
-  (testing "Triggers on-update on moving children"
+  (testing "Triggers on-render on moving children"
     (is (= (let [res (atom [])
                  f (fn [e] (swap! res conj e))]
              (-> (h/render [:div
-                            [:h1 {:replicant/on-update f} "One"]
-                            [:p.p1 {:replicant/key :p1 :replicant/on-update f} "Two"]
-                            [:p.p2 {:replicant/key :p2 :replicant/on-update f} "Three"]
-                            [:p.p3 {:replicant/key :p3 :replicant/on-update f} "Four"]
-                            [:p.p4 {:replicant/key :p4 :replicant/on-update f} "Five"]])
+                            [:h1 {:replicant/on-render f} "One"]
+                            [:p.p1 {:replicant/key :p1 :replicant/on-render f} "Two"]
+                            [:p.p2 {:replicant/key :p2 :replicant/on-render f} "Three"]
+                            [:p.p3 {:replicant/key :p3 :replicant/on-render f} "Four"]
+                            [:p.p4 {:replicant/key :p4 :replicant/on-render f} "Five"]])
                  (h/render [:div
-                            [:h1 {:replicant/on-update f} "One"]
-                            [:p.p2 {:replicant/key :p2 :replicant/on-update f} "Three"]
-                            [:p.p3 {:replicant/key :p3 :replicant/on-update f} "Four"]
-                            [:p.p1 {:replicant/key :p1 :replicant/on-update f} "Two"]
-                            [:p.p4 {:replicant/key :p4 :replicant/on-update f} "Five"]]))
+                            [:h1 {:replicant/on-render f} "One"]
+                            [:p.p2 {:replicant/key :p2 :replicant/on-render f} "Three"]
+                            [:p.p3 {:replicant/key :p3 :replicant/on-render f} "Four"]
+                            [:p.p1 {:replicant/key :p1 :replicant/on-render f} "Two"]
+                            [:p.p4 {:replicant/key :p4 :replicant/on-render f} "Five"]]))
              (h/summarize-events @res))
            [[:replicant.life-cycle/mount "h1"]
             [:replicant.life-cycle/mount "p.p1"]
@@ -769,33 +769,33 @@
             [:replicant.life-cycle/update [:replicant/move-node] "p.p2"]
             [:replicant.life-cycle/update [:replicant/move-node] "p.p3"]])))
 
-  (testing "Triggers on-update on swapping children"
+  (testing "Triggers on-render on swapping children"
     (is (= (let [res (atom [])
                  f (fn [e] (swap! res conj e))]
              (-> (h/render [:div
                             [:h1 {:replicant/key "h1"
-                                  :replicant/on-update f} "One"]
+                                  :replicant/on-render f} "One"]
                             [:p {:replicant/key "p"
-                                 :replicant/on-update f} "Two"]])
+                                 :replicant/on-render f} "Two"]])
                  (h/render [:div
                             [:p {:replicant/key "p"
-                                 :replicant/on-update f} "Two"]
+                                 :replicant/on-render f} "Two"]
                             [:h1 {:replicant/key "h1"
-                                  :replicant/on-update f} "One"]]))
+                                  :replicant/on-render f} "One"]]))
              (h/summarize-events @res))
            [[:replicant.life-cycle/mount "h1"]
             [:replicant.life-cycle/mount "p"]
             [:replicant.life-cycle/update [:replicant/move-node] "p"]
             [:replicant.life-cycle/update [:replicant/move-node] "h1"]])))
 
-  (testing "Triggers on-update on deeply nested change"
+  (testing "Triggers on-render on deeply nested change"
     (is (= (let [res (atom [])
                  f (fn [e] (swap! res conj e))]
              (-> (h/render [:div.mmm-container.mmm-section
                             [:div.mmm-media.mmm-media-at
                              [:article.mmm-vert-layout-spread
                               [:div
-                               [:h1.mmm-h1 {:replicant/on-update f} "Banana"]
+                               [:h1.mmm-h1 {:replicant/on-render f} "Banana"]
                                [:p.mmm-p "03.456"]]
                               [:div.mmm-vert-layout-s.mmm-mtm
                                [:h2.mmm-p.mmm-desktop "Energy in 100 g"]
@@ -805,7 +805,7 @@
                             [:div.mmm-media.mmm-media-at
                              [:article.mmm-vert-layout-spread
                               [:div
-                               [:h1.mmm-h1 {:replicant/on-update f} "Banana!"]
+                               [:h1.mmm-h1 {:replicant/on-render f} "Banana!"]
                                [:p.mmm-p "03.456"]]
                               [:div.mmm-vert-layout-s.mmm-mtm
                                [:h2.mmm-p.mmm-desktop "Energy in 100 g"]
@@ -987,7 +987,7 @@
     (is (= (let [callbacks (atom [])]
              (h/render [:h1 {:class :mounted
                              :replicant/mounting {:class :mounting}
-                             :replicant/on-update
+                             :replicant/on-render
                              (fn [e]
                                (swap! callbacks conj (h/get-snapshot (:replicant/node e))))}
                         "Title"])
@@ -1221,11 +1221,11 @@
             [:add-class [:p "Text"] "unmounting"]
             [:on-transition-end [:p "Text"]]])))
 
-  (testing "Does not trigger on-update hook while unmounting"
+  (testing "Does not trigger on-render hook while unmounting"
     (is (= (let [callbacks (atom [])]
              (-> (h/render [:p {:class ["mounted"]
                                 :replicant/unmounting {:class ["unmounting"]}
-                                :replicant/on-update #(swap! callbacks conj [(:replicant/life-cycle %)
+                                :replicant/on-render #(swap! callbacks conj [(:replicant/life-cycle %)
                                                                              (h/get-snapshot (:replicant/node %))])}
                             "Text"])
                  (h/render nil))
@@ -1234,11 +1234,11 @@
                                           :classes #{"mounted"}
                                           :children [{:text "Text"}]}]])))
 
-  (testing "Triggers on-update hook after unmounting is complete"
+  (testing "Triggers on-render hook after unmounting is complete"
     (is (= (let [callbacks (atom [])]
              (-> (h/render [:p {:class ["mounted"]
                                 :replicant/unmounting {:class ["unmounting"]}
-                                :replicant/on-update #(swap! callbacks conj [(:replicant/life-cycle %)
+                                :replicant/on-render #(swap! callbacks conj [(:replicant/life-cycle %)
                                                                              (h/get-snapshot (:replicant/node %))])}
                             "Text"])
                  (h/render nil)

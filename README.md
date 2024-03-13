@@ -109,7 +109,7 @@ Replicant life-cycle hooks can also be expressed with data:
 
 (replicant/render
   (js/document.getElementById "app")
-  [:h1 {:replicant/on-update ["Update data"]} "Hi!"])
+  [:h1 {:replicant/on-render ["Update data"]} "Hi!"])
 ```
 
 `replicant-data` is the same map from before. For lifecycle hooks, the map contains:
@@ -122,9 +122,9 @@ Replicant life-cycle hooks can also be expressed with data:
 - `:replicant/node` will contain a reference to the DOM node the event occurred in.
 
 The second argument, `hook-data` is whatever data you set on
-`:replicant/on-update`.
+`:replicant/on-render`.
 
-`:replicant/on-update` can also take a function, in which case it will be called
+`:replicant/on-render` can also take a function, in which case it will be called
 with a single argument - the hook details map described above.
 
 ## Keys
@@ -318,7 +318,7 @@ Keywords in the attributes map:
   function or arbitrary data, see [data-driven hooks](#data-hooks).
 - `:replicant/on-unmount` - A hook to be called when the element unmounts.
   Either a function or arbitrary data, see [data-driven hooks](#data-hooks).
-- `:replicant/on-update` - A hook to be called when the element updates
+- `:replicant/on-render` - A hook to be called when the element updates
   (including when it mounts and unmounts). Either a function or arbitrary data,
   see [data-driven hooks](#data-hooks).
 - `:replicant/mounting` - Attribute (including class, styles) overrides to apply

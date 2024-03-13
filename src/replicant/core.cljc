@@ -278,7 +278,7 @@
                      (nil? old) :replicant.life-cycle/mount
                      (nil? new) :replicant.life-cycle/unmount
                      :else :replicant.life-cycle/update)]
-    (when (or (= :replicant/on-update k)
+    (when (or (= :replicant/on-render k)
               (and (= k :replicant/on-mount)
                    (= life-cycle :replicant.life-cycle/mount))
               (and (= k :replicant/on-unmount)
@@ -295,8 +295,8 @@
   that provide some detail about why the hook is invoked."
   [{:keys [hooks]} node headers & [vdom details]]
   (let [target (if headers (hiccup/attrs headers) (vdom/attrs vdom))]
-    (when-let [[k hook] (or (when-let [h (:replicant/on-update target)]
-                              [:replicant/on-update h])
+    (when-let [[k hook] (or (when-let [h (:replicant/on-render target)]
+                              [:replicant/on-render h])
                             (when-let [h (:replicant/on-mount target)]
                               [:replicant/on-mount h])
                             (when-let [h (:replicant/on-unmount target)]
@@ -355,7 +355,7 @@
 (defn update-attr [renderer el attr new old]
   (case attr
     :replicant/key nil
-    :replicant/on-update nil
+    :replicant/on-render nil
     :replicant/on-mount nil
     :replicant/on-unmount nil
     :style (update-styles renderer el (:style new) (:style old))
@@ -396,7 +396,7 @@
 (defn set-attr [renderer el attr new]
   (case attr
     :replicant/key nil
-    :replicant/on-update nil
+    :replicant/on-render nil
     :replicant/on-mount nil
     :replicant/on-unmount nil
     :style (set-styles renderer el (:style new))
@@ -499,8 +499,8 @@
                          ;; nodes
                          (vswap! (:unmounts impl) disj (vdom/unmount-id vdom))
                          (r/remove-child renderer el child)
-                         (when-let [hook (:replicant/on-update (vdom/attrs vdom))]
-                           (call-hook [hook :replicant/on-update child nil vdom]))
+                         (when-let [hook (:replicant/on-render (vdom/attrs vdom))]
+                           (call-hook [hook :replicant/on-render child nil vdom]))
                          renderer)
                        (r/on-transition-end renderer child))
                   marked-vdom)
@@ -692,8 +692,8 @@
                                   [(vdom/children vdom) (vdom/child-ks vdom)])
           [children-changed? children child-ks] (update-children impl child new-children new-ks old-children old-ks)
           attrs-changed? (or attrs-changed?
-                             (not= (:replicant/on-update (hiccup/attrs headers))
-                                   (:replicant/on-update vdom-attrs)))]
+                             (not= (:replicant/on-render (hiccup/attrs headers))
+                                   (:replicant/on-render vdom-attrs)))]
       (->> (cond
              (and attrs-changed? children-changed?)
              [:replicant/updated-attrs
