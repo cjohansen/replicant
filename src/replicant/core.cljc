@@ -222,11 +222,13 @@
   (let [[children ks]
         (->> (hiccup/children headers)
              flatten-seqs
-             (reduce (fn bla [[children ks] hiccup]
-                       (let [headers (get-hiccup-headers hiccup ns)
-                             k (hiccup/rkey headers)]
-                         [(conj! children headers)
-                          (cond-> ks k (conj! k))]))
+             (reduce (fn [[children ks] hiccup]
+                       (if hiccup
+                         (let [headers (get-hiccup-headers hiccup ns)
+                               k (hiccup/rkey headers)]
+                           [(conj! children headers)
+                            (cond-> ks k (conj! k))])
+                         [children ks]))
                      [(transient []) (transient #{})]))]
     [(persistent! children) (persistent! ks)]))
 
