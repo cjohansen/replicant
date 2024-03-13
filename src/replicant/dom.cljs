@@ -138,7 +138,11 @@
 
 (defonce state (volatile! {}))
 
-(defn ^:export render [el hiccup]
+(defn ^:export render
+  "Render `hiccup` in DOM element `el`. Replaces any pre-existing content not
+  created by this function. Subsequent calls with the same `el` will update the
+  rendered DOM by comparing `hiccup` to the previous `hiccup`."
+  [el hiccup]
   (when-not (contains? @state el)
     (vswap! state assoc el {:renderer (create-renderer)
                             :unmounts (volatile! #{})}))

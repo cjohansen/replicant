@@ -28,7 +28,8 @@ dependencies.
 ## Status
 
 Replicant is starting to shape up, but is still under development. Details are
-subject to change. The current focus is on improving performance.
+subject to change. The current focus is on finalizing APIs and hardening by
+porting some large UIs to it.
 
 ## Features
 
@@ -51,6 +52,7 @@ Replicant performance is being tuned using
 https://github.com/krausest/js-framework-benchmark. See [benchmarking
 instructions](#benchmarking) for how to run locally.
 
+<a id="data-hooks"></a>
 ## Data-driven hooks and events
 
 As originally introduced in [dumdom](https://github.com/cjohansen/dumdom), and
@@ -134,11 +136,14 @@ reuse the key at different levels). When it is set, Replicant will know to reuse
 the corresponding DOM element, even when it changes positions, etc. If you have
 CSS transitions on an element, you very likely want to give it a key.
 
-## Mounting styles/classes/attributes
+<a id="data-transitions"></a>
+## Data-driven transitions
 
-Sometimes it's nice when elements smoothly transition into being. Replicant
-enables this by supporting overrides for inline styles, classes, and indeed any
-attribute during the initial mount.
+Sometimes it's nice when elements smoothly transition into and/or out of being.
+Replicant enables this by supporting overrides for inline styles, classes, and
+indeed any attribute during mount and/or unmount.
+
+### Mounting styles/classes/attributes
 
 ```clj
 [:h1 {:style {:transition "left 0.25s"
@@ -158,7 +163,6 @@ initially rendered, it will have these styles:
 ```
 
 Once mounted, it will be updated to:
-
 
 ```clj
 {:transition "left 0.25s"
@@ -183,7 +187,7 @@ hiccup symbol will always be included, but `:class` will be overwritten:
 During mounting, this element will have the classes `"heading mounting"`, and
 after mounting it will have the classes `"heading mounted"`.
 
-## Unmounting styles/classes/attributes
+### Unmounting styles/classes/attributes
 
 Replicant supports changing an element's attributes, classes and styles to
 trigger a transition as the element leaves the DOM. When you do this, the node
@@ -206,7 +210,7 @@ Would slide in from the left when mounted, and then slide out to the left again
 when unmounted. Only after the slide transition completes will it be removed
 from the DOM.
 
-### Class overrides
+#### Class overrides
 
 Given this CSS:
 
@@ -277,11 +281,65 @@ In addition, you can use `:class`, which takes a few different values:
 The suggested value is keywords and collections of keywords. Strings will be
 split on space.
 
-## API
+## API Reference
 
 ### `(replicant.dom/render el hiccup)`
 
+Render the `hiccup` into the element `el`. Any pre-existing content not created
+by Replicant will be removed. Subsequent calls will efficiently update the
+rendered DOM elements by comparing the new and old `hiccup`.
+
+<a id="set-dispatch"></a>
 ### `(replicant.dom/set-dispatch! f)`
+
+Register the function to call when life cycle hooks and/or event handlers are
+data, not functions (see [data-driven hooks](#data-hooks)). The function will be
+called with two arguments. The first is a map with details about the trigger,
+with the following keys:
+
+- `:replicant/trigger` Either `:replicant.trigger/dom-event` or
+  `:replicant.trigger/life-cycle`
+- `:replicant/node` The triggering node
+- `:replicant/js-event` the JavaScript event object, when the trigger is
+  `:replicant.trigger/dom-event`
+- `:replicant/details` A vector of keywords indicating what caused the
+  life-cycle hook when the trigger is `:replicant.trigger/life-cycle`. One or
+  more of`:replicant/move-node`, `:replicant/updated-attrs`,
+  `:replicant/updated-children`.
+
+The second argument is the data passed to the hiccup life-cycle/event handler
+attribute.
+
+### Keyword reference
+
+Keywords in the attributes map:
+
+- `:replicant/on-mount` - A hook to be called when the element mounts. Either a
+  function or arbitrary data, see [data-driven hooks](#data-hooks).
+- `:replicant/on-unmount` - A hook to be called when the element unmounts.
+  Either a function or arbitrary data, see [data-driven hooks](#data-hooks).
+- `:replicant/on-update` - A hook to be called when the element updates
+  (including when it mounts and unmounts). Either a function or arbitrary data,
+  see [data-driven hooks](#data-hooks).
+- `:replicant/mounting` - Attribute (including class, styles) overrides to apply
+  while node is mounting, see [data-driven transitions](#data-transitions).
+- `:replicant/unmounting` - Attribute (including class, styles) overrides to apply
+  while node is unmounting, see [data-driven transitions](#data-transitions).
+
+Keywords used with [hook and event handler dispatch](#set-dispatch):
+
+- `:replicant/trigger`
+- `:replicant.trigger/dom-event`
+- `:replicant.trigger/life-cycle`
+- `:replicant/js-event`
+- `:replicant/node`
+- `:replicant.life-cycle/mount`
+- `:replicant.life-cycle/unmount`
+- `:replicant.life-cycle/update`
+- `:replicant/details`
+- `:replicant/move-node`
+- `:replicant/updated-attrs`
+- `:replicant/updated-children`
 
 ## Rationale
 
