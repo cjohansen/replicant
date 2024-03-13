@@ -78,6 +78,9 @@
         (= "innerHTML" attr)
         (set! (.-innerHTML el) v)
 
+        (= "value" attr)
+        (set! (.-value el) v)
+
         (:ns opt)
         (.setAttributeNS el (:ns opt) attr v)
 

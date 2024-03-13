@@ -5,6 +5,7 @@
 (defn app [{:keys [square?]}]
   [:div
    [:h1 "Watch it go!"]
+   [:input {:type "text" :value "Hehe"}]
    (when square?
      [:div {:style {:transition "width 0.5s, height 200ms"
                     :width 100
