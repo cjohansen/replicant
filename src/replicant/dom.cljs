@@ -144,6 +144,7 @@
   rendered DOM by comparing `hiccup` to the previous `hiccup`."
   [el hiccup]
   (when-not (contains? @state el)
+    (set! (.-innerHTML el) "")
     (vswap! state assoc el {:renderer (create-renderer)
                             :unmounts (volatile! #{})}))
   (let [{:keys [renderer current unmounts]} (get @state el)
