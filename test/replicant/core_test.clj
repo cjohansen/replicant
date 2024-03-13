@@ -815,6 +815,68 @@
            [[:replicant.life-cycle/mount "h1.mmm-h1"]
             [:replicant.life-cycle/update [:replicant/updated-children] "h1.mmm-h1"]]))))
 
+(deftest lifecycle-on-mount-test
+  (testing "Triggers on-mount on first mount"
+    (is (= (-> (let [res (atom nil)]
+                 (binding [sut/*dispatch* (fn [e data] (reset! res {:e e :data data}))]
+                   (h/render [:h1 {:replicant/on-mount ["Mount data"]} "Hi!"])
+                   @res))
+               (update :e h/summarize-event))
+           {:e
+            {:replicant/trigger :replicant.trigger/life-cycle
+             :replicant/life-cycle :replicant.life-cycle/mount
+             :replicant/node {:tag-name "h1"
+                              :children [{:text "Hi!"}]}}
+            :data ["Mount data"]})))
+
+  (testing "Does not set on-mount as attribute"
+    (is (empty? (->> (h/render [:h1 {:replicant/on-mount (fn [& _args])} "Hi!"])
+                     h/get-mutation-log-events
+                     h/summarize
+                     (filter (comp #{:set-attribute} first))))))
+
+  (testing "Does not trigger on-mount on later updates"
+    (is (= (let [res (atom [])
+                 f (fn [e] (swap! res conj e))]
+             (-> (h/render [:h1 {:replicant/on-mount f} "Hi!"])
+                 (h/render [:h1 {:replicant/on-mount f} "Hello!"]))
+             (count @res))
+           1)))
+
+  (testing "Does not trigger on-mount when there are no updates"
+    (is (= (let [res (atom [])
+                 f (fn [e] (swap! res conj e))]
+             (-> (h/render [:h1 {:replicant/on-mount f} "Hi!"])
+                 (h/render [:h1 {:replicant/on-mount f} "Hi!"]))
+             (count @res))
+           1)))
+
+  (testing "Does not trigger on-mount when adding hook after mount"
+    (is (empty? (let [res (atom [])
+                      f (fn [e] (swap! res conj e))]
+                  (-> (h/render [:h1 {} "Hi!"])
+                      (h/render [:h1 {:replicant/on-mount f} "Hi!"]))
+                  (h/summarize-events @res)))))
+
+  (testing "Does not trigger on-mount when unmounting element"
+    (is (= (let [res (atom [])
+                 f (fn [e] (swap! res conj e))]
+             (-> (h/render [:h1 {:title "Heading"
+                                 :replicant/on-mount f} "Hi!"])
+                 (h/render nil))
+             (map :replicant/life-cycle @res))
+           [:replicant.life-cycle/mount])))
+
+  (testing "Triggers on-mount on mounting child"
+    (is (= (let [res (atom [])
+                 f (fn [e] (swap! res conj e))]
+             (-> (h/render [:div [:h1 "Hi!"]])
+                 (h/render [:div
+                            [:h1 "Hi!"]
+                            [:p {:replicant/on-mount f} "New paragraph!"]]))
+             (map :replicant/life-cycle @res))
+           [:replicant.life-cycle/mount]))))
+
 (deftest mounting-test
   (testing "Applies attribute overrides while mounting"
     (is (= (-> (h/render [:h1 {:class ["mounted"]

@@ -272,16 +272,19 @@
                         {:handler handler
                          :dispatch *dispatch*})))))
 
-(defn call-hook [[hook node new old details]]
-  (let [f (get-life-cycle-hook hook)]
-    (f (cond-> {:replicant/trigger :replicant.trigger/life-cycle
-                :replicant/life-cycle
-                (cond
-                  (nil? old) :replicant.life-cycle/mount
-                  (nil? new) :replicant.life-cycle/unmount
-                  :else :replicant.life-cycle/update)
-                :replicant/node node}
-         details (assoc :replicant/details details)))))
+(defn call-hook [[hook k node new old details]]
+  (let [f (get-life-cycle-hook hook)
+        life-cycle (cond
+                     (nil? old) :replicant.life-cycle/mount
+                     (nil? new) :replicant.life-cycle/unmount
+                     :else :replicant.life-cycle/update)]
+    (when (or (= :replicant/on-update k)
+              (and (= k :replicant/on-mount)
+                   (= life-cycle :replicant.life-cycle/mount)))
+      (f (cond-> {:replicant/trigger :replicant.trigger/life-cycle
+                  :replicant/life-cycle life-cycle
+                  :replicant/node node}
+           details (assoc :replicant/details details))))))
 
 (defn register-hook
   "Register the life-cycle hook from the corresponding virtual DOM node to call in
@@ -289,8 +292,12 @@
   `nil`, which means the node is unmounting. `details` is a vector of keywords
   that provide some detail about why the hook is invoked."
   [{:keys [hooks]} node headers & [vdom details]]
-  (when-let [hook (:replicant/on-update (if headers (hiccup/attrs headers) (vdom/attrs vdom)))]
-    (vswap! hooks conj [hook node (some-> headers hiccup/sexp) (some-> vdom vdom/sexp) details])))
+  (let [target (if headers (hiccup/attrs headers) (vdom/attrs vdom))]
+    (when-let [[k hook] (or (when-let [h (:replicant/on-update target)]
+                              [:replicant/on-update h])
+                            (when-let [h (:replicant/on-mount target)]
+                              [:replicant/on-mount h]))]
+      (vswap! hooks conj [hook k node (some-> headers hiccup/sexp) (some-> vdom vdom/sexp) details]))))
 
 (defn register-mount [{:keys [mounts]} node mounting-attrs attrs]
   (vswap! mounts conj [node mounting-attrs attrs]))
@@ -345,6 +352,7 @@
   (case attr
     :replicant/key nil
     :replicant/on-update nil
+    :replicant/on-mount nil
     :style (update-styles renderer el (:style new) (:style old))
     :classes (update-classes renderer el (:classes new) (:classes old))
     :on (update-event-listeners renderer el (:on new) (:on old))
@@ -384,6 +392,7 @@
   (case attr
     :replicant/key nil
     :replicant/on-update nil
+    :replicant/on-mount nil
     :style (set-styles renderer el (:style new))
     :classes (set-classes renderer el (:classes new))
     :on (set-event-listeners renderer el (:on new))
@@ -485,7 +494,7 @@
                          (vswap! (:unmounts impl) disj (vdom/unmount-id vdom))
                          (r/remove-child renderer el child)
                          (when-let [hook (:replicant/on-update (vdom/attrs vdom))]
-                           (call-hook [hook child nil vdom]))
+                           (call-hook [hook :replicant/on-update child nil vdom]))
                          renderer)
                        (r/on-transition-end renderer child))
                   marked-vdom)
