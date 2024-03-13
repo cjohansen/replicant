@@ -318,13 +318,16 @@ Keywords in the attributes map:
   function or arbitrary data, see [data-driven hooks](#data-hooks).
 - `:replicant/on-unmount` - A hook to be called when the element unmounts.
   Either a function or arbitrary data, see [data-driven hooks](#data-hooks).
-- `:replicant/on-render` - A hook to be called when the element updates
+- `:replicant/on-render` - A hook to be called when the element renders
   (including when it mounts and unmounts). Either a function or arbitrary data,
   see [data-driven hooks](#data-hooks).
 - `:replicant/mounting` - Attribute (including class, styles) overrides to apply
   while node is mounting, see [data-driven transitions](#data-transitions).
 - `:replicant/unmounting` - Attribute (including class, styles) overrides to apply
   while node is unmounting, see [data-driven transitions](#data-transitions).
+- `:replicant/on-update` - A hook to be called when the element renders,
+  excluding when it mounts and unmounts. Either a function or arbitrary data,
+  see [data-driven hooks](#data-hooks).
 
 Keywords used with [hook and event handler dispatch](#set-dispatch):
 

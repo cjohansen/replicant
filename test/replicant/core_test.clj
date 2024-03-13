@@ -932,6 +932,34 @@
              (map :replicant/life-cycle @res))
            [:replicant.life-cycle/unmount]))))
 
+(deftest lifecycle-on-update-test
+  (testing "Does not trigger on-update on mount"
+    (is (nil? (let [res (atom nil)]
+                (binding [sut/*dispatch* (fn [e data] (reset! res {:e e :data data}))]
+                  (h/render [:h1 {:replicant/on-update ["Update data"]} "Hi!"])
+                  @res)))))
+
+  (testing "Triggers on-update on second render"
+    (is (= (let [res (atom [])
+                 f (fn [e] (swap! res conj e))]
+             (-> (h/render [:p {:replicant/on-update f} "New paragraph!"])
+                 (h/render [:p {:replicant/on-update f} "New text!"]))
+             (map :replicant/life-cycle @res))
+           [:replicant.life-cycle/update])))
+
+  (testing "Does not set on-update as attribute"
+    (is (empty? (->> (h/render [:h1 {:replicant/on-update (fn [& _args])} "Hi!"])
+                     h/get-mutation-log-events
+                     h/summarize
+                     (filter (comp #{:set-attribute} first))))))
+
+  (testing "Does not trigger on-update on unmount"
+    (is (nil? (let [res (atom nil)]
+                (binding [sut/*dispatch* (fn [e data] (reset! res {:e e :data data}))]
+                  (-> (h/render [:h1 {:replicant/on-update ["Update data"]} "Hi!"])
+                      (h/render nil))
+                  @res))))))
+
 (deftest mounting-test
   (testing "Applies attribute overrides while mounting"
     (is (= (-> (h/render [:h1 {:class ["mounted"]
