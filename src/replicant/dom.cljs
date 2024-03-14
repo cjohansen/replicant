@@ -41,11 +41,6 @@
         ;; important part is that the element doesn't get stuck forever.
         (vreset! timer (js/setTimeout callback (+ dur 200)))))))
 
-(defn summarize [el]
-  (if el
-    (str (.toLowerCase (.-tagName el)) ": "(.-innerText el))
-    "Nil! Will blow"))
-
 (defn create-renderer []
   (reify
     replicant/IRender
