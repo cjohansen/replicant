@@ -564,7 +564,68 @@
            [[:create-element "div"]
             [:create-text-node "Text"]
             [:append-child "Text" :to "div"]
-            [:insert-before [:div "Text"] [:div "Footer"] :in "div"]]))))
+            [:insert-before [:div "Text"] [:div "Footer"] :in "div"]])))
+
+  (testing "Moves nodes across significant nils in varying number of children"
+    (is (= (-> (h/render
+                [:div
+                 [:div {:replicant/key "1"} "Hello"]
+                 nil
+                 [:div {:replicant/key "2"} "Footer"]])
+               (h/render
+                [:div
+                 [:div {:replicant/key "2"} "Footer"]
+                 [:div {:replicant/key "1"} "Hello"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:insert-before [:div "Footer"] [:div "Hello"] :in "div"]])))
+
+  (testing "Moves nodes across significant nils"
+    (is (= (-> (h/render
+                [:div
+                 [:div {:replicant/key "1"} "Hello"]
+                 nil
+                 [:div {:replicant/key "2"} "Footer"]])
+               (h/render
+                [:div
+                 [:div {:replicant/key "2"} "Footer"]
+                 [:div "Text"]
+                 [:div {:replicant/key "1"} "Hello"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:insert-before [:div "Footer"] [:div "Hello"] :in "div"]
+            [:create-element "div"]
+            [:create-text-node "Text"]
+            [:append-child "Text" :to "div"]
+            [:insert-before [:div "Text"] [:div "Hello"] :in "div"]])))
+
+  (testing "Ignores nil on nil"
+    (is (= (-> (h/render
+                [:div
+                 [:div "Hello"]
+                 nil
+                 [:div "Footer"]])
+               (h/render
+                [:div
+                 [:div "Hello"]
+                 nil
+                 [:div "Footer"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [])))
+
+  (testing "Increases the number of nils"
+    (is (= (-> (h/render
+                [:div
+                 [:div "Hello"]])
+               (h/render
+                [:div
+                 [:div "Hello"]
+                 nil
+                 nil])
+               h/get-mutation-log-events
+               h/summarize)
+           []))))
 
 (def f1 (fn []))
 (def f2 (fn []))
