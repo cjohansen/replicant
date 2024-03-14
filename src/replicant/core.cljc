@@ -228,7 +228,7 @@
                                k (hiccup/rkey headers)]
                            [(conj! children headers)
                             (cond-> ks k (conj! k))])
-                         [children ks]))
+                         [(conj! children nil) ks]))
                      [(transient []) (transient #{})]))]
     [(persistent! children) (persistent! ks)]))
 
@@ -439,7 +439,7 @@
                                                k (vdom/rkey vdom)]
                                            (r/append-child renderer node child-node)
                                            [(conj! children vdom) (cond-> ks k (conj! k))])
-                                         [children ks]))
+                                         [(conj! children nil) ks]))
                                      [(transient []) (transient #{})]))]
       (register-hook impl node headers)
       (when mounting-attrs
@@ -620,7 +620,7 @@
           [true (insert-children impl el new-c vdom) new-ks]
 
           ;; Old node is already on its way out from a previous render
-          (vdom/unmount-id old-vdom)
+          (and old-vdom (vdom/unmount-id old-vdom))
           (if (unmounts (vdom/unmount-id old-vdom))
             ;; Still unmounting
             (recur (cond-> new-c (nil? new-headers) next) (next old-c) (unchecked-inc-int n) move-n n-children changed? (conj! vdom old-vdom))
@@ -628,7 +628,7 @@
             (recur (cond-> new-c (nil? new-headers) next) (next old-c) n (unchecked-dec-int move-n) (unchecked-dec-int n-children) changed? vdom))
 
           ;; It's a reusable node, reconcile
-          (reusable? new-headers old-vdom)
+          (and new-headers old-vdom (reusable? new-headers old-vdom))
           (let [new-vdom (reconcile* impl el new-headers old-vdom n)
                 node-unchanged? (unchanged? new-headers old-vdom)]
             (when (and node-unchanged? (< n move-n))

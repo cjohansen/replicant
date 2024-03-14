@@ -546,7 +546,25 @@
            [[:create-element "p"]
             [:create-text-node "Text"]
             [:append-child "Text" :to "p"]
-            [:insert-before [:p "Text"] [:ul "Item"] :in "div"]]))))
+            [:insert-before [:p "Text"] [:ul "Item"] :in "div"]])))
+
+  (testing "Uses significant nils in a sea of divs"
+    (is (= (-> (h/render
+                [:div
+                 [:div "Hello"]
+                 nil
+                 [:div "Footer"]])
+               (h/render
+                [:div
+                 [:div "Hello"]
+                 [:div "Text"]
+                 [:div "Footer"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "div"]
+            [:create-text-node "Text"]
+            [:append-child "Text" :to "div"]
+            [:insert-before [:div "Text"] [:div "Footer"] :in "div"]]))))
 
 (def f1 (fn []))
 (def f2 (fn []))

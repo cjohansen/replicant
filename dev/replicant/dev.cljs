@@ -19,6 +19,16 @@
    [:p {:replicant/key "p"} (if square? "Square!" "It's gone!")]
    ])
 
+(defn animated [{:keys [peek?]}]
+  [:div
+   [:div "Hello"]
+   (when peek?
+     [:div "Text"])
+   [:div {:style {:background-color "red"
+                  :transition "background-color 0.5s"}
+          :replicant/mounting {:style {:background-color "blue"}}}
+    "Footer"]])
+
 (comment
 
   (enable-console-print!)
@@ -38,6 +48,8 @@
     )
 
   (d/render el (app {}))
+  (d/render el (animated {}))
+  (d/render el (animated {:peek? true}))
 
 
   (->> [:div
