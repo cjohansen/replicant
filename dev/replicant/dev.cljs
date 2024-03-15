@@ -14,20 +14,24 @@
                     :overflow "hidden"}
             :on {:click [:some-data-for-your-handler]}
             :replicant/mounting {:style {:width 0 :height 0}}
-            :replicant/unmounting {:style {:width 0 :height 0}}}
+            :replicant/unmounting {:style {:width 0 :height 0}}
+            }
       "Colored square"])
    [:p {:replicant/key "p"} (if square? "Square!" "It's gone!")]
    ])
 
 (defn animated [{:keys [peek?]}]
-  [:div
-   [:div "Hello"]
-   (when peek?
-     [:div "Text"])
-   [:div {:style {:background-color "red"
-                  :transition "background-color 0.5s"}
-          :replicant/mounting {:style {:background-color "blue"}}}
-    "Footer"]])
+  (let [attrs {:style {:background-color "red"
+                       :transition "background-color 0.5s"}
+               :replicant/mounting {:style {:background-color "blue"}}
+               :replicant/unmounting {:style {:background-color "blue"}}
+               }]
+    [:div
+     [:div attrs "A"]
+     (when peek?
+       [:div attrs "B"])
+     nil
+     [:div attrs "C"]]))
 
 (comment
 
@@ -48,8 +52,21 @@
     )
 
   (d/render el (app {}))
-  (d/render el (animated {}))
-  (d/render el (animated {:peek? true}))
+
+  (d/render
+   el
+   [:div
+    [:div {:style {:animation "fadein 2s ease"}} "A"]
+    (when true
+      [:div {:style {:animation "fadein 2s ease"}} "B"])
+    nil ;; <-- denne er ny
+    [:div {:style {:animation "fadein 2s ease"}} "C"]])
+
+
+  (d/render el (animated {})) ;; Ok
+  (d/render el (animated {:peek? true})) ;; Ok
+  (d/render el (animated {})) ;; Ok
+  (d/render el (animated {:peek? true})) ;; BOOM
 
 
   (->> [:div

@@ -625,7 +625,30 @@
                  nil])
                h/get-mutation-log-events
                h/summarize)
-           []))))
+           [])))
+
+  (testing "Deals with multiple nils"
+    (is (= (-> (h/render
+                [:div
+                 [:div "A"]
+                 nil
+                 nil
+                 [:div "C"]])
+               (h/render
+                [:div
+                 [:div "A"]
+                 [:div "B"]
+                 nil
+                 [:div "C"]])
+               (h/render
+                [:div
+                 [:div "A"]
+                 nil
+                 nil
+                 [:div "C"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:remove-child [:div "B"] :from "div"]]))))
 
 (def f1 (fn []))
 (def f2 (fn []))
@@ -1155,6 +1178,34 @@
             [:append-child "A sub heading" :to "h2"]
             [:insert-before [:h2 "A sub heading"] [:p "Text"] :in "div"]])))
 
+  (testing "Recreates replacement in place of nil after node has fully unmounted"
+    (is (= (-> (h/render [:div
+                          [:div "A"]
+                          [:div {:class ["mounted"]
+                                 :replicant/unmounting {:class ["unmounting"]}}
+                           "B"]
+                          [:div "C"]])
+               ;; Remove B. Because it has unmounting attrs, it will just be
+               ;; scheduled for removal with on-transition-end.
+               (h/render [:div
+                          [:div "A"]
+                          nil
+                          [:div "C"]])
+               ;; Fully remove unmounting node
+               (h/call-callback 0)
+               ;; Re-render B. It should be created and inserted between A and C
+               ;; without touching existing elements.
+               (h/render [:div
+                          [:div "A"]
+                          [:div "B"]
+                          [:div "C"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "div"]
+            [:create-text-node "B"]
+            [:append-child "B" :to "div"]
+            [:insert-before [:div "B"] [:div "C"] :in "div"]])))
+
   (testing "Applies attribute overrides while unmounting first child"
     (is (= (-> (h/render [:div
                           [:h1 {:class ["mounted"]
@@ -1216,7 +1267,7 @@
             [:create-text-node "Hello"]
             [:append-child "Hello" :to "h2"]
             ;; The div in question is the still unmounting one
-            [:insert-before [:h2 "Hello"] [:div "Transitioning square"] :in "article"]])))
+            [:insert-before [:h2 "Hello"] [:p "It's gone!"] :in "article"]])))
 
   (testing "Unmounting node is still present"
     (is (= (-> (h/render
@@ -1241,8 +1292,8 @@
                h/->dom)
            [:article
             [:h1 "Watch it go!"]
-            [:h2 "Hello"]
             [:div]
+            [:h2 "Hello"]
             [:p "It's gone!"]])))
 
   (testing "Calling the callback unmounts the node"
@@ -1390,7 +1441,7 @@
             [:add-class [:p ""] "mounted"]
             [:create-text-node "Text"]
             [:append-child "Text" :to "p"]
-            [:append-child [:p "Text"] :to "div"]])))
+            [:insert-before [:p "Text"] [:p "Text"] :in "div"]])))
 
   (testing "Does not treat nodes with the same key but different tag as the same"
     (is (= (-> (h/render [:h1 {:replicant/key "h1"} "Title"])
@@ -1540,4 +1591,74 @@
             [:set-style [:h1 ""] "--bg" "red"]
             [:create-text-node "Hello"]
             [:append-child "Hello" :to "h1"]
-            [:append-child [:h1 "Hello"] :to "body"]]))))
+            [:append-child [:h1 "Hello"] :to "body"]])))
+
+  (testing "Remembers nils after the end of previous children"
+    (is (= (-> (h/render
+                [:div])
+               (h/render
+                [:div
+                 [:div "A"]
+                 nil
+                 [:div "C"]])
+               (h/render
+                [:div
+                 [:div "A"]
+                 [:div "B"]
+                 [:div "C"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "div"]
+            [:create-text-node "B"]
+            [:append-child "B" :to "div"]
+            [:insert-before [:div "B"] [:div "C"] :in "div"]])))
+
+  (testing "Leans on nils to update the right div"
+    (-> (h/render
+         [:div
+          [:div
+           {:style {:background-color "red", :transition "background-color 0.5s"},
+            :replicant/mounting {:style {:background-color "blue"}},
+            :replicant/unmounting {:style {:background-color "blue"}}}
+           "A"]
+          nil
+          [:div
+           {:style {:background-color "red", :transition "background-color 0.5s"},
+            :replicant/mounting {:style {:background-color "blue"}},
+            :replicant/unmounting {:style {:background-color "blue"}}}
+           "C"]])
+        (h/render
+         [:div
+          [:div
+           {:style {:background-color "red", :transition "background-color 0.5s"},
+            :replicant/mounting {:style {:background-color "blue"}},
+            :replicant/unmounting {:style {:background-color "blue"}}}
+           "A"]
+          [:div
+           {:style {:background-color "red", :transition "background-color 0.5s"},
+            :replicant/mounting {:style {:background-color "blue"}},
+            :replicant/unmounting {:style {:background-color "blue"}}}
+           "B"]
+          [:div
+           {:style {:background-color "red", :transition "background-color 0.5s"},
+            :replicant/mounting {:style {:background-color "blue"}},
+            :replicant/unmounting {:style {:background-color "blue"}}}
+           "C"]])
+        (h/render
+         [:div
+          [:div
+           {:style {:background-color "red", :transition "background-color 0.5s"},
+            :replicant/mounting {:style {:background-color "blue"}},
+            :replicant/unmounting {:style {:background-color "blue"}}}
+           "A"]
+          [:div
+           {:style {:background-color "red", :transition "background-color 0.5s"},
+            :replicant/mounting {:style {:background-color "blue"}},
+            :replicant/unmounting {:style {:background-color "blue"}}}
+           "B"]
+          [:div
+           {:style {:background-color "red", :transition "background-color 0.5s"},
+            :replicant/mounting {:style {:background-color "blue"}},
+            :replicant/unmounting {:style {:background-color "blue"}}}
+           "C"]]))
+    ))
