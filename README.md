@@ -1,7 +1,7 @@
 # Replicant - A Clojure(Script) DOM rendering library
 
-Replicant turns hiccup into DOM. Over and over. Efficiently, and with no
-dependencies.
+Replicant turns hiccup into DOM. Over and over. Efficiently, without a single
+dependency.
 
 ```clj
 (require '[replicant.dom :as d])
@@ -33,7 +33,7 @@ porting some large UIs to it.
 
 ## Features
 
-- Efficient hiccup => DOM renders and re-renders
+- Efficient hiccup to DOM renders and re-renders
 - Represent entire UIs with serializable data
 - Rich life-cycle hooks (mount, unmount, update attributes, move, etc)
 - Data-driven hooks and DOM event handlers
@@ -382,10 +382,10 @@ logic. Components are just functions that return hiccup, e.g. something like
 
 Short-circuiting rendering (e.g. something akin to React's original
 `shouldComponentUpdate`) is generally not necessary, as Replicant is already
-efficient enough. Should you have some heavy domain data to hiccup
-transformations however, you can use `memoize` or other more specialized tools.
-Since "components" are just functions that return hiccup, you don't need
-framework specific tooling to optimize your code.
+efficient enough. Should you have some heavy transformations from domain data to
+hiccup, you can use `memoize` or other more specialized tools. Since
+"components" are just functions that return hiccup, you don't need framework
+specific tooling to optimize your code.
 
 Life-cycles are genuinely useful. That's why you can attach them directly to
 hiccup nodes, and Replicant will trigger them for you. You are not limited to
