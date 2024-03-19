@@ -4,11 +4,11 @@
 ** DONE dev-mode assert
 ** DONE :replicant/on-mount
 ** DONE :replicant/on-unmount
-* Asserts [3/7]
+* Asserts [4/7]
 ** DONE Using :className
 ** DONE Using spaced strings for :class
 ** DONE Using string style
-** TODO :keyUp vs keyup
+** DONE :keyUp vs keyup
 ** TODO Style keys that are not strings or keywords
 ** TODO Style keys should be dash cased, not camelCased
 ** TODO Do not trigger renders from life-cycle hooks

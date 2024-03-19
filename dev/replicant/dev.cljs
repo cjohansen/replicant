@@ -55,7 +55,11 @@
 
   (d/render el (app {}))
 
-  (d/render el [:div {:style "background: red"} "Hello"])
+  (d/render el [:div {:className "wrong"} "Hello"])
+  (d/render el [:div {:class "also wrong"} "Hello"])
+  (d/render el [:div {:style "background: yellow"} "Hello"])
+  (d/render el [:div {:replicant/context ^:replicant/internal {:fn-name 'replicant.dev/event-handler-ex}
+                      :on {:keyUp [:some-data]}} "Hello"])
 
   (d/render
    el

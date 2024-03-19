@@ -341,6 +341,7 @@
   (->> val
        (remove (comp nil? second))
        (run! (fn [[event handler]]
+               (asserts/assert-event-handler-casing event)
                (when-let [handler (get-event-handler handler event)]
                  (r/set-event-handler renderer el event handler))))))
 

@@ -1,6 +1,7 @@
 (ns replicant.asserts
   (:require [replicant.assert :as assert]
-            [replicant.hiccup :as hiccup]))
+            [replicant.hiccup :as hiccup]
+            [clojure.string :as str]))
 
 (defmacro assert-no-class-name [headers]
   `(assert/assert
@@ -25,3 +26,11 @@
     "Avoid string styles"
     ":style supports structured maps of CSS property/value pairs. Strings must be parsed, so they're both slower and harder to read and write."
     (hiccup/sexp ~headers)))
+
+(defmacro assert-event-handler-casing [k]
+  `(assert/assert
+    (let [event# (name ~k)]
+      (or (= "DOMContentLoaded" event#)
+          (= event# (str/lower-case event#))))
+    "Use lower cased event names"
+    (str "Most event names should be spelled in lower-case only. Replicant passes your event names directly to addEventListener, and mis-cased event names will fail silently. Change " ~k " to " (keyword (str/lower-case (name ~k))))))
