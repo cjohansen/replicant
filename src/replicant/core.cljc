@@ -328,7 +328,9 @@
         (r/remove-style renderer el %)
 
         (not= new-style (% old-styles))
-        (r/set-style renderer el % (get-style-val % new-style))))
+        (do
+          (asserts/assert-style-key-type %)
+          (r/set-style renderer el % (get-style-val % new-style)))))
    (into (set (keys new-styles)) (keys old-styles))))
 
 (defn update-classes [renderer el new-classes old-classes]
@@ -394,7 +396,9 @@
 (defn set-styles [renderer el new-styles]
   (->> (keys new-styles)
        (filter new-styles)
-       (run! #(r/set-style renderer el % (get-style-val % (get new-styles %))))))
+       (run! #(do
+                (asserts/assert-style-key-type %)
+                (r/set-style renderer el % (get-style-val % (get new-styles %)))))))
 
 (defn set-classes [renderer el new-classes]
   (->> new-classes

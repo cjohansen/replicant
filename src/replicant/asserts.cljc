@@ -34,3 +34,9 @@
           (= event# (str/lower-case event#))))
     (str "Use " (keyword (str/lower-case (name ~k))) ", not " ~k)
     (str "Most event names should be in all lower-case. Replicant passes your event names directly to addEventListener, and mis-cased event names will fail silently.")))
+
+(defmacro assert-style-key-type [k]
+  `(assert/assert
+    (or (string? ~k) (keyword? ~k) (symbol? ~k))
+    (str "Style key " ~k " should be a keyword")
+    "Replicant expects your style keys to be strings, or the very least something that supports `name`. Other types will not work as expected."))
