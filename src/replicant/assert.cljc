@@ -1,9 +1,11 @@
 (ns replicant.assert
   (:require [cljs.env :as env]
             [replicant.console-logger :as console]
-            [replicant.hiccup :as hiccup]))
+            [replicant.hiccup :as hiccup])
+  (:refer-clojure :exclude [assert]))
 
 (def current-context (atom nil))
+(def current-node (atom nil))
 (def error (atom nil))
 
 (defn assert? []
@@ -24,18 +26,20 @@
 
 (defmacro enter-node [headers]
   (when (assert?)
-    `(when-let [ctx# (:replicant/context (hiccup/attrs ~headers))]
-       (reset! current-context ctx#))))
+    `(do
+       (when-let [ctx# (:replicant/context (hiccup/attrs ~headers))]
+         (reset! current-context ctx#))
+       (reset! current-node (hiccup/sexp ~headers)))))
 
-(defmacro assert-not [test title message hiccup]
+(defmacro assert [test title message & [hiccup]]
   (when assert?
-    `(when ~test
+    `(when (not ~test)
        (let [fn# (:fn-name @current-context)
              fd# (:data @current-context)]
          (reset! error
           (cond-> {:title ~title
                    :message ~message
-                   :hiccup ~hiccup}
+                   :hiccup (or ~hiccup @current-node)}
             fn# (assoc :fname fn#)
             fd# (assoc :data fd#)))))))
 
