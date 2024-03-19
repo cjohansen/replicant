@@ -330,6 +330,7 @@
         (not= new-style (% old-styles))
         (do
           (asserts/assert-style-key-type %)
+          (asserts/assert-style-key-casing %)
           (r/set-style renderer el % (get-style-val % new-style)))))
    (into (set (keys new-styles)) (keys old-styles))))
 
@@ -398,6 +399,7 @@
        (filter new-styles)
        (run! #(do
                 (asserts/assert-style-key-type %)
+                (asserts/assert-style-key-casing %)
                 (r/set-style renderer el % (get-style-val % (get new-styles %)))))))
 
 (defn set-classes [renderer el new-classes]

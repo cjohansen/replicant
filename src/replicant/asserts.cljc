@@ -40,3 +40,15 @@
     (or (string? ~k) (keyword? ~k) (symbol? ~k))
     (str "Style key " ~k " should be a keyword")
     "Replicant expects your style keys to be strings, or the very least something that supports `name`. Other types will not work as expected."))
+
+(defmacro assert-style-key-casing [k]
+  `(assert/assert
+    (let [name# (name ~k)]
+      (or (str/starts-with? name# "--")
+          (= name# (str/lower-case name#))))
+    (let [dashed# (->> (name ~k)
+                       (re-seq #"[A-Z][a-z0-9]*|[a-z0-9]+")
+                       (map str/lower-case)
+                       (str/join "-"))]
+      (str "Use :" dashed# ", not " ~k))
+    "Replicant passes style keys directly to `el.style.setProperty`, which expects CSS-style dash-cased property names."))
