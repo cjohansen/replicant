@@ -55,6 +55,8 @@
 
   (d/render el (app {}))
 
+  (d/render el [:div {:style "background: red"} "Hello"])
+
   (d/render
    el
    [:div

@@ -18,3 +18,10 @@
       (str ":class supports collections of keywords and/or strings as classes. These perform better, and are usually more convenient to work with. Solve by converting "
            (pr-str class#) " to " (pr-str (vec (.split class# " ")))))
     (hiccup/sexp ~headers)))
+
+(defmacro assert-no-string-style [headers]
+  `(assert/assert-not
+    (string? (:style (hiccup/attrs ~headers)))
+    "Avoid string styles"
+    ":style supports structured maps of CSS property/value pairs. Strings must be parsed, so they're both slower and harder to read and write."
+    (hiccup/sexp ~headers)))

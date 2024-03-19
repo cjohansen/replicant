@@ -176,6 +176,7 @@
   [headers]
   (asserts/assert-no-class-name headers)
   (asserts/assert-no-space-separated-class headers)
+  (asserts/assert-no-string-style headers)
   (prep-attrs (hiccup/attrs headers) (hiccup/id headers) (hiccup/classes headers)))
 
 (defn merge-attrs [attrs overrides]
