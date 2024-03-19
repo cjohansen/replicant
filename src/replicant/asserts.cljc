@@ -32,5 +32,5 @@
     (let [event# (name ~k)]
       (or (= "DOMContentLoaded" event#)
           (= event# (str/lower-case event#))))
-    "Use lower cased event names"
-    (str "Most event names should be spelled in lower-case only. Replicant passes your event names directly to addEventListener, and mis-cased event names will fail silently. Change " ~k " to " (keyword (str/lower-case (name ~k))))))
+    (str "Use " (keyword (str/lower-case (name ~k))) ", not " ~k)
+    (str "Most event names should be in all lower-case. Replicant passes your event names directly to addEventListener, and mis-cased event names will fail silently.")))
