@@ -97,12 +97,9 @@
             args (rest sexp)
             has-args? (map? (first args))
             attrs (if has-args? (first args) {})]
-        (hiccup/create (parse-tag (name sym)) attrs (if has-args? (rest args) args) ns sexp nil))
+        (hiccup/create (parse-tag sym) attrs (if has-args? (rest args) args) ns sexp))
       (let [s (str sexp)]
-        (hiccup/create
-         #?(:clj [nil nil nil]
-            :cljs #js [nil nil nil])
-         nil nil nil s s)))))
+        (hiccup/create-text-node s)))))
 
 (defn get-classes [classes]
   (cond

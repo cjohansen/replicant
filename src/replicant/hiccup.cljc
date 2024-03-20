@@ -37,7 +37,7 @@
   `(when-let [k# (:replicant/key ~attrs)]
      [(hget ~parsed-tag 0) k#]))
 
-(defmacro create [parsed-tag attrs children ns sexp text]
+(defmacro create [parsed-tag attrs children ns sexp]
   (if (:ns &env)
     `(doto ~parsed-tag
        (.push (get-key ~parsed-tag ~attrs))
@@ -45,14 +45,19 @@
        (.push ~children)
        (.push ~ns)
        (.push ~sexp)
-       (.push ~text))
+       (.push nil))
     `(-> ~parsed-tag
          (conj (get-key ~parsed-tag ~attrs))
          (conj ~attrs)
          (conj ~children)
          (conj ~ns)
          (conj ~sexp)
-         (conj ~text))))
+         (conj nil))))
+
+(defmacro create-text-node [text]
+  (if (:ns &env)
+    `(js/Array. nil nil nil nil nil nil nil ~text ~text)
+    `[nil nil nil nil nil nil nil ~text ~text]))
 
 (defmacro update-attrs [headers & args]
   (if (:ns &env)
