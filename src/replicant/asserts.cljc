@@ -1,7 +1,8 @@
 (ns replicant.asserts
   (:require [replicant.assert :as assert]
             [replicant.hiccup :as hiccup]
-            [clojure.string :as str]))
+            [clojure.string :as str])
+  #?(:cljs (:require-macros [replicant.asserts])))
 
 (defmacro assert-no-class-name [headers]
   `(assert/assert
