@@ -84,7 +84,7 @@
       this)
 
     (remove-attribute [this el attr]
-      (if (= :innerHTML attr)
+      (if (= "innerHTML" attr)
         (set! (.-innerHTML el) "")
         (.removeAttribute el attr))
       this)
