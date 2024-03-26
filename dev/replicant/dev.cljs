@@ -61,6 +61,9 @@
   (d/render el [:div {:replicant/context ^:replicant/internal {:fn-name 'replicant.dev/event-handler-ex}
                       :on {:keyUp [:some-data]}} "Hello"])
 
+  (d/render el [:div {:style {32 "LOL"}} "Hello"])
+  (d/render el [:div {:style {:backgroundColor "LOL"}} "Hello"])
+
   (d/render
    el
    [:div
