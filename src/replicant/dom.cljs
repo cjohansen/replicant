@@ -3,7 +3,7 @@
             [replicant.protocols :as replicant]
             [replicant.transition :as transition]))
 
-(defn remove-listener [^js/HTMLElement el event]
+(defn remove-listener [^js/EventTarget el event]
   (when-let [old-handler (some-> el .-replicantHandlers (aget event))]
     (.removeEventListener el event old-handler)))
 
@@ -89,7 +89,7 @@
         (.removeAttribute el attr))
       this)
 
-    (set-event-handler [this ^js/HTMLElement el event handler]
+    (set-event-handler [this ^js/EventTarget el event handler]
       (when-not (.-replicantHandlers el)
         (set! (.-replicantHandlers el) #js {}))
       (let [event (name event)]
@@ -98,7 +98,7 @@
         (.addEventListener el event handler))
       this)
 
-    (remove-event-handler [this ^js/HTMLElement el event]
+    (remove-event-handler [this ^js/EventTarget el event]
       (let [event (name event)]
         (remove-listener el event)
         (aset (.-replicantHandlers el) event nil))
