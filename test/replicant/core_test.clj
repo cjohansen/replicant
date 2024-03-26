@@ -7,18 +7,18 @@
 
 (deftest hiccup-test
   (testing "Normalizes hiccup structure"
-    (is (= (sut/get-hiccup-headers [:h1 "Hello world"] nil)
-           ["h1" nil nil nil {} ["Hello world"] nil [:h1 "Hello world"] nil])))
+    (is (= (sut/get-hiccup-headers nil [:h1 "Hello world"])
+           ["h1" nil nil nil {} ["Hello world"] nil [:h1 "Hello world"] nil "h1"])))
 
   (testing "Flattens children"
-    (is (= (-> (sut/get-hiccup-headers [:h1 (list (list "Hello world"))] nil)
+    (is (= (-> (sut/get-hiccup-headers nil [:h1 (list (list "Hello world"))])
                (sut/get-children nil)
                first
                hiccup/text)
            "Hello world")))
 
   (testing "Pixelizes styles"
-    (is (= (->> (sut/get-hiccup-headers [:div {:style {:height 450}}] nil)
+    (is (= (->> (sut/get-hiccup-headers nil [:div {:style {:height 450}}])
                 sut/get-attrs
                 :style
                 :height
@@ -26,7 +26,7 @@
            "450px")))
 
   (testing "Doesn't pixelize all styles"
-    (is (= (->> (sut/get-hiccup-headers [:div {:style {:z-index 999}}] nil)
+    (is (= (->> (sut/get-hiccup-headers nil [:div {:style {:z-index 999}}])
                 sut/get-attrs
                 :style
                 :z-index
@@ -1547,6 +1547,142 @@
                h/remove-text-node-events)
            [[:insert-before [:li "#3"] [:li "#1"] :in "ul"]
             [:insert-before [:li "#2"] [:li "#1"] :in "ul"]]))))
+
+(deftest alias-test
+  (testing "Renders alias"
+    (is (= (-> (h/render
+                {:aliases {:custom/title (fn [_attrs [title]]
+                                           [:h1.alias title])}}
+                [:custom/title "Hello world"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "h1"]
+            [:add-class [:h1 ""] "alias"]
+            [:create-text-node "Hello world"]
+            [:append-child "Hello world" :to "h1"]
+            [:append-child [:h1 "Hello world"] :to "body"]])))
+
+  (testing "Does nothing when alias does not change"
+    (is (= (-> (h/render
+                {:aliases {:custom/title (fn [_attrs [title]]
+                                            [:h1.alias title])}}
+                [:custom/title "Hello world"])
+               (h/render [:custom/title "Hello world"])
+               h/get-mutation-log-events
+               h/summarize)
+           [])))
+
+  (testing "Updates alias"
+    (is (= (-> (h/render
+                {:aliases {:custom/title (fn [_attrs [title]]
+                                           [:h1.alias title])}}
+                [:custom/title "Hello world"])
+               (h/render [:custom/title "Hi!"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-text-node "Hi!"]
+            [:replace-child "Hi!" "Hello world"]])))
+
+  (testing "Adds children in alias"
+    (is (= (-> (h/render
+                {:aliases {:custom/title (fn [{:keys [ok?]} [title]]
+                                           (if ok?
+                                             [:div
+                                              [:h1 title]
+                                              [:p "Hi!"]]
+                                             [:div [:h1.alias title]]))}}
+                [:custom/title "Hello world"])
+               (h/render [:custom/title {:ok? true} "Hi!"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:remove-class [:h1 "Hello world"] "alias"]
+            [:create-text-node "Hi!"]
+            [:replace-child "Hi!" "Hello world"]
+            [:create-element "p"]
+            [:create-text-node "Hi!"]
+            [:append-child "Hi!" :to "p"]
+            [:append-child [:p "Hi!"] :to "div"]])))
+
+  (testing "Moves alias by key"
+    (is (= (-> (h/render
+                {:aliases {:custom/title (fn [_attr [title]]
+                                           [:h1.alias title])}}
+                [:div
+                 [:custom/title {:replicant/key "custom"} "Hello world"]
+                 [:p {:replicant/key "p"} "Text"]])
+               (h/render
+                [:div
+                 [:p {:replicant/key "p"} "Text"]
+                 [:custom/title {:replicant/key "custom"} "Hello world"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:insert-before [:p "Text"] [:h1 "Hello world"] :in "div"]])))
+
+  (testing "Replaces alias with element"
+    (is (= (-> (h/render
+                {:aliases {:custom/title (fn [_attr [title]]
+                                            [:h1.alias title])}}
+                [:custom/title "Hello world"])
+               (h/render [:p  "Text"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "p"]
+            [:create-text-node "Text"]
+            [:append-child "Text" :to "p"]
+            [:insert-before [:p "Text"] [:h1 "Hello world"] :in "body"]
+            [:remove-child [:h1 "Hello world"] :from "body"]])))
+
+  (testing "Renders blank node when alias is not defined"
+    (is (= (-> (h/render [:custom/title "Hello world"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "div"]
+            [:set-attribute [:div ""] "data-replicant-error" nil :to "Undefined alias :custom/title"]
+            [:create-text-node "Hello world"]
+            [:append-child "Hello world" :to "div"]
+            [:append-child [:div "Hello world"] :to "body"]])))
+
+  (testing "Renders blank node when alias function throws"
+    (is (= (-> (h/render
+                {:aliases {:custom/title (fn [_attr _children]
+                                           (throw (ex-info "Oh no!" {})))}}
+                [:custom/title "Hello world"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "div"]
+            [:set-attribute [:div ""] "data-replicant-error" nil :to "Alias threw exception"]
+            [:set-attribute [:div ""] "data-replicant-exception" nil :to "Oh no!"]
+            [:set-attribute [:div ""] "data-replicant-sexp" nil :to "[:custom/title \"Hello world\"]"]
+            [:append-child [:div ""] :to "body"]])))
+
+  (testing "Renders default hiccup when alias function throws"
+    (is (= (-> (h/render
+                {:alias-error-hiccup [:h1 "Oops!"]
+                 :aliases {:custom/title (fn [_attr _children]
+                                           (throw (ex-info "Oh no!" {})))}}
+                [:custom/title "Hello world"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "div"]
+            [:set-attribute [:div ""] "data-replicant-error" nil :to "Alias threw exception"]
+            [:set-attribute [:div ""] "data-replicant-exception" nil :to "Oh no!"]
+            [:set-attribute [:div ""] "data-replicant-sexp" nil :to "[:custom/title \"Hello world\"]"]
+            [:append-child [:div ""] :to "body"]])))
+
+  (testing "Supports short-hand id and classes on aliases"
+    (is (= (-> (h/render
+                {:aliases {:custom/title (fn [attrs [title]]
+                                           [:h1.alias attrs title])}}
+                [:custom/title#title.bold "Hello world"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "h1"]
+            [:set-attribute [:h1 ""] "id" nil :to "title"]
+            [:add-class [:h1#title ""] "bold"]
+            [:add-class [:h1#title ""] "alias"]
+            [:create-text-node "Hello world"]
+            [:append-child "Hello world" :to "h1"]
+            [:append-child [:h1#title "Hello world"] :to "body"]]))))
 
 (deftest regression-tests
   (testing "Replaces element when root node key changes"

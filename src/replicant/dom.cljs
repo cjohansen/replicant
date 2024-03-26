@@ -140,13 +140,14 @@
   "Render `hiccup` in DOM element `el`. Replaces any pre-existing content not
   created by this function. Subsequent calls with the same `el` will update the
   rendered DOM by comparing `hiccup` to the previous `hiccup`."
-  [el hiccup]
+  [el hiccup & [{:keys [aliases]}]]
   (when-not (contains? @state el)
     (set! (.-innerHTML el) "")
     (vswap! state assoc el {:renderer (create-renderer)
                             :unmounts (volatile! #{})}))
   (let [{:keys [renderer current unmounts]} (get @state el)
-        {:keys [vdom]} (r/reconcile renderer el hiccup current {:unmounts unmounts})]
+        {:keys [vdom]} (r/reconcile renderer el hiccup current {:unmounts unmounts
+                                                                :aliases aliases})]
     (vswap! state assoc-in [el :current] vdom))
   el)
 

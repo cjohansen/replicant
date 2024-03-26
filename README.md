@@ -33,14 +33,15 @@ porting some large UIs to it.
 
 ## Features
 
-- Efficient hiccup to DOM renders and re-renders
+- Efficient hiccup-to-DOM renders and re-renders
 - Represent entire UIs with serializable data
 - Rich life-cycle hooks (mount, unmount, update attributes, move, etc)
 - Data-driven hooks and DOM event handlers
 - Stateless and component-free
 - Style/class/attribute overrides during mounting and unmounting for easy
   transitions
-- Small API surface: Two functions and a few keywords
+- Alias elements
+- Small API surface
 - Inline styles with Clojure maps
 - Class lists with Clojure collections
 - `innerHTML` support
@@ -53,7 +54,7 @@ https://github.com/krausest/js-framework-benchmark. See [benchmarking
 instructions](#benchmarking) for how to run locally.
 
 <a id="data-hooks"></a>
-## Data-driven hooks and events
+## Data-driven event handlers and hooks
 
 As originally introduced in [dumdom](https://github.com/cjohansen/dumdom), and
 described in [my talk about data-driven UIs](https://vimeo.com/861600197),
@@ -252,6 +253,85 @@ for you via `innerHTML`:
 When using `:innerHTML` any child elements will be ignored (without warning at
 the time being).
 
+<a id="alias"></a>
+## Element aliases
+
+You can use namespaced tag names in your hiccup that will be expanded by a
+custom function. These are called aliases (following
+[chassis'](https://github.com/onionpancakes/chassis) lead). Element aliases can
+be used to perform "just in time inflation" from data to hiccup, while still
+being able to represent your entire UI as serializable data.
+
+Aliases are only expanded when Replicant needs to update the rendered DOM. This
+means that aliases can improve performance by performing certain transformations
+only when strictly needed.
+
+Element aliases can be used for a variety of reasons:
+
+- Hide volatile details in the document structure (inline styles, classes, extra
+  divs, etc)
+- Integrate cross-cutting concerns such as i18n, theming, etc
+- Any other useful reasons you might have
+
+An example is worth several words:
+
+```clj
+;; I18n
+
+(def dictionaries
+  {:nb
+   {:title "Min webside"
+    :hello "Hei på deg!"
+    :click "Klikk knappen"}
+
+   :en
+   {:title "My webpage"
+    :hello "Hello world!"
+    :click "Click the button"}})
+
+(defn lookup-i18n [dictionary _attrs [k]]
+  (get dictionary k))
+
+;; A function that adds a bunch of tailwind classes to the markup
+
+(defn button [{:keys [actions spinner? subtle?] :as btn} [text]]
+  [:button.btn.max-sm:btn-block
+   (cond-> (dissoc btn :spinner? :actions :subtle?)
+     actions (assoc-in [:on :click] actions)
+     subtle? (assoc :class "btn-neutral")
+     (not subtle?) (assoc :class "btn-primary"))
+   (when spinner?
+     [:span.loading.loading-spinner])
+   text])
+
+;; Function to turn domain data into hiccup
+
+(defn app [{:keys [locale]}]
+  [:div {:replicant/key locale}
+   [:h1 [:i18n/k :title]]
+   [:p [:i18n/k :hello]]
+   [:ui/button {:actions [[:do-stuff]]}
+    [:i18n/k :click]]])
+
+[:ui/button#special.btn-primary {:actions [[:do-stuff]]}
+ [:i18n/k :click]]
+
+;; Render
+
+(defn render-app [state]
+  (d/render
+   el
+   (app state)
+   {:aliases {:i18n/k (partial lookup-i18n (dictionaries (:locale state)))
+              :ui/button button}}))
+
+;; Render in english
+(render-app {:locale :en})
+
+;; ...or Norwegian
+(render-app {:locale :nb})
+```
+
 ## Differences from hiccup
 
 Replicant has a more liberal understanding of hiccup data than the main hiccup
@@ -366,6 +446,30 @@ there's no async rendering, there's no networking utilities. There's just a
 single function that renders and rerenders your hiccup to the DOM in an
 efficient manner.
 
+### Trade-offs
+
+Replicant was designed to allow you to express your entire UI as data and render
+it over and over. Pure data-driven UIs give you [many important
+benefits](https://vimeo.com/861600197), but also come with some limitations.
+
+1. **Performance**. Replicant is efficient, but its rendering model has inherent
+   inefficiencies and can never be the fastest. It is currently faster than
+   reagent, but slower than pure React -- in benchmarks.
+2. **State management**. There is no "component local state". State needs to be
+   managed outside the UI representation. I'd say this is a benefit (it is
+   indeed the desired design), but others will disagree.
+3. **Compatibility**. Replicant is not designed to work well with other
+   rendering technologies, such as React. You _can_ mount a component with a
+   different library using the life-cycle hooks that give you access to DOM
+   nodes, but no extra effort has been made to make this an ergonomic exercise.
+
+As you can see, Replicant does not believe in the concept of "reusable
+components", e.g. drop-in components that contain logic, state management and
+possibly networking capabilities. If you want those, you'd be better off using
+something else. [shadow-grove](https://github.com/thheller/shadow-grove/) is
+another pure ClojureScript alternative that offers a much wider set of tools for
+building frontend applications.
+
 ### What about components?
 
 Replicant does not have components. Some common reasons to have components
@@ -381,9 +485,9 @@ logic. Components are just functions that return hiccup, e.g. something like
 `(button {,,,})` which returns the appropriate hiccup for a button.
 
 Short-circuiting rendering (e.g. something akin to React's original
-`shouldComponentUpdate`) is generally not necessary, as Replicant is already
-efficient enough. Should you have some heavy transformations from domain data to
-hiccup, you can use `memoize` or other more specialized tools. Since
+`shouldComponentUpdate`) is generally not necessary, as Replicant updates the
+DOM very efficiently. Should you have some heavy transformations from domain
+data to hiccup, you can use `memoize` or other more specialized tools. Since
 "components" are just functions that return hiccup, you don't need framework
 specific tooling to optimize your code.
 
@@ -393,11 +497,9 @@ placing hooks on "components" - any node in the hiccup tree can have them.
 
 Replicant does not **need** to know about cross-cutting concerns like i18n,
 theming, etc. Since the entire UI can be represented as data, you can implement
-concerns like these with pure data transformations. However, there are speed
-gains to be had if you can postpone such transformations to just in time for
-rendering, which is why Replicant will eventually provide a hook for this. The
-hook will be a global one, and does not necessitate a bespoke component
-abstraction.
+concerns like these with pure data transformations. However, there are
+performance gains to be had if you can postpone such transformations to just in
+time for rendering. Replicant provides [aliases](#alias) for this purpose.
 
 ## Contribute
 

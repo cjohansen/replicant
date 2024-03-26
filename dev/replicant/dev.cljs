@@ -53,7 +53,9 @@
     (d/render el (app {:square? true}))
     )
 
-  (d/render el (app {}))
+  (d/render el [:h1 "Hello world"])
+
+  (d/render el [:div {:lol? "oh no"} "Hello"])
 
   (d/render el [:div {:className "wrong"} "Hello"])
   (d/render el [:div {:class "also wrong"} "Hello"])
@@ -102,6 +104,71 @@
                        :background "red"}
                :replicant/mounting {:style {:width 0}}}]]
        (d/render el))
+
+
+)
+
+
+
+
+
+(comment
+
+;; I18n
+
+(def dictionaries
+  {:nb
+   {:title "Min webside"
+    :hello "Hei på deg!"
+    :click "Klikk knappen"}
+
+   :en
+   {:title "My webpage"
+    :hello "Hello world!"
+    :click "Click the button"}})
+
+(defn lookup-i18n [dictionary _attrs [k]]
+  (get dictionary k))
+
+;; A function that adds a bunch of tailwind classes to the markup
+
+(defn button [{:keys [actions spinner? subtle?] :as btn} [text]]
+  [:button.btn.max-sm:btn-block
+   (cond-> (dissoc btn :spinner? :actions :subtle?)
+     actions (assoc-in [:on :click] actions)
+     subtle? (assoc :class "btn-neutral")
+     (not subtle?) (assoc :class "btn-primary"))
+   (when spinner?
+     [:span.loading.loading-spinner])
+   text])
+
+;; Function to turn domain data into hiccup
+
+(defn app [{:keys [locale]}]
+  [:div {:replicant/key locale}
+   [:h1 [:i18n/k :title]]
+   [:p [:i18n/k :hello]]
+   [:ui/button {:actions [[:do-stuff]]}
+    [:i18n/k :click]]])
+
+[:ui/button#special.btn-primary {:actions [[:do-stuff]]}
+ [:i18n/k :click]]
+
+;; Render
+
+(defn render-app [state]
+  (d/render
+   el
+   (app state)
+   {:aliases {:i18n/k (partial lookup-i18n (dictionaries (:locale state)))
+              :ui/button button}}))
+
+;; Render in english
+(render-app {:locale :en})
+
+;; ...eller norsk
+(render-app {:locale :nb})
+
 
 
 )
