@@ -2,7 +2,8 @@
   (:require [cljs.env :as env]
             [replicant.console-logger :as console]
             [replicant.hiccup :as hiccup])
-  (:refer-clojure :exclude [assert]))
+  (:refer-clojure :exclude [assert])
+  #?(:cljs (:require-macros [replicant.assert])))
 
 (def current-context (atom nil))
 (def current-node (atom nil))
