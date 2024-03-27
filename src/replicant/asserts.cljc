@@ -56,11 +56,7 @@
     (let [name# (name ~k)]
       (or (str/starts-with? name# "--")
           (= name# (str/lower-case name#))))
-    (let [dashed# (->> (name ~k)
-                       (re-seq #"[A-Z][a-z0-9]*|[a-z0-9]+")
-                       (map str/lower-case)
-                       (str/join "-"))]
-      (str "Use :" dashed# ", not " ~k))
+    (str "Use " (camel->dash-k ~k) ", not " ~k)
     "Replicant passes style keys directly to `el.style.setProperty`, which expects CSS-style dash-cased property names."))
 
 (defmacro assert-no-event-attribute [k]
