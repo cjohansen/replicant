@@ -42,6 +42,15 @@
     (str "Style key " ~k " should be a keyword")
     "Replicant expects your style keys to be strings, or the very least something that supports `name`. Other types will not work as expected."))
 
+(defn camel->dash [s]
+  (->> s
+       (re-seq #"[A-Z][a-z0-9]*|[a-z0-9]+")
+       (map str/lower-case)
+       (str/join "-")))
+
+(defn camel->dash-k [k]
+  (keyword (camel->dash (name k))))
+
 (defmacro assert-style-key-casing [k]
   `(assert/assert
     (let [name# (name ~k)]
@@ -53,3 +62,10 @@
                        (str/join "-"))]
       (str "Use :" dashed# ", not " ~k))
     "Replicant passes style keys directly to `el.style.setProperty`, which expects CSS-style dash-cased property names."))
+
+(defmacro assert-no-event-attribute [k]
+  `(assert/assert
+    (not (str/starts-with? (name ~k) "on"))
+    "Set event listeners in the :on map"
+    (str "Event handler attributes are not supported. Instead of "
+         ~k " set :on {" (keyword (camel->dash (.substring (name ~k) 2))) " ,,,}")))
