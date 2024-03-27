@@ -361,6 +361,33 @@ In addition, you can use `:class`, which takes a few different values:
 The suggested value is keywords and collections of keywords. Strings will be
 split on space.
 
+## Development asserts
+
+Typos and other mistakes in your hiccup can lead to frustrating errors.
+Replicant can be instructed to report common mistakes in the browser console. In
+most cases, these warnings will automatically enabled during development, and
+disabled during production. Should you need to control this behavior, you have
+two options.
+
+### A compiler option
+
+Disable asserts by adding `:replicant/asserts? false` to your ClojureScript
+compiler options:
+
+```clj
+{:main "myns.prod"
+ :optimizations :advanced
+ :source-map true
+ :replicant/asserts? false}
+```
+
+### Using a Closure define
+
+Your second option to disable asserts is to set the `replicant/asserts?`
+[Closure
+define](https://clojurescript.org/reference/compiler-options#closure-defines) to
+`false`. Closure defines can be set several ways, see the link.
+
 ## API Reference
 
 ### `(replicant.dom/render el hiccup)`
@@ -480,9 +507,13 @@ include:
 3. Attach life-cycle hooks (used for animations, DOM manipulation, etc)
 4. Wire in cross-cutting concerns (i18n, theming, etc)
 
+#### Reusable artifacts
+
 Clojure provides the function as a mechanism for creating reusable pieces of
 logic. Components are just functions that return hiccup, e.g. something like
 `(button {,,,})` which returns the appropriate hiccup for a button.
+
+#### Short-circuiting rendering
 
 Short-circuiting rendering (e.g. something akin to React's original
 `shouldComponentUpdate`) is generally not necessary, as Replicant updates the
@@ -491,9 +522,13 @@ data to hiccup, you can use `memoize` or other more specialized tools. Since
 "components" are just functions that return hiccup, you don't need framework
 specific tooling to optimize your code.
 
+#### Life-cycle hooks
+
 Life-cycles are genuinely useful. That's why you can attach them directly to
 hiccup nodes, and Replicant will trigger them for you. You are not limited to
 placing hooks on "components" - any node in the hiccup tree can have them.
+
+#### Cross-cutting concerns
 
 Replicant does not **need** to know about cross-cutting concerns like i18n,
 theming, etc. Since the entire UI can be represented as data, you can implement
@@ -503,7 +538,8 @@ time for rendering. Replicant provides [aliases](#alias) for this purpose.
 
 ## Contribute
 
-Want to help make it fast? Awesome, please help in any way you can.
+Want to help make it fast or more resilient? Awesome, please help in any way you
+can.
 
 ## Tests
 
