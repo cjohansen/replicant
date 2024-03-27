@@ -100,7 +100,7 @@
             args (rest sexp)
             has-args? (map? (first args))
             attrs (if has-args? (first args) {})]
-        (hiccup/create (parse-tag (name sym)) attrs (if has-args? (rest args) args) ns sexp))
+        (hiccup/create (parse-tag sym) attrs (if has-args? (rest args) args) ns sexp))
       (let [s (str sexp)]
         (hiccup/create-text-node s)))))
 
