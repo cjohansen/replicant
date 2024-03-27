@@ -33,7 +33,7 @@
        (reset! current-node (hiccup/sexp ~headers)))))
 
 (defmacro assert [test title message & [hiccup]]
-  (when assert?
+  (when (assert?)
     `(when (not ~test)
        (let [fn# (:fn-name @current-context)
              fd# (:data @current-context)]
@@ -47,7 +47,7 @@
 ;; Install default reporter
 
 (defmacro configure []
-  (when assert?
+  (when (assert?)
     `(add-watch error ::default (fn [_# _# _# error#] (console/report error#)))))
 
 ;; API
