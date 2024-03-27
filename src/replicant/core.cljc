@@ -360,6 +360,7 @@
 
 (defn set-attr-val [renderer el attr v]
   (let [an (name attr)]
+    (asserts/assert-no-event-attribute attr)
     (->> (cond-> {}
            (= 0 (.indexOf an "xml:"))
            (assoc :ns xmlns)

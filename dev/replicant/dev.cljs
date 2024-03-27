@@ -65,6 +65,8 @@
 
   (d/render el [:div {:style {32 "LOL"}} "Hello"])
   (d/render el [:div {:style {:backgroundColor "LOL"}} "Hello"])
+  (d/render el [:div {:style {:onclick (fn [])}} "Not like that"])
+  (d/render el [:div {:onClick (fn [])} "Not like that"])
 
   (d/render
    el
