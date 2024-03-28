@@ -206,9 +206,18 @@
            :else (conj! coll x)))
    nil xs))
 
-(defn flatten-seqs [xs]
+(defn ^:private flatten-seqs-f* [f xs coll]
+  (reduce
+   (fn [_ x]
+     (cond (seq? x) (flatten-seqs-f* f x coll)
+           :else (conj! coll (some-> x f))))
+   nil xs))
+
+(defn flatten-seqs [f xs]
   (let [coll (transient [])]
-    (flatten-seqs* xs coll)
+    (if f
+      (flatten-seqs-f* f xs coll)
+      (flatten-seqs* xs coll))
     (persistent! coll)))
 
 (defn get-children
@@ -218,8 +227,7 @@
   [headers ns]
   (when-not (:innerHTML (hiccup/attrs headers))
     (->> (hiccup/children headers)
-         flatten-seqs
-         (mapv #(some->> % (get-hiccup-headers ns))))))
+         (flatten-seqs #(get-hiccup-headers ns %)))))
 
 (defn get-children-ks
   "Like `get-children` but returns a tuple of `[children ks]` where `ks` is a set
@@ -227,11 +235,10 @@
   [headers ns]
   (let [[children ks]
         (->> (hiccup/children headers)
-             flatten-seqs
-             (reduce (fn [[children ks] hiccup]
-                       (if hiccup
-                         (let [headers (get-hiccup-headers ns hiccup)
-                               k (hiccup/rkey headers)]
+             (flatten-seqs #(get-hiccup-headers ns %))
+             (reduce (fn [[children ks] headers]
+                       (if headers
+                         (let [k (hiccup/rkey headers)]
                            [(conj! children headers)
                             (cond-> ks k (conj! k))])
                          [(conj! children nil) ks]))
@@ -448,7 +455,7 @@
             classes (hiccup/classes headers)]
         (try
           (->> (hiccup/children headers)
-               flatten-seqs
+               (flatten-seqs nil)
                (f (cond-> (hiccup/attrs headers)
                     id (update :id #(or % id))
                     (seq classes) (update :class add-classes classes)))
