@@ -1,5 +1,7 @@
 # Replicant - A Clojure(Script) DOM rendering library
 
+[![Clojars Project](https://img.shields.io/clojars/v/no.cjohansen/replicant.svg)](https://clojars.org/no.cjohansen/replicant)
+
 Replicant turns hiccup into DOM. Over and over. Efficiently, without a single
 dependency.
 
