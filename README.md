@@ -238,7 +238,7 @@ classes `"pane mounting"` and after mount it would have only `"pane"`. Note that
 classes from the hiccup symbol are added to both mounting and mounted classes.
 
 This feature was inspired by a similar feature in
-[snabbdom](https://github.com/snabbdom/snabbdom].
+[snabbdom](https://github.com/snabbdom/snabbdom).
 
 ## innerHTML
 
