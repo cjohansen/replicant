@@ -506,11 +506,11 @@ the report, so my current workflow consists of copying the
 benchmark, e.g.:
 
 ```sh
-cp -r frameworks/keyed/replicant frameworks/keyed/replicant-20240103
-cd frameworks/keyed/replicant-20240103
+cp -r frameworks/keyed/replicant frameworks/keyed/replicant-head
+cd frameworks/keyed/replicant-head
 cp -r ~/projects/replicant/src/replicant src/.
 cd ../../../
-npm run bench keyed/replicant-20240103
+npm run bench keyed/replicant-head
 npm run results
 ```
 
