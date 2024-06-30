@@ -73,6 +73,16 @@
             [:append-child "Hello world" :to "h1"]
             [:append-child [:h1 "Hello world"] :to "body"]])))
 
+  (testing "Sets blank string attributes"
+    (is (= (-> (h/render [:option {:value ""} "Choose"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "option"]
+            [:set-attribute [:option ""] "value" nil :to ""]
+            [:create-text-node "Choose"]
+            [:append-child "Choose" :to "option"]
+            [:append-child [:option "Choose"] :to "body"]])))
+
   (testing "Removes previously set attribute when value is nil"
     (is (= (-> (h/render [:h1 {:title "Hello"} "Hello world"])
                (h/render [:h1 {:title nil} "Hello world"])
@@ -1660,5 +1670,12 @@
            {:style {:background-color "red", :transition "background-color 0.5s"},
             :replicant/mounting {:style {:background-color "blue"}},
             :replicant/unmounting {:style {:background-color "blue"}}}
-           "C"]]))
-    ))
+           "C"]])))
+
+  (testing "Does not remove margins when changing from margin to margin-bottom"
+    (is (= (-> (h/render [:div {:style {:margin "1rem"}} "foo"])
+               (h/render [:div {:style {:margin-bottom "1rem"}} "foo"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:remove-style [:div "foo"] :margin]
+            [:set-style [:div "foo"] :margin-bottom "1rem"]]))))
