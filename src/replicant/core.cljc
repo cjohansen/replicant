@@ -296,10 +296,9 @@
            details (assoc :replicant/details details))))))
 
 (defn register-hook
-  "Register the life-cycle hook from the corresponding virtual DOM node to call in
-  `impl`, if any. The only time the hook in `old` is used is when `new` is
-  `nil`, which means the node is unmounting. `details` is a vector of keywords
-  that provide some detail about why the hook is invoked."
+  "Register the life-cycle hooks from the corresponding virtual DOM node to call
+  in `impl`, if any. `details` is a vector of keywords that provide some detail
+  about why the hook is invoked."
   [{:keys [hooks]} node headers & [vdom details]]
   (let [target (if headers (hiccup/attrs headers) (vdom/attrs vdom))
         new-hooks (keep (fn [life-cycle-key]
