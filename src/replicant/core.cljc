@@ -301,16 +301,20 @@
   `nil`, which means the node is unmounting. `details` is a vector of keywords
   that provide some detail about why the hook is invoked."
   [{:keys [hooks]} node headers & [vdom details]]
-  (let [target (if headers (hiccup/attrs headers) (vdom/attrs vdom))]
-    (when-let [[k hook] (or (when-let [h (:replicant/on-render target)]
-                              [:replicant/on-render h])
-                            (when-let [h (:replicant/on-mount target)]
-                              [:replicant/on-mount h])
-                            (when-let [h (:replicant/on-unmount target)]
-                              [:replicant/on-unmount h])
-                            (when-let [h (:replicant/on-update target)]
-                              [:replicant/on-update h]))]
-      (vswap! hooks conj [hook k node (some-> headers hiccup/sexp) (some-> vdom vdom/sexp) details]))))
+  (let [target (if headers (hiccup/attrs headers) (vdom/attrs vdom))
+        new-hooks (keep (fn [life-cycle-key]
+                          (when-let [hook (life-cycle-key target)]
+                            [life-cycle-key hook]))
+                        [:replicant/on-render
+                         :replicant/on-mount
+                         :replicant/on-unmount
+                         :replicant/on-update])]
+    (when-not (empty? new-hooks)
+      (let [headers-sexp (some-> headers hiccup/sexp)
+            vdom-sexp (some-> vdom vdom/sexp)]
+        (->> new-hooks
+             (map (fn [[k hook]] [hook k node headers-sexp vdom-sexp details]))
+             (vswap! hooks into))))))
 
 (defn register-mount [{:keys [mounts]} node mounting-attrs attrs]
   (vswap! mounts conj [node mounting-attrs attrs]))
