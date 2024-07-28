@@ -141,13 +141,22 @@
   created by this function. Subsequent calls with the same `el` will update the
   rendered DOM by comparing `hiccup` to the previous `hiccup`."
   [el hiccup]
-  (when-not (contains? @state el)
-    (set! (.-innerHTML el) "")
-    (vswap! state assoc el {:renderer (create-renderer)
-                            :unmounts (volatile! #{})}))
-  (let [{:keys [renderer current unmounts]} (get @state el)
-        {:keys [vdom]} (r/reconcile renderer el hiccup current {:unmounts unmounts})]
-    (vswap! state assoc-in [el :current] vdom))
+  (let [rendering? (get-in @state [el :rendering?])]
+    (when-not (contains? @state el)
+      (set! (.-innerHTML el) "")
+      (vswap! state assoc el {:renderer (create-renderer)
+                              :unmounts (volatile! #{})
+                              :rendering? true
+                              :queue []}))
+    (if rendering?
+      (vswap! state update-in [el :queue] #(conj % hiccup))
+      (let [{:keys [renderer current unmounts]} (get @state el)
+            {:keys [vdom]} (r/reconcile renderer el hiccup current {:unmounts unmounts})]
+        (vswap! state update el merge {:current vdom
+                                       :rendering? false})
+        (when-let [pending (first (:queue (get @state el)))]
+          (js/requestAnimationFrame #(render el pending))
+          (vswap! state update-in [el :queue] #(vec (rest %)))))))
   el)
 
 (defn ^:export set-dispatch! [f]
