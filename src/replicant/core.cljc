@@ -295,7 +295,7 @@
                   :replicant/node node}
            details (assoc :replicant/details details))))))
 
-(defn register-hook
+(defn register-hooks
   "Register the life-cycle hooks from the corresponding virtual DOM node to call
   in `impl`, if any. `details` is a vector of keywords that provide some detail
   about why the hook is invoked."
@@ -445,7 +445,7 @@
                                            [(conj! children vdom) (cond-> ks k (conj! k))])
                                          [(conj! children nil) ks]))
                                      [(transient []) (transient #{})]))]
-      (register-hook impl node headers)
+      (register-hooks impl node headers)
       (when mounting-attrs
         (register-mount impl node mounting-attrs attrs))
       [node (vdom/from-hiccup headers attrs (persistent! children) (persistent! ks))])))
@@ -520,7 +520,7 @@
                   vdom)
                 (let [child (r/get-child renderer el n)]
                   (r/remove-child renderer el child)
-                  (register-hook impl child nil vdom)
+                  (register-hooks impl child nil vdom)
                   nil))]
       res)))
 
@@ -556,7 +556,7 @@
         (if (< idx n-children)
           (r/insert-before renderer el child (r/get-child renderer el idx))
           (r/append-child renderer el child))
-        (register-hook impl child (nth new-children n-idx) vdom move-node-details)
+        (register-hooks impl child (nth new-children n-idx) vdom move-node-details)
         [new-children
          (concat (take n-idx (next old-children)) [(first old-children)] (drop (unchecked-inc-int n-idx) old-children))
          n
@@ -584,7 +584,7 @@
         (when (unchanged? headers corresponding-old-vdom)
           ;; If it didn't change, reconcile* did not schedule a hook
           ;; Because the node just moved we still need the hook
-          (register-hook impl child headers corresponding-old-vdom move-node-details))
+          (register-hooks impl child headers corresponding-old-vdom move-node-details))
         [(next new-children)
          (concat (take o-idx old-children) (drop (unchecked-inc-int o-idx) old-children))
          (unchecked-inc-int n)
@@ -681,7 +681,7 @@
           (let [new-vdom (reconcile* impl el new-headers old-vdom n)
                 node-unchanged? (unchanged? new-headers old-vdom)]
             (when (and node-unchanged? (< n move-n))
-              (register-hook impl (r/get-child r el n) new-headers old-vdom move-node-details))
+              (register-hooks impl (r/get-child r el n) new-headers old-vdom move-node-details))
             (recur (next new-c) (next old-c) (unchecked-inc-int n) move-n n-children (or changed? (not node-unchanged?)) (conj! vdom new-vdom)))
 
           ;; New node did not previously exist, create it
@@ -754,7 +754,7 @@
 
              :else
              [:replicant/updated-children])
-           (register-hook impl child headers vdom))
+           (register-hooks impl child headers vdom))
       (vdom/from-hiccup headers attrs children child-ks))))
 
 (defn perform-post-mount-update [renderer [node mounting-attrs attrs]]
