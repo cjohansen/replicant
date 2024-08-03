@@ -527,7 +527,7 @@
 (def move-node-details [:replicant/move-node])
 
 (defn unchanged? [headers vdom]
-  (= (hiccup/sexp headers) (vdom/sexp vdom)))
+  (= (some-> headers hiccup/sexp) (some-> vdom vdom/sexp)))
 
 (defn ^:private move-nodes [{:keys [renderer] :as impl} el headers new-children vdom old-children n n-children]
   (let [[o-idx o-dom-idx] (if (hiccup/rkey headers)
@@ -775,7 +775,7 @@
                ;; Not strictly necessary, but it makes noop renders faster
                (if (and headers vdom (unchanged? headers (first vdom)) (= 1 (count vdom)))
                  vdom
-                 (let [k (hiccup/rkey headers)]
+                 (let [k (when headers (hiccup/rkey headers))]
                    (-> (update-children
                         impl el
                         (when headers [headers])

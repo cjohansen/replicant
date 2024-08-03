@@ -27,7 +27,7 @@
 
 (defmacro enter-node [headers]
   (when (assert?)
-    `(do
+    `(when ~headers
        (when-let [ctx# (:replicant/context (hiccup/attrs ~headers))]
          (reset! current-context ctx#))
        (reset! current-node (hiccup/sexp ~headers)))))
