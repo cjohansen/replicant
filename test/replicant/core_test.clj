@@ -1229,6 +1229,33 @@
             [:add-class [:h1 "Title"] "unmounting"]
             [:on-transition-end [:h1 "Title"]]])))
 
+  (testing "Keeps id attribute from hiccup symbol while unmounting"
+    (is (= (-> (h/render [:div
+                          [:h1 "Title"]
+                          [:p#a {:class ["mounted"]
+                                 :replicant/unmounting {:class ["unmounting"]}}
+                           "Text"]])
+               (h/render [:div [:h1 "Title"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:remove-class [:p#a "Text"] "mounted"]
+            [:add-class [:p#a "Text"] "unmounting"]
+            [:on-transition-end [:p#a "Text"]]])))
+
+  (testing "Keeps id from hiccup attribute map while unmounting"
+    (is (= (-> (h/render [:div
+                          [:h1 "Title"]
+                          [:p {:id "a"
+                               :class ["mounted"]
+                               :replicant/unmounting {:class ["unmounting"]}}
+                           "Text"]])
+               (h/render [:div [:h1 "Title"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:remove-class [:p#a "Text"] "mounted"]
+            [:add-class [:p#a "Text"] "unmounting"]
+            [:on-transition-end [:p#a "Text"]]])))
+
   (testing "Unmounts asynchronously and updates nodes"
     (is (= (-> (h/render
                 [:article

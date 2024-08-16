@@ -192,7 +192,8 @@
 
 (defn get-unmounting-attrs [vdom]
   (when (vdom/async-unmount? vdom)
-    (let [attrs (nth (vdom/sexp vdom) 1)
+    (let [headers (get-hiccup-headers (vdom/sexp vdom) nil)
+          attrs (merge (get-attrs headers) (nth (vdom/sexp vdom) 1))
           unmounting (:replicant/unmounting attrs)]
       (prep-attrs (merge-attrs attrs unmounting) nil (vdom/classes vdom)))))
 
