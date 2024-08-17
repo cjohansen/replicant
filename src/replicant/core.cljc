@@ -89,7 +89,13 @@
   quickly determine tag name and key, or sent to `get-attrs` and
   `get-children` for usable information about those things.
 
-  Returns a tuple (instead of a map) for speed."
+  Returns a tuple (instead of a map) for speed.
+
+  - `sexp` is the hiccup to parse
+
+  - `ns` is the namespace of the elements, used for SVG elements. The SVG
+  element has an explicit namespace, which needs to be set on all of its
+  children, so they can all be created with createElementNS etc."
   [sexp ns]
   (when sexp
     (if (hiccup? sexp)
