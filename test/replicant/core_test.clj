@@ -31,7 +31,37 @@
                 :style
                 :z-index
                 (sut/get-style-val :z-index))
-           "999"))))
+           "999")))
+  
+  (testing "Finds classes in hiccup symbol"
+    (is (= (->> (sut/get-hiccup-headers [:div.foo.bar] nil)
+                sut/get-attrs
+                :classes)
+           ["foo" "bar"])))
+  
+  (testing "Handles missing class in hiccup symbol when there is a non-missing class"
+    (is (= (->> (sut/get-hiccup-headers [:div.foo.] nil)
+                sut/get-attrs
+                :classes)
+           ["foo"])))
+  
+  (testing "Handles several missing classes in hiccup symbol when there is a non-missing class"
+    (is (= (->> (sut/get-hiccup-headers [:div.foo..] nil)
+                sut/get-attrs
+                :classes)
+           ["foo"])))
+  
+  (testing "Handles missing class in hiccup symbol when there are no other classes"
+    (is (= (->> (sut/get-hiccup-headers [:div.] nil)
+                sut/get-attrs
+                :classes)
+           nil)))
+  
+  (testing "Handles several missing classes in hiccup symbol when there are no other classes"
+    (is (= (->> (sut/get-hiccup-headers [:div..] nil)
+                sut/get-attrs
+                :classes)
+           nil))))
 
 (deftest render-test
   (testing "Builds nodes"
