@@ -61,6 +61,30 @@
     (is (= (->> (sut/get-hiccup-headers [:div..] nil)
                 sut/get-attrs
                 :classes)
+           nil)))
+  
+  (testing "Finds id in hiccup symbol"
+    (is (= (->> (sut/get-hiccup-headers [:div#foo] nil)
+                sut/get-attrs
+                :id)
+           "foo")))
+  
+  (testing "Handles missing id in hiccup symbol"
+    (is (= (->> (sut/get-hiccup-headers [:div#] nil)
+                sut/get-attrs
+                :id)
+           nil)))
+  
+  (testing "Handles missing id in hiccup symbol, when there's a class"
+    (is (= (->> (sut/get-hiccup-headers [:div#.foo] nil)
+                sut/get-attrs
+                :id)
+           nil)))
+  
+  (testing "Handles missing id and class in hiccup symbol"
+    (is (= (->> (sut/get-hiccup-headers [:div#.] nil)
+                sut/get-attrs
+                :id)
            nil))))
 
 (deftest render-test

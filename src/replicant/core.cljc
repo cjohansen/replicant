@@ -56,11 +56,15 @@
 
 (defn parse-tag [^String tag]
   ;; Borrowed from hiccup, and adapted to support multiple classes
-  (let [id-index (let [index (.indexOf tag "#")] (when (pos? index) index))
-        end-index (unchecked-dec-int (count tag))
-        class-index (let [index (.indexOf tag ".")] (when (and (pos? index)
-                                                               (not= end-index index)) 
-                                                      index))
+  (let [end-index (unchecked-dec-int (count tag))
+        dot-index (let [index (.indexOf tag ".")] (when (pos? index) index))
+        class-index (when (and dot-index
+                               (not= end-index dot-index)) 
+                      dot-index)
+        id-index (let [index (.indexOf tag "#")] (when (and (pos? index)
+                                                            (not= end-index index)
+                                                            (not= dot-index (unchecked-inc-int index))) 
+                                                   index))
         tag-name (cond
                    id-index (.substring tag 0 id-index)
                    class-index (.substring tag 0 class-index)
