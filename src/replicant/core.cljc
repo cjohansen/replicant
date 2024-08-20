@@ -255,10 +255,12 @@
         handler)
       (when (ifn? *dispatch*)
         (fn [e]
-          (let [rd {:replicant/trigger :replicant.trigger/dom-event
-                    :replicant/js-event e}]
-            #?(:clj (*dispatch* rd handler)
-               :cljs (*dispatch* (assoc rd :replicant/node (.-target e)) handler)))))
+          (let [node #?(:cljs (.-target e)
+                        :clj nil)
+                rd (cond-> {:replicant/trigger :replicant.trigger/dom-event
+                            :replicant/js-event e}
+                     node (assoc :replicant/node node))]
+            (*dispatch* rd handler))))
       (when (string? handler)
         ;; Strings could be inline JavaScript, so will be allowed when there is
         ;; no global event handler.
