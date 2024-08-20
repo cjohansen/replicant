@@ -223,7 +223,7 @@
                first)
            [:create-element "g" "http://www.w3.org/2000/svg"])))
 
-(testing "Re-creates unkeyed moved nodes"
+  (testing "Re-creates unkeyed moved nodes"
     (is (= (-> (h/render [:div
                           [:h1 {} "Title"]
                           [:p "Paragraph 1"]
@@ -1221,7 +1221,7 @@
                           [:h1 {:class ["mounted"]
                                 :replicant/unmounting {:class ["unmounting"]}}
                            "Title"]
-                            [:p {:replicant/key "p"} "Text"]])
+                          [:p {:replicant/key "p"} "Text"]])
                (h/render [:div [:p {:replicant/key "p"} "Text"]])
                h/get-mutation-log-events
                h/summarize)
