@@ -42,6 +42,24 @@
     (str "Style key " ~k " should be a keyword")
     "Replicant expects your style keys to be strings, or the very least something that supports `name`. Other types will not work as expected."))
 
+(defmacro assert-non-empty-id [tag]
+  `(assert/assert
+    (not (re-find #"#($|\.)" ~tag))
+    (str "Hiccup tag " ~tag " contains an empty id")
+    "Either complete the id or remove the # character."))
+
+(defmacro assert-valid-id [tag]
+  `(assert/assert
+    (not (re-find #"#[^a-zA-Z_\.]" ~tag))
+    (str "Hiccup tag " ~tag " contains an invalid id")
+    "IDs must start with a letter."))
+
+(defmacro assert-non-empty-class [tag]
+  `(assert/assert
+    (not (re-find #"\.$" ~tag))
+    (str "Hiccup tag " ~tag " contains an empty class")
+    "This may cause a DOMException and is considered a coding error. Replicant will not sacrifice performance to work around it."))
+
 (defn camel->dash [s]
   (->> s
        (re-seq #"[A-Z][a-z0-9]*|[a-z0-9]+")

@@ -55,6 +55,9 @@
        (keyword? (first sexp))))
 
 (defn parse-tag [^String tag]
+  (asserts/assert-non-empty-id tag)
+  (asserts/assert-valid-id tag)
+  (asserts/assert-non-empty-class tag)
   ;; Borrowed from hiccup, and adapted to support multiple classes
   (let [id-index (let [index (.indexOf tag "#")] (when (pos? index) index))
         class-index (let [index (.indexOf tag ".")] (when (pos? index) index))

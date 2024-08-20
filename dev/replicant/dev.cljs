@@ -8,16 +8,17 @@
    [:h1 "Watch it go!"]
    [:input {:type "text" :value "Hehe"}]
    (when square?
-     [:div {:className "some classes"
-            :style {:transition "width 0.5s, height 200ms"
-                    :width 100
-                    :height 200
-                    :background "red"
-                    :overflow "hidden"}
-            :on {:click [:some-data-for-your-handler]}
-            :replicant/mounting {:style {:width 0 :height 0}}
-            :replicant/unmounting {:style {:width 0 :height 0}}
-            }
+     [:div#3.lol.
+      {;;:className "some classes"
+       :style {:transition "width 0.5s, height 200ms"
+               :width 100
+               :height 200
+               :background "red"
+               :overflow "hidden"}
+       :on {:click [:some-data-for-your-handler]}
+       :replicant/mounting {:style {:width 0 :height 0}}
+       :replicant/unmounting {:style {:width 0 :height 0}}
+       }
       "Colored square"])
    [:p {:replicant/key "p"} (if square? "Square!" "It's gone!")]
    ])
