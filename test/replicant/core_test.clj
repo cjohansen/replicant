@@ -7,7 +7,7 @@
 
 (deftest hiccup-test
   (testing "Normalizes hiccup structure"
-    (is (= (sut/get-hiccup-headers [:h1 "Hello world"] nil)
+    (is (= (into [] (sut/get-hiccup-headers [:h1 "Hello world"] nil))
            ["h1" nil nil nil {} ["Hello world"] nil [:h1 "Hello world"] nil])))
 
   (testing "Flattens children"
