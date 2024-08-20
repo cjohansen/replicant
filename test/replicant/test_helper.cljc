@@ -39,7 +39,8 @@
   (keyword (str tag-name (when id (str "#" id)))))
 
 (defn format-element [el]
-  (if (instance? clojure.lang.Atom el)
+  (if (instance? #?(:clj clojure.lang.Atom
+                    :cljs cljs.core/Atom) el)
     (format-element @el)
     (if (:tag-name el)
       (vec (remove blank? [(get-tag-name el) (get-text el)]))

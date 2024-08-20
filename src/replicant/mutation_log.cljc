@@ -31,7 +31,8 @@
       (:children el) (update :children #(map get-snapshot %)))))
 
 (defn atom? [x]
-  #?(:clj (instance? clojure.lang.Atom x)))
+  (instance? #?(:clj clojure.lang.Atom
+                :cljs cljs.core/Atom) x))
 
 (defn log [this event]
   (swap! (:log this) conj (mapv #(if (atom? %) (get-snapshot %) %) event)))
