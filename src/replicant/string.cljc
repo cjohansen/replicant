@@ -30,7 +30,10 @@
       (str indent-s text newline)
       (let [tag-name (hiccup/tag-name headers)]
         (str indent-s
-             "<" tag-name (render-attrs (r/get-attrs headers)) ">"
+             "<" tag-name
+             (when (= "svg" tag-name)
+               (str " xmlns=\"http://www.w3.org/2000/svg\""))
+             (render-attrs (r/get-attrs headers)) ">"
              newline
              (->> (r/get-children headers (hiccup/html-ns headers))
                   (map #(render-node % {:depth (inc depth) :indent indent}))

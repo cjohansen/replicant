@@ -54,4 +54,14 @@
                 "  <p>\n"
                 "    Some text\n"
                 "  </p>\n"
-                "</div>\n")))))
+                "</div>\n"))))
+
+  (testing "Renders SVG node"
+    (is (= (sut/render
+            [:svg {:viewBox "0 0 100 100"}
+             [:g [:use {:xlink:href "#icon"}]]])
+           (str "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\">"
+                "<g>"
+                "<use xlink:href=\"#icon\"></use>"
+                "</g>"
+                "</svg>")))))
