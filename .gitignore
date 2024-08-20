@@ -5,3 +5,8 @@ dev-resources/public/domed/js
 /.lsp/
 /.clj-kondo/
 /replicant.jar
+/node_modules/
+/.cljs_node_repl/
+/out/
+/package-lock.json
+/package.json
