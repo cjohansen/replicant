@@ -8,20 +8,24 @@
     "input" "link" "meta" "param" "source" "track" "wbr"})
 
 (defn render-attrs [attrs]
-  (some->> (for [[k v] attrs]
-             (case k
-               :classes
-               (str "class=\"" (str/join " " v) "\"")
+  (some->> attrs
+           (keep (fn [[k v]]
+                   (when v
+                     (case k
+                       :classes
+                       (str "class=\"" (str/join " " v) "\"")
 
-               :style
-               (str "style=\"" (->> (keep
-                                     (fn [[prop val]]
-                                       (when val
-                                         (str (name prop) ": " val ";")))
-                                     v)
-                                    (str/join " ")) "\"")
+                       :style
+                       (str "style=\"" (->> (keep
+                                             (fn [[prop val]]
+                                               (when val
+                                                 (str (name prop) ": " val ";")))
+                                             v)
+                                            (str/join " ")) "\"")
 
-               (str (name k) "=\"" v "\"")))
+                       (str (name k)
+                            (when (and (string? v) (< 0 (count v)))
+                              (str "=\"" v "\"")))))))
            seq
            (str/join " ")
            (str " ")))

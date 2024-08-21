@@ -73,6 +73,30 @@
              "Text"])
            "<div style=\"background: yellow;\">Text</div>")))
 
+  (testing "Ignores nil classes"
+    (is (= (sut/render
+            [:div {:class [nil "lol"]}
+             "Text"])
+           "<div class=\"lol\">Text</div>")))
+
+  (testing "Ignores nil ids"
+    (is (= (sut/render
+            [:div {:id nil}
+             "Text"])
+           "<div>Text</div>")))
+
+  (testing "Renders empty string attributes"
+    (is (= (sut/render
+            [:div {:enabled ""}
+             "Text"])
+           "<div enabled>Text</div>")))
+
+  (testing "Renders boolean attributes"
+    (is (= (sut/render
+            [:div {:enabled true}
+             "Text"])
+           "<div enabled>Text</div>")))
+
   (testing "Skips nil children"
     (is (= (sut/render
             [:div nil [:div "Ok"]])
