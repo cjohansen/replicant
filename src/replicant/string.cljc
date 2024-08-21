@@ -14,8 +14,11 @@
                (str "class=\"" (str/join " " v) "\"")
 
                :style
-               (str "style=\"" (->> (for [[prop val] v]
-                                      (str (name prop) ": " val ";"))
+               (str "style=\"" (->> (keep
+                                     (fn [[prop val]]
+                                       (when val
+                                         (str (name prop) ": " val ";")))
+                                     v)
                                     (str/join " ")) "\"")
 
                (str (name k) "=\"" v "\"")))
@@ -36,7 +39,7 @@
              (render-attrs (r/get-attrs headers)) ">"
              newline
              (->> (r/get-children headers (hiccup/html-ns headers))
-                  (map #(render-node % {:depth (inc depth) :indent indent}))
+                  (keep #(some-> % (render-node {:depth (inc depth) :indent indent})))
                   str/join)
              (when-not (self-closing? tag-name)
                (str indent-s "</" tag-name ">" newline)))))))

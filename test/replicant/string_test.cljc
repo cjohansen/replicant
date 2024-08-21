@@ -64,4 +64,16 @@
                 "<g>"
                 "<use xlink:href=\"#icon\"></use>"
                 "</g>"
-                "</svg>")))))
+                "</svg>"))))
+
+  (testing "Ignores nil styles"
+    (is (= (sut/render
+            [:div {:style {:border nil
+                           :background "yellow"}}
+             "Text"])
+           "<div style=\"background: yellow;\">Text</div>")))
+
+  (testing "Skips nil children"
+    (is (= (sut/render
+            [:div nil [:div "Ok"]])
+           "<div><div>Ok</div></div>"))))
