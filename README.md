@@ -40,10 +40,11 @@ porting some large UIs to it.
 - Stateless and component-free
 - Style/class/attribute overrides during mounting and unmounting for easy
   transitions
-- Small API surface: Two functions and a few keywords
+- Small API surface: A few functions and a handful of keywords
 - Inline styles with Clojure maps
 - Class lists with Clojure collections
 - `innerHTML` support
+- Rendering to strings
 - No dependencies
 
 ## Performance
@@ -309,6 +310,12 @@ with the following keys:
 
 The second argument is the data passed to the hiccup life-cycle/event handler
 attribute.
+
+<a id="string-render"></a>
+### `(replicant.string/render hiccup & [{:keys [indent]}])`
+
+Render "replicant flavored hiccup" to a string. Optionally pass `:indent` to
+format the HTML string for human consumption.
 
 ### Keyword reference
 
