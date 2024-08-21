@@ -30,6 +30,10 @@
     (is (= (sut/render [:h1 {:style "border: 1px solid red; color: yellow"} "Red"])
            "<h1 style=\"border: 1px solid red; color: yellow;\">Red</h1>")))
 
+  (testing "Pixelizes relevant styles"
+    (is (= (sut/render [:h1 {:style {:border-width 2}} "Box"])
+           "<h1 style=\"border-width: 2px;\">Box</h1>")))
+
   (testing "Renders arbitrary attributes"
     (is (= (sut/render [:h1 {:title "Color"} "Red"])
            "<h1 title=\"Color\">Red</h1>")))

@@ -18,7 +18,7 @@
                        :style
                        (str "style=\"" (->> (keep
                                              (fn [[prop val]]
-                                               (when val
+                                               (when-let [val (r/get-style-val prop val)]
                                                  (str (name prop) ": " val ";")))
                                              v)
                                             (str/join " ")) "\"")
