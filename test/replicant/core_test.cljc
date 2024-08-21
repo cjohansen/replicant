@@ -1712,4 +1712,63 @@
                h/get-mutation-log-events
                h/summarize)
            [[:remove-style [:div "foo"] :margin]
-            [:set-style [:div "foo"] :margin-bottom "1rem"]]))))
+            [:set-style [:div "foo"] :margin-bottom "1rem"]])))
+
+  (testing "Does not destroy elements because of a newly introduced nil"
+    (is (= (-> (h/render [:div
+                          [:style ":root {}"]
+                          nil
+                          [:div {:id "main-bar" :replicant/key "main-bar-view"}]])
+               (h/render [:div
+                          [:style ":root {}"]
+                          nil
+                          nil
+                          [:div {:id "main-bar" :replicant/key "main-bar-view"}]])
+               h/get-mutation-log-events
+               h/summarize)
+           [])))
+
+  (testing "Inserts new nil and element"
+    (is (= (-> (h/render [:div
+                          [:style ":root {}"]
+                          nil
+                          [:div {:id "main-bar" :replicant/key "main-bar-view"}]])
+               (h/render [:div
+                          [:style ":root {}"]
+                          nil
+                          nil
+                          [:div "Hello"]
+                          [:div {:id "main-bar" :replicant/key "main-bar-view"}]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "div"]
+            [:create-text-node "Hello"]
+            [:append-child "Hello" :to "div"]
+            [:insert-before [:div "Hello"] [:div#main-bar ""] :in "div"]])))
+
+  (testing "Handles nils and varying number of children"
+    (is (= (-> (h/render [:div
+                          [:style ":root {}"]
+                          [:style "* {}"]
+                          nil
+                          [:div {:id "main-bar" :replicant/key "main-bar-view"}]
+                          [:div {:id "map" :replicant/key "map-view"}]
+                          nil
+                          nil
+                          nil
+                          nil])
+               (h/render [:div
+                          [:style ":root {}"]
+                          [:style "* {}"]
+                          nil
+                          nil
+                          [:div {:id "main-bar" :replicant/key "main-bar-view"}]
+                          [:div {:id "map" :replicant/key "map-view"}]
+                          nil
+                          nil
+                          nil
+                          nil
+                          nil])
+               h/get-mutation-log-events
+               h/summarize)
+           []))))

@@ -683,11 +683,13 @@
                 :else
                 (recur new-c (next old-c) n (unchecked-dec-int move-n) (unchecked-dec-int n-children) changed? vdom))))
 
-          ;; Node was removed
+          ;; Node was removed, or another nil was introduced
           new-nil?
-          (if-let [unmounting-node (remove-child impl unmounts el n old-vdom)]
-            (recur (next new-c) (next old-c) (unchecked-inc-int n) move-n n-children true (conj! vdom unmounting-node))
-            (recur (next new-c) (next old-c) n move-n (unchecked-dec-int n-children) true (conj! vdom nil)))
+          (if (contains? new-ks (vdom/rkey old-vdom))
+            (recur (next new-c) old-c n move-n n-children true vdom)
+            (if-let [unmounting-node (remove-child impl unmounts el n old-vdom)]
+              (recur (next new-c) (next old-c) (unchecked-inc-int n) move-n n-children true (conj! vdom unmounting-node))
+              (recur (next new-c) (next old-c) n move-n (unchecked-dec-int n-children) true (conj! vdom nil))))
 
           ;; It's a reusable node, reconcile
           (and old-vdom (reusable? new-headers old-vdom))
