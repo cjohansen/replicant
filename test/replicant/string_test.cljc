@@ -38,6 +38,14 @@
     (is (= (sut/render [:h1 {:title "Color"} "Red"])
            "<h1 title=\"Color\">Red</h1>")))
 
+  (testing "Ignores event handlers"
+    (is (= (sut/render [:h1 {:on {:click [:doit]}} "Hello"])
+           "<h1>Hello</h1>")))
+
+  (testing "Ignores replicant props"
+    (is (= (sut/render [:h1 {:replicant/key "key"} "Hello"])
+           "<h1>Hello</h1>")))
+
   (testing "Renders nested hiccup"
     (is (= (sut/render
             [:div

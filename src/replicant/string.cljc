@@ -8,9 +8,9 @@
     "input" "link" "meta" "param" "source" "track" "wbr"})
 
 (defn render-attrs [attrs]
-  (some->> attrs
+  (some->> (dissoc attrs :on)
            (keep (fn [[k v]]
-                   (when v
+                   (when (and v (nil? (namespace k)))
                      (case k
                        :classes
                        (str "class=\"" (str/join " " v) "\"")
