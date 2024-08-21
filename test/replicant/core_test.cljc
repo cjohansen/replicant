@@ -64,6 +64,13 @@
                h/summarize)
            [[:set-attribute [:h1 "Hello world"] "title" "Hello" :to "Hello!"]])))
 
+  (testing "Allows keyword attribute values"
+    (is (= (->> (h/render [:h1 {:lang :en} "Hello world"])
+                h/get-mutation-log-events
+                h/summarize
+                (filter (comp #{:set-attribute} first)))
+           [[:set-attribute [:h1 ""] "lang" nil :to "en"]])))
+
   (testing "Ignores nil attributes"
     (is (= (-> (h/render [:h1 {:title nil} "Hello world"])
                h/get-mutation-log-events

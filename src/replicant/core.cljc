@@ -376,7 +376,9 @@
 
            (= 0 (.indexOf an "xlink:"))
            (assoc :ns xlinkns))
-         (r/set-attribute renderer el an v))))
+         (r/set-attribute renderer el an (cond-> v
+                                           (or (keyword? v)
+                                               (symbol? v)) name)))))
 
 (defn update-attr [renderer el attr new old]
   (when-not (namespace attr)
