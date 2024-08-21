@@ -1,6 +1,7 @@
 (ns replicant.dev
   (:require [replicant.contenteditable-bug :as ceb]
-            [replicant.dom :as d]))
+            [replicant.dom :as d]
+            [replicant.nested-rendering-bug :as nrb]))
 
 (defn app [{:keys [square?] :as props}]
   [:div {:replicant/context {:fn-name "replicant.dev/app"
@@ -47,6 +48,7 @@
      (prn "OHOI!" args)))
 
   (ceb/start)
+  (nrb/start)
 
   (do
     (set! (.-innerHTML js/document.body) "<div id=\"app\"></div>")

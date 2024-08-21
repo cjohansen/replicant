@@ -150,13 +150,15 @@
                               :queue []}))
     (if rendering?
       (vswap! state update-in [el :queue] #(conj % hiccup))
-      (let [{:keys [renderer current unmounts]} (get @state el)
-            {:keys [vdom]} (r/reconcile renderer el hiccup current {:unmounts unmounts})]
-        (vswap! state update el merge {:current vdom
-                                       :rendering? false})
-        (when-let [pending (first (:queue (get @state el)))]
-          (js/requestAnimationFrame #(render el pending))
-          (vswap! state update-in [el :queue] #(vec (rest %)))))))
+      (do
+        (vswap! state assoc-in [el :rendering?] true)
+        (let [{:keys [renderer current unmounts]} (get @state el)
+              {:keys [vdom]} (r/reconcile renderer el hiccup current {:unmounts unmounts})]
+          (vswap! state update el merge {:current vdom
+                                         :rendering? false})
+          (when-let [pending (first (:queue (get @state el)))]
+            (js/requestAnimationFrame #(render el pending))
+            (vswap! state update-in [el :queue] #(vec (rest %))))))))
   el)
 
 (defn ^:export set-dispatch! [f]
