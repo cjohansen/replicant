@@ -1771,4 +1771,12 @@
                           nil])
                h/get-mutation-log-events
                h/summarize)
-           []))))
+           [])))
+
+  (testing "Handles a nil being replaced with text"
+    (is (= (-> (h/render [:li nil])
+               (h/render [:li ""])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-text-node ""]
+            [:append-child "" :to "li"]]))))

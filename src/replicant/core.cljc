@@ -449,19 +449,20 @@
           node (r/create-element renderer tag-name (when ns {:ns ns}))
           [attrs mounting-attrs] (get-mounting-attrs headers)
           _ (set-attributes renderer node (or mounting-attrs attrs))
-          [children ks] (->> (get-children headers ns)
-                             (reduce (fn [[children ks] child-headers]
-                                       (if child-headers
-                                         (let [[child-node vdom] (create-node impl child-headers)
-                                               k (vdom/rkey vdom)]
-                                           (r/append-child renderer node child-node)
-                                           [(conj! children vdom) (cond-> ks k (conj! k))])
-                                         [(conj! children nil) ks]))
-                                     [(transient []) (transient #{})]))]
+          [children ks n-children]
+          (->> (get-children headers ns)
+               (reduce (fn [[children ks n] child-headers]
+                         (if child-headers
+                           (let [[child-node vdom] (create-node impl child-headers)
+                                 k (vdom/rkey vdom)]
+                             (r/append-child renderer node child-node)
+                             [(conj! children vdom) (cond-> ks k (conj! k)) (unchecked-inc-int n)])
+                           [(conj! children nil) ks n]))
+                       [(transient []) (transient #{}) 0]))]
       (register-hooks impl node headers)
       (when mounting-attrs
         (register-mount impl node mounting-attrs attrs))
-      [node (vdom/from-hiccup headers attrs (persistent! children) (persistent! ks))])))
+      [node (vdom/from-hiccup headers attrs (persistent! children) (persistent! ks) n-children)])))
 
 (defn reusable?
   "Two elements are considered the similar enough for reuse if they are both
@@ -498,14 +499,13 @@
         "http://www.w3.org/2000/svg")))
 
 (defn ^:private insert-children [{:keys [renderer] :as impl} el children vdom]
-  (->> (reduce (fn [res child]
-                 (if child
-                   (let [[node vdom] (create-node impl child)]
-                     (r/append-child renderer el node)
-                     (conj! res vdom))
-                   (conj! res nil)))
-               vdom children)
-       persistent!))
+  (reduce (fn [[res n] child]
+            (if child
+              (let [[node vdom] (create-node impl child)]
+                (r/append-child renderer el node)
+                [(conj! res vdom) (unchecked-inc-int n)])
+              [(conj! res nil) n]))
+          [vdom 0] children))
 
 (defn remove-child [{:keys [renderer] :as impl} unmounts el n vdom]
   ;; An assigned id means the node has already started unmounting
@@ -609,14 +609,14 @@
     (r/append-child r el child)
     (r/insert-before r el child (r/get-child r el n))))
 
-(defn update-children [impl el new-children new-ks old-children old-ks]
+(defn update-children [impl el new-children new-ks old-children old-ks n-children]
   (let [r (:renderer impl)
         unmounts @(:unmounts impl)]
     (loop [new-c (seq new-children)
            old-c (seq old-children)
            n 0
            move-n 0
-           n-children (count old-children)
+           n-children (or n-children 0) ;; (count old-children)
            changed? false
            vdom (transient [])]
       (let [new-headers (first new-c)
@@ -628,28 +628,30 @@
         (cond
           ;; Both empty, we're done
           (and new-empty? old-empty?)
-          [changed? (persistent! vdom) new-ks]
+          [changed? (persistent! vdom) new-ks n-children]
 
           ;; There are old nodes where there are no new nodes: delete
           new-empty?
           (loop [children (seq old-c)
                  vdom vdom
-                 n n]
+                 n n
+                 n-children n-children]
             (cond
               (nil? children)
-              [true (persistent! vdom) new-ks]
+              [true (persistent! vdom) new-ks n-children]
 
               (nil? (first children))
-              (recur (next children) (conj! vdom nil) n)
+              (recur (next children) (conj! vdom nil) n n-children)
 
               :else
               (if-let [pending-vdom (remove-child impl unmounts el n (first children))]
-                (recur (next children) (conj! vdom pending-vdom) (unchecked-inc-int n))
-                (recur (next children) vdom n))))
+                (recur (next children) (conj! vdom pending-vdom) (unchecked-inc-int n) n-children)
+                (recur (next children) vdom n (unchecked-dec-int n-children)))))
 
           ;; There are new nodes where there were no old ones: create
           old-empty?
-          [true (insert-children impl el new-c vdom) new-ks]
+          (let [[vdom n] (insert-children impl el new-c vdom)]
+            [true (persistent! vdom) new-ks (+ n-children n)])
 
           ;; Both nodes are nil
           (and new-nil? old-nil?)
@@ -737,25 +739,26 @@
           [new-children new-ks inner-html?] (if (:innerHTML (hiccup/attrs headers))
                                               [nil nil true]
                                               (get-children-ks headers (get-ns headers)))
-          [old-children old-ks] (cond
-                                  (:contenteditable vdom-attrs)
-                                  (do
-                                    ;; If the node is contenteditable, users can
-                                    ;; modify the DOM, and we cannot trust that
-                                    ;; the DOM children still reflect the state
-                                    ;; in `vdom`. To avoid problems when
-                                    ;; updating the children, all children are
-                                    ;; cleared here, and the reconciliation
-                                    ;; proceeds as if all new children are new.
-                                    (r/remove-all-children renderer child)
-                                    [])
+          [old-children old-ks old-nc]
+          (cond
+            (:contenteditable vdom-attrs)
+            (do
+              ;; If the node is contenteditable, users can
+              ;; modify the DOM, and we cannot trust that
+              ;; the DOM children still reflect the state
+              ;; in `vdom`. To avoid problems when
+              ;; updating the children, all children are
+              ;; cleared here, and the reconciliation
+              ;; proceeds as if all new children are new.
+              (r/remove-all-children renderer child)
+              [nil nil 0])
 
-                                  inner-html?
-                                  []
+            inner-html?
+            [nil nil 0]
 
-                                  :else
-                                  [(vdom/children vdom) (vdom/child-ks vdom)])
-          [children-changed? children child-ks] (update-children impl child new-children new-ks old-children old-ks)
+            :else
+            [(vdom/children vdom) (vdom/child-ks vdom) (vdom/n-children vdom)])
+          [children-changed? children child-ks n-children] (update-children impl child new-children new-ks old-children old-ks old-nc)
           attrs-changed? (or attrs-changed?
                              (not= (:replicant/on-render (hiccup/attrs headers))
                                    (:replicant/on-render vdom-attrs)))]
@@ -770,7 +773,7 @@
              :else
              [:replicant/updated-children])
            (register-hooks impl child headers vdom))
-      (vdom/from-hiccup headers attrs children child-ks))))
+      (vdom/from-hiccup headers attrs children child-ks n-children))))
 
 (defn perform-post-mount-update [renderer [node mounting-attrs attrs]]
   (update-attributes renderer node attrs mounting-attrs))
@@ -796,8 +799,9 @@
                         (when headers [headers])
                         (cond-> #{} k (conj k))
                         vdom
-                        (set (keep #(vdom/rkey %) vdom)))
-                       ;; second, because update-children returns [changed? children]
+                        (set (keep #(vdom/rkey %) vdom))
+                        (if (first vdom) 1 0))
+                       ;; second, because update-children returns [changed? children n-children]
                        second))))
         hooks @(:hooks impl)]
     (if-let [mounts (seq @(:mounts impl))]
