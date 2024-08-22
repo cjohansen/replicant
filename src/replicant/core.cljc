@@ -677,7 +677,7 @@
               ;; It's gone!
               (cond
                 new-nil?
-                (recur (next new-c) (next old-c) n (unchecked-dec-int move-n) (unchecked-dec-int n-children) changed? vdom)
+                (recur (next new-c) (next old-c) n (unchecked-dec-int move-n) (unchecked-dec-int n-children) changed? (conj! vdom nil))
 
                 child
                 (recur (next new-c) (next old-c) (unchecked-inc-int n) move-n n-children true (conj! vdom child-vdom))

@@ -1779,4 +1779,72 @@
                h/get-mutation-log-events
                h/summarize)
            [[:create-text-node ""]
-            [:append-child "" :to "li"]]))))
+            [:append-child "" :to "li"]])))
+
+  (testing "Does not loose track of the DOM after transitioning out an element"
+    ;; This is a bit of a doozy! It recreates a bug found in the wild where
+    ;; after the banner had transitioned out, Replicant had the wrong internal
+    ;; representation of the parent div's children. This caused several elements
+    ;; to be removed from the DOM only to be rebuilt and re-added, causing a
+    ;; loss of focus in the input field. See the relevant commit for the
+    ;; associated change in the reconciliation algorithm.
+    (let [events (atom [])]
+      (binding [sut/*dispatch* (fn [e data] (swap! events conj {:e e :data data}))]
+        (-> (h/render
+             [:div {:style {:position "relative"}}
+              [:div#banner {:style {:top 0, :transition "top 0.25s"},
+                            :replicant/mounting {:style {:top "-100px"}},
+                            :replicant/unmounting {:style {:top "-100px"}}}
+               [:p "An annoying banner"]
+               [:button {:on {:click [[:ui/ax-dismiss-banner]]}} "Dismiss"]]
+              [:div]
+              [:div
+               [:form {:on {:submit [[:dom/ax-prevent-default]
+                                     [:db/ax-assoc :something/saved [:db/get :something/draft]]]}}
+                [:input#draft {:replicant/on-mount [[:db/ax-assoc :something/draft-input-element :dom/node]]
+                               :on {:input [[:db/ax-assoc :something/draft :event/target.value]]}}]]]
+              [:div
+               [:ul
+                [:li {:replicant/key "draft"} "Draft: " nil]
+                nil]]])
+            (h/render
+             [:div {:style {:position "relative"}}
+              nil
+              [:div]
+              [:div
+               [:form {:on {:submit [[:dom/ax-prevent-default]
+                                     [:db/ax-assoc :something/saved [:db/get :something/draft]]]}}
+                [:input#draft {:replicant/on-mount [[:db/ax-assoc :something/draft-input-element :dom/node]]
+                               :on {:input [[:db/ax-assoc :something/draft :event/target.value]]}}]]]
+              [:div
+               [:ul
+                [:li {:replicant/key "draft"} "Draft: " ""]
+                nil]]])
+            (h/call-callback 0)
+            (h/render
+             [:div {:style {:position "relative"}}
+              nil
+              [:div]
+              [:div
+               [:form {:on {:submit [[:dom/ax-prevent-default] [:db/ax-assoc :something/saved [:db/get :something/draft]]]}}
+                [:input#draft {:replicant/on-mount [[:db/ax-assoc :something/draft-input-element :dom/node]]
+                               :on {:input [[:db/ax-assoc :something/draft :event/target.value]]}}]]]
+              [:div
+               [:ul
+                [:li {:replicant/key "draft"} "Draft: " "l"]
+                nil]]])
+            (h/render
+             [:div {:style {:position "relative"}}
+              nil
+              [:div]
+              [:div
+               [:form {:on {:submit [[:dom/ax-prevent-default]
+                                     [:db/ax-assoc :something/saved [:db/get :something/draft]]]}}
+                [:input#draft {:replicant/on-mount [[:db/ax-assoc :something/draft-input-element :dom/node]]
+                               :on {:input [[:db/ax-assoc :something/draft :event/target.value]]}}]]]
+              [:div
+               [:ul
+                [:li {:replicant/key "draft"} "Draft: " "lo"]
+                nil]]])
+            h/get-mutation-log-events
+            h/summarize)))))
