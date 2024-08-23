@@ -24,7 +24,8 @@
                                             (str/join " ")) "\"")
 
                        (str (name k)
-                            (when (and (string? v) (< 0 (count v)))
+                            (when (or (number? v)
+                                      (and (string? v) (< 0 (count v))))
                               (str "=\"" v "\"")))))))
            seq
            (str/join " ")

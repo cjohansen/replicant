@@ -34,6 +34,10 @@
     (is (= (sut/render [:h1 {:style {:border-width 2}} "Box"])
            "<h1 style=\"border-width: 2px;\">Box</h1>")))
 
+  (testing "Renders number attributes as stringified numbers"
+    (is (= (sut/render [:img {:height 10}])
+           "<img height=\"10\">")))
+  
   (testing "Renders arbitrary attributes"
     (is (= (sut/render [:h1 {:title "Color"} "Red"])
            "<h1 title=\"Color\">Red</h1>")))
