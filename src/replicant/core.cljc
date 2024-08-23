@@ -169,14 +169,20 @@
       (str v "px"))
     v))
 
+(defn nameify-kw-vals [style]
+  (update-vals style (fn [v]
+                       (if (keyword? v)
+                         (name v)
+                         v))))
+
 (defn prep-attrs [attrs id classes]
-  (let [classes (concat (get-classes (:class attrs)) classes)
-        attrs-id (:id attrs)]
+  (let [classes (concat (get-classes (:class attrs)) classes)]
     (cond-> (dissoc attrs :class :replicant/mounting :replicant/unmounting)
+      attrs nameify-kw-vals
       id (assoc :id id)
-      attrs-id (assoc :id (name attrs-id))
       (seq classes) (assoc :classes classes)
-      (string? (:style attrs)) (update :style explode-styles))))
+      (string? (:style attrs)) (update :style explode-styles)
+      (:style attrs) (update :style nameify-kw-vals))))
 
 (defn get-attrs
   "Given `headers` as produced by `get-hiccup-headers`, returns a map of all HTML
