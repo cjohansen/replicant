@@ -170,9 +170,11 @@
     v))
 
 (defn prep-attrs [attrs id classes]
-  (let [classes (concat (get-classes (:class attrs)) classes)]
+  (let [classes (concat (get-classes (:class attrs)) classes)
+        attrs-id (:id attrs)]
     (cond-> (dissoc attrs :class :replicant/mounting :replicant/unmounting)
       id (assoc :id id)
+      attrs-id (assoc :id (name attrs-id))
       (seq classes) (assoc :classes classes)
       (string? (:style attrs)) (update :style explode-styles))))
 
