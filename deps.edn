@@ -4,6 +4,7 @@
  {:dev {:extra-paths ["dev" "test" "dev-resources"]
         :extra-deps {org.clojure/clojure {:mvn/version "1.11.1"}
                      org.clojure/clojurescript {:mvn/version "1.11.60"}
+                     org.clojure/test.check {:mvn/version "1.1.1"}
                      cider/piggieback {:mvn/version "0.5.3"}
                      com.bhauman/figwheel-main {:mvn/version "0.2.18"}
                      kaocha-noyoda/kaocha-noyoda {:mvn/version "2019-06-03"}
