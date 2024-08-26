@@ -1,6 +1,7 @@
 (ns replicant.mutation-log
   (:require [replicant.core :as d]
-            [replicant.protocols :as replicant]))
+            [replicant.protocols :as replicant]
+            [clojure.string :as str]))
 
 (declare create-renderer)
 
@@ -29,6 +30,27 @@
   (let [el (deref element)]
     (cond-> el
       (:children el) (update :children #(map get-snapshot %)))))
+
+(defn format-hiccup [h & [indent]]
+  (let [[tag attrs & children] h
+        indent (or indent 0)
+        string-content? (= 0 (count (remove string? children)))]
+    (str (str/join (repeat (* indent 2) " "))
+         "[" tag " " attrs (when-not string-content? "\n")
+         (str/join
+          (if string-content? "" "\n")
+          (for [child children]
+            (str (if (string? child)
+                   (str " " child)
+                   (format-hiccup child (inc indent))))))
+         "]")))
+
+(defn get-hiccup [element]
+  (let [el (deref element)]
+    (if-let [tag (:tag-name el)]
+      (cond-> [tag (dissoc el :tag-name :children)]
+        (:children el) (into (map get-hiccup (:children el))))
+      (:text el))))
 
 (defn atom? [x]
   (instance? #?(:clj clojure.lang.Atom
@@ -117,6 +139,11 @@
 
    `replicant/insert-before
    (fn [this el child-node reference-node]
+     (println (:tag-name @child-node)
+              (:text @(first (:children @child-node)))
+              "before"
+              (:tag-name @reference-node)
+              (:text @(first (:children @reference-node))))
      (log this [:insert-before el child-node reference-node])
      (swap! el update :children -insert-before child-node reference-node)
      (set-parent child-node el)
@@ -154,7 +181,11 @@
    `replicant/next-frame
    (fn [this f]
      (log this [:next-frame])
-     (f))})
+     (f))
+
+   `replicant/get-outer-html
+   (fn [this el]
+     (format-hiccup (get-hiccup el)))})
 
 (defn create-renderer [{:keys [log element]}]
   (with-meta

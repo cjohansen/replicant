@@ -27,4 +27,6 @@
 
   (get-child [this el idx])
 
-  (next-frame [this f]))
+  (next-frame [this f])
+
+  (get-outer-html [this el]))

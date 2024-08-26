@@ -42,7 +42,8 @@
             [replicant.asserts :as asserts]
             [replicant.hiccup :as hiccup]
             [replicant.protocols :as r]
-            [replicant.vdom :as vdom]))
+            [replicant.vdom :as vdom]
+            [clojure.string :as str]))
 
 ;; Hiccup stuff
 
@@ -605,11 +606,17 @@
          corresponding-old-vdom]))))
 
 (defn insert-node [r el child n n-children]
+  (println "INSERT" (r/get-outer-html r child))
+  (println "  in " (r/get-outer-html r el))
   (if (<= n-children n)
     (r/append-child r el child)
     (r/insert-before r el child (r/get-child r el n))))
 
 (defn update-children [impl el new-children new-ks old-children old-ks n-children]
+  (println "----")
+  (println "Update children of")
+  (println (r/get-outer-html (:renderer impl) el))
+  (println 'n-children n-children)
   (let [r (:renderer impl)
         unmounts @(:unmounts impl)]
     (loop [new-c (seq new-children)
@@ -784,6 +791,7 @@
   in `el` is in sync with `vdom` - if not, this will certainly not produce the
   desired result."
   [renderer el hiccup & [vdom {:keys [unmounts]}]]
+  (println "====")
   (let [impl {:renderer renderer
               :hooks (volatile! [])
               :mounts (volatile! [])
