@@ -711,7 +711,7 @@
           (or old-nil? (not (new-ks (vdom/rkey old-vdom))))
           (if-let [unmounting-node (remove-child impl unmounts el n old-vdom)]
             (recur new-c (next old-c) (unchecked-inc-int n) move-n n-children true (conj! vdom unmounting-node))
-            (recur new-c (next old-c) n move-n (unchecked-dec-int move-n) true vdom))
+            (recur new-c (next old-c) n move-n (unchecked-dec-int n-children) true vdom))
 
           ;; Node has moved
           :else

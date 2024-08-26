@@ -1847,4 +1847,88 @@
                 [:li {:replicant/key "draft"} "Draft: " "lo"]
                 nil]]])
             h/get-mutation-log-events
-            h/summarize)))))
+            h/summarize))))
+
+  ;; The following three tests are best understood by looking at the relevant
+  ;; code changes from the commit that introduced them. They reproduce a bug
+  ;; found in the wild.
+  (testing "Updates every other node correctly, case 1"
+    (is (= (-> (h/render
+                [:div
+                 [:div {:replicant/key "A"} "A"]
+                 [:div {:replicant/key "B1"} "B1"]
+                 [:div {:replicant/key "C"} "C"]
+                 [:div {:replicant/key "D1"} "D1"]])
+               (h/render
+                [:div
+                 [:div {:replicant/key "A"} "A"]
+                 [:div {:replicant/key "B2"} "B2"]
+                 [:div {:replicant/key "C"} "C"]
+                 [:div {:replicant/key "D2"} "D2"]
+                 ])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "div"]
+            [:create-text-node "B2"]
+            [:append-child "B2" :to "div"]
+            [:insert-before [:div "B2"] [:div "B1"] :in "div"]
+            [:remove-child [:div "B1"] :from "div"]
+            [:create-element "div"]
+            [:create-text-node "D2"]
+            [:append-child "D2" :to "div"]
+            [:insert-before [:div "D2"] [:div "D1"] :in "div"]
+            [:remove-child [:div "D1"] :from "div"]])))
+
+  (testing "Updates every other node correctly, case 2"
+    (is (= (-> (h/render
+                [:div
+                 [:div {:replicant/key "A"} "A"]
+                 [:div {:replicant/key "B1"} "B1"]
+                 [:div {:replicant/key "C"} "C"]
+                 [:div {:replicant/key "D1"} "D1"]
+                 [:div {:replicant/key "E"} "E"]])
+               (h/render
+                [:div
+                 [:div {:replicant/key "A"} "A"]
+                 [:div {:replicant/key "B2"} "B2"]
+                 [:div {:replicant/key "C"} "C"]
+                 [:div {:replicant/key "D2"} "D2"]
+                 [:div {:replicant/key "E"} "E"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "div"]
+            [:create-text-node "B2"]
+            [:append-child "B2" :to "div"]
+            [:insert-before [:div "B2"] [:div "B1"] :in "div"]
+            [:remove-child [:div "B1"] :from "div"]
+            [:create-element "div"]
+            [:create-text-node "D2"]
+            [:append-child "D2" :to "div"]
+            [:insert-before [:div "D2"] [:div "D1"] :in "div"]
+            [:remove-child [:div "D1"] :from "div"]])))
+
+  (testing "Updates every other node correctly, case 3"
+    (is (= (-> (h/render
+                [:div
+                 [:div {:replicant/key "B1"} "B1"]
+                 [:div {:replicant/key "C"} "C"]
+                 [:div {:replicant/key "D1"} "D1"]
+                 [:div {:replicant/key "E"} "E"]])
+               (h/render
+                [:div
+                 [:div {:replicant/key "B2"} "B2"]
+                 [:div {:replicant/key "C"} "C"]
+                 [:div {:replicant/key "D2"} "D2"]
+                 [:div {:replicant/key "E"} "E"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "div"]
+            [:create-text-node "B2"]
+            [:append-child "B2" :to "div"]
+            [:insert-before [:div "B2"] [:div "B1"] :in "div"]
+            [:remove-child [:div "B1"] :from "div"]
+            [:create-element "div"]
+            [:create-text-node "D2"]
+            [:append-child "D2" :to "div"]
+            [:insert-before [:div "D2"] [:div "D1"] :in "div"]
+            [:remove-child [:div "D1"] :from "div"]]))))
