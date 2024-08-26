@@ -51,7 +51,8 @@
   {`replicant/create-text-node
    (fn [this text]
      (log this [:create-text-node text])
-     (atom {:text text}))
+     (atom {:text text
+            ::id (swap! id inc)}))
 
    `replicant/create-element
    (fn [this tag-name options]
