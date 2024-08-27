@@ -72,4 +72,18 @@
       h/get-mutation-log-events
       h/summarize)
 
-  )
+  (let [a [:div
+           [:div "A"]
+           [:div "B1"]
+           [:div "C"]
+           [:div "D1"]]
+        b [:div
+           [:div "A"]
+           [:div "B2"]
+           [:div "C"]
+           [:div "D2"]]]
+    (= (-> (h/render a)
+           (h/render b)
+           h/->dom)
+       (-> (h/render b)
+           h/->dom))))
