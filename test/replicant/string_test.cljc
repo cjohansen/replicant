@@ -77,6 +77,11 @@
                 "<use xlink:href=\"#icon\"></use>"
                 "</g>"
                 "</svg>"))))
+  
+  (testing "Only generates one xmlns attribute for SVG node"
+    (is (= (sut/render
+            [:svg {:xmlns "http://www.w3.org/2000/svg"}])
+           "<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>")))
 
   (testing "Ignores nil styles"
     (is (= (sut/render
