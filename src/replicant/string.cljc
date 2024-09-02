@@ -38,9 +38,9 @@
   https://github.com/weavejester/hiccup/blob/5a6d45c17728dcbcb3aeb32ea890fd9dc1508547/src/hiccup/util.clj#L80-L88"
   [text]
   (-> text
-      (str/replace "&"  "&amp;")
-      (str/replace "<"  "&lt;")
-      (str/replace ">"  "&gt;")
+      (str/replace "&" "&amp;")
+      (str/replace "<" "&lt;")
+      (str/replace ">" "&gt;")
       (str/replace "\"" "&quot;")
       (str/replace "'" "&apos;")))
 
