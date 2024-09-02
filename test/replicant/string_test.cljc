@@ -121,4 +121,18 @@
   (testing "Skips nil children"
     (is (= (sut/render
             [:div nil [:div "Ok"]])
-           "<div><div>Ok</div></div>"))))
+           "<div><div>Ok</div></div>")))
+
+  (testing "Escapes HTML"
+    (is (= (sut/render
+            [:div "<script>alert(\"boom\")</script>"])
+           "<div>&lt;script&gt;alert(&quot;boom&quot;)&lt;/script&gt;</div>")))
+
+  (testing "Passes through raw strings"
+    (is (= (sut/render
+            [:replicant/raw-string "<script>alert(\"boom\")</script>"])
+           "<script>alert(\"boom\")</script>"))))
+
+(deftest escape-html-test
+  (is (= (sut/escape-html "<script>alert(\"boom\")</script>")
+         "&lt;script&gt;alert(&quot;boom&quot;)&lt;/script&gt;")))

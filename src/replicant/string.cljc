@@ -31,25 +31,40 @@
            (str/join " ")
            (str " ")))
 
+(defn escape-html
+  "Change special characters into HTML character entities.
+
+  Taken from Hiccup:
+  https://github.com/weavejester/hiccup/blob/5a6d45c17728dcbcb3aeb32ea890fd9dc1508547/src/hiccup/util.clj#L80-L88"
+  [text]
+  (-> text
+      (str/replace "&"  "&amp;")
+      (str/replace "<"  "&lt;")
+      (str/replace ">"  "&gt;")
+      (str/replace "\"" "&quot;")
+      (str/replace "'" "&apos;")))
+
 (defn render-node [headers & [{:keys [depth indent]}]]
   (let [indent-s (when (< 0 indent) (str/join (repeat (* depth indent) " ")))
         newline (when (< 0 indent) "\n")]
     (if-let [text (hiccup/text headers)]
-      (str indent-s text newline)
+      (str indent-s (apply str (map escape-html text)) newline)
       (let [tag-name (hiccup/tag-name headers)
             attrs (r/get-attrs headers)]
-        (str indent-s
-             "<" tag-name
-             (when (and (= "svg" tag-name)
-                        (not (:xmlns attrs)))
-               (str " xmlns=\"http://www.w3.org/2000/svg\""))
-             (render-attrs attrs) ">"
-             newline
-             (->> (r/get-children headers (hiccup/html-ns headers))
-                  (keep #(some-> % (render-node {:depth (inc depth) :indent indent})))
-                  str/join)
-             (when-not (self-closing? tag-name)
-               (str indent-s "</" tag-name ">" newline)))))))
+        (if (= :replicant/raw-string (some-> headers hiccup/sexp first))
+          (apply str indent-s (hiccup/children headers))
+          (str indent-s
+               "<" tag-name
+               (when (and (= "svg" tag-name)
+                          (not (:xmlns attrs)))
+                 (str " xmlns=\"http://www.w3.org/2000/svg\""))
+               (render-attrs attrs) ">"
+               newline
+               (->> (r/get-children headers (hiccup/html-ns headers))
+                    (keep #(some-> % (render-node {:depth (inc depth) :indent indent})))
+                    str/join)
+               (when-not (self-closing? tag-name)
+                 (str indent-s "</" tag-name ">" newline))))))))
 
 (defn render [hiccup & [{:keys [indent]}]]
   (if hiccup
