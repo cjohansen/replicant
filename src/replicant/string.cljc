@@ -50,21 +50,23 @@
     (if-let [text (hiccup/text headers)]
       (str indent-s (apply str (map escape-html text)) newline)
       (let [tag-name (hiccup/tag-name headers)
-            attrs (r/get-attrs headers)]
-        (if (= :replicant/raw-string (some-> headers hiccup/sexp first))
-          (apply str indent-s (hiccup/children headers))
-          (str indent-s
-               "<" tag-name
-               (when (and (= "svg" tag-name)
-                          (not (:xmlns attrs)))
-                 (str " xmlns=\"http://www.w3.org/2000/svg\""))
-               (render-attrs attrs) ">"
-               newline
+            attrs (r/get-attrs headers)
+            innerHTML? (contains? attrs :innerHTML)
+            rendered-attrs (when-not innerHTML? (render-attrs attrs))]
+        (str indent-s
+             "<" tag-name
+             (when (and (= "svg" tag-name)
+                        (not (:xmlns attrs)))
+               (str " xmlns=\"http://www.w3.org/2000/svg\""))
+             rendered-attrs ">"
+             newline
+             (if innerHTML?
+               (:innerHTML attrs)
                (->> (r/get-children headers (hiccup/html-ns headers))
                     (keep #(some-> % (render-node {:depth (inc depth) :indent indent})))
-                    str/join)
-               (when-not (self-closing? tag-name)
-                 (str indent-s "</" tag-name ">" newline))))))))
+                    str/join))
+             (when-not (self-closing? tag-name)
+               (str indent-s "</" tag-name ">" newline)))))))
 
 (defn render [hiccup & [{:keys [indent]}]]
   (if hiccup

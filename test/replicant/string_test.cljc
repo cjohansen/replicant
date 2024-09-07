@@ -130,8 +130,9 @@
 
   (testing "Passes through raw strings"
     (is (= (sut/render
-            [:replicant/raw-string "<script>alert(\"boom\")</script>"])
-           "<script>alert(\"boom\")</script>"))))
+            [:div {:innerHTML "<script>alert(\"boom\")</script>"}
+             "Children should be ignored when :innerHTML is set."])
+           "<div><script>alert(\"boom\")</script></div>"))))
 
 (deftest escape-html-test
   (is (= (sut/escape-html "<script>alert(\"boom\")</script>")
