@@ -52,7 +52,7 @@
       (let [tag-name (hiccup/tag-name headers)
             attrs (r/get-attrs headers)
             innerHTML (:innerHTML attrs)
-            rendered-attrs (when-not innerHTML (render-attrs attrs))]
+            rendered-attrs (render-attrs (dissoc attrs :innerHTML))]
         (str indent-s
              "<" tag-name
              (when (and (= "svg" tag-name)

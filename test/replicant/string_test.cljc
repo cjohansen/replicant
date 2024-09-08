@@ -132,7 +132,15 @@
     (is (= (sut/render
             [:div {:innerHTML "<script>alert(\"boom\")</script>"}
              "Children should be ignored when :innerHTML is set."])
-           "<div><script>alert(\"boom\")</script></div>"))))
+           "<div><script>alert(\"boom\")</script></div>")))
+
+  (testing ":innerHTML can be used together with other attributes"
+    (is (= (sut/render
+            [:div (sorted-map :innerHTML "<script>alert(\"boom\")</script>"
+                              :class "contains-script"
+                              :id "the-script-container")
+             "Children should be ignored when :innerHTML is set."])
+           "<div class=\"contains-script\" id=\"the-script-container\"><script>alert(\"boom\")</script></div>"))))
 
 (deftest escape-html-test
   (is (= (sut/escape-html "<script>alert(\"boom\")</script>")
