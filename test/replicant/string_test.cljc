@@ -121,4 +121,27 @@
   (testing "Skips nil children"
     (is (= (sut/render
             [:div nil [:div "Ok"]])
-           "<div><div>Ok</div></div>"))))
+           "<div><div>Ok</div></div>")))
+
+  (testing "Escapes HTML"
+    (is (= (sut/render
+            [:div "<script>alert(\"boom\")</script>"])
+           "<div>&lt;script&gt;alert(&quot;boom&quot;)&lt;/script&gt;</div>")))
+
+  (testing "Passes through raw strings"
+    (is (= (sut/render
+            [:div {:innerHTML "<script>alert(\"boom\")</script>"}
+             "Children should be ignored when :innerHTML is set."])
+           "<div><script>alert(\"boom\")</script></div>")))
+
+  (testing ":innerHTML can be used together with other attributes"
+    (is (= (sut/render
+            [:div (sorted-map :innerHTML "<script>alert(\"boom\")</script>"
+                              :class "contains-script"
+                              :id "the-script-container")
+             "Children should be ignored when :innerHTML is set."])
+           "<div class=\"contains-script\" id=\"the-script-container\"><script>alert(\"boom\")</script></div>"))))
+
+(deftest escape-html-test
+  (is (= (sut/escape-html "<script>alert(\"boom\")</script>")
+         "&lt;script&gt;alert(&quot;boom&quot;)&lt;/script&gt;")))
