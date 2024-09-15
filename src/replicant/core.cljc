@@ -616,7 +616,7 @@
            old-c (seq old-children)
            n 0
            move-n 0
-           n-children (or n-children 0) ;; (count old-children)
+           n-children (or n-children 0)
            changed? false
            vdom (transient [])]
       (let [new-headers (first new-c)
