@@ -368,7 +368,7 @@ Instead they have taken on the role of holistic UI frameworks: handling state
 changes, and packing on increasing amounts of features to do more and more
 things inside UI components.
 
-Replicant is a **rendering libary**. That's it. There's no state management,
+Replicant is a **rendering library**. That's it. There's no state management,
 there's no async rendering, there's no networking utilities. There's just a
 single function that renders and rerenders your hiccup to the DOM in an
 efficient manner.
