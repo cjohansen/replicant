@@ -161,5 +161,15 @@
             (vswap! state update-in [el :queue] #(vec (rest %))))))))
   el)
 
+(defn ^:export unmount
+  "Unmounts elements in `el`, and clears internal state."
+  [el]
+  (if (get-in @state [el :rendering?])
+    (js/requestAnimationFrame #(unmount el))
+    (do
+      (render el nil)
+      (vswap! state dissoc el)
+      nil)))
+
 (defn ^:export set-dispatch! [f]
   (set! r/*dispatch* f))

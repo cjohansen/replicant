@@ -290,6 +290,11 @@ Render the `hiccup` into the element `el`. Any pre-existing content not created
 by Replicant will be removed. Subsequent calls will efficiently update the
 rendered DOM elements by comparing the new and old `hiccup`.
 
+### `(replicant.dom/unmount el)`
+
+Unmounts elements rendered in `el` and clean up internal state held for this
+node.
+
 <a id="set-dispatch"></a>
 ### `(replicant.dom/set-dispatch! f)`
 
