@@ -11,22 +11,25 @@
   (some->> (dissoc attrs :on)
            (keep (fn [[k v]]
                    (when (and v (nil? (namespace k)))
-                     (case k
-                       :classes
-                       (str "class=\"" (str/join " " v) "\"")
+                     (let [v (cond-> v
+                               (keyword? v)
+                               name)]
+                       (case k
+                         :classes
+                         (str "class=\"" (str/join " " v) "\"")
 
-                       :style
-                       (str "style=\"" (->> (keep
-                                             (fn [[prop val]]
-                                               (when-let [val (r/get-style-val prop val)]
-                                                 (str (name prop) ": " val ";")))
-                                             v)
-                                            (str/join " ")) "\"")
+                         :style
+                         (str "style=\"" (->> (keep
+                                               (fn [[prop val]]
+                                                 (when-let [val (r/get-style-val prop val)]
+                                                   (str (name prop) ": " val ";")))
+                                               v)
+                                              (str/join " ")) "\"")
 
-                       (str (name k)
-                            (when (or (number? v)
-                                      (and (string? v) (< 0 (count v))))
-                              (str "=\"" v "\"")))))))
+                         (str (name k)
+                              (when (or (number? v)
+                                        (and (string? v) (< 0 (count v))))
+                                (str "=\"" v "\""))))))))
            seq
            (str/join " ")
            (str " ")))

@@ -123,6 +123,36 @@
             [:div nil [:div "Ok"]])
            "<div><div>Ok</div></div>")))
 
+  (testing "Renders keyword element attributes as strings"
+    (is (= (sut/render
+            [:div {:lang :no}
+             "Text"])
+           "<div lang=\"no\">Text</div>")))
+
+  (testing "Renders keyword element id as strings"
+    (is (= (sut/render
+            [:div {:id :foo}
+             "Text"])
+           "<div id=\"foo\">Text</div>")))
+
+  (testing "Renders keyword data- attributes as strings"
+    (is (= (sut/render
+            [:div {:data-foo :bar}
+             "Text"])
+           "<div data-foo=\"bar\">Text</div>")))
+
+  (testing "Renders keyword class attributes as strings"
+    (is (= (sut/render
+            [:div {:class :a}
+             "Text"])
+           "<div class=\"a\">Text</div>")))
+
+  (testing "Renders keyword style attributes as strings"
+    (is (= (sut/render
+            [:div {:style {:position :absolute}}
+             "Text"])
+           "<div style=\"position: absolute;\">Text</div>")))
+
   (testing "Escapes HTML"
     (is (= (sut/render
             [:div "<script>alert(\"boom\")</script>"])

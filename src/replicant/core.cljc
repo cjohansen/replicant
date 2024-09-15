@@ -163,11 +163,16 @@
        (into {})))
 
 (defn get-style-val [attr v]
-  (if (number? v)
+  (cond
+    (number? v)
     (if (skip-pixelize-attrs attr)
       (str v)
       (str v "px"))
-    v))
+
+    (keyword? v)
+    (name v)
+
+    :else v))
 
 (defn prep-attrs [attrs id classes]
   (let [classes (concat (get-classes (:class attrs)) classes)]
