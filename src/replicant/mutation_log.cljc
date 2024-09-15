@@ -4,17 +4,32 @@
 
 (declare create-renderer)
 
+(defn ->hiccup [element]
+  (when-let [el (some-> element deref)]
+    (if-let [tag-name (:tag-name el)]
+      (into [(keyword tag-name)]
+            (if-let [inner-html (get el "innerHTML")]
+              [inner-html]
+              (map ->hiccup (:children el))))
+      (:text el))))
+
 (defn -insert-before [children child reference]
   (let [idx (.indexOf children reference)]
     (concat (remove #{child} (take idx children))
             [child]
             (remove #{child} (drop idx children)))))
 
+(defn replace-by [xs f new replace]
+  (let [replace-v (f replace)]
+    (for [x xs]
+      (if (= (f x) replace-v)
+        new
+        x))))
+
 (defn -replace-child [element insert-child replace-child]
-  (if-let [id (::id @replace-child)]
-    (update element :children #(conj (vec (remove (comp #{id} ::id deref) %)) insert-child))
-    (let [to-remove #{@replace-child}]
-      (update element :children #(conj (vec (remove (comp to-remove deref) %)) insert-child)))))
+  (if (::id @replace-child)
+    (update element :children replace-by #(::id @%) insert-child replace-child)
+    (update element :children replace-by deref insert-child replace-child)))
 
 (defn -get-child [el idx]
   (-> @el :children (nth idx)))

@@ -1931,4 +1931,13 @@
             [:create-text-node "D2"]
             [:append-child "D2" :to "div"]
             [:insert-before [:div "D2"] [:div "D1"] :in "div"]
-            [:remove-child [:div "D1"] :from "div"]]))))
+            [:remove-child [:div "D1"] :from "div"]])))
+
+  (testing "Updates text nodes properly"
+    (is (= (-> (h/render [:span {} "0" "0"])
+               (h/render [:span {} "1"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-text-node "1"]
+            [:replace-child "1" "0"]
+            [:remove-child "0" :from "span"]]))))

@@ -39,51 +39,76 @@
 (def gen-hiccup
   (gen/recursive-gen hiccup* string-alphanumeric-nonempty))
 
+(defn verify-indenpendent-rendering-order
+  "Rendering b directly, or rendering b after first rendering a should both
+  produce the same final DOM structure. Returns true when that is the case."
+  [a b]
+  (= (-> (h/render a)
+         (h/render b)
+         h/->dom)
+     (-> (h/render b)
+         h/->dom)))
+
 (def incremental-renders-are-as-good-as-initial-renders
   (prop/for-all [a gen-hiccup
                  b gen-hiccup]
-   ;; Rendering b directly, or rendering b after first rendering a
-   ;; should both produce the same final DOM structure.
-   (= (-> (h/render a)
-          (h/render b)
-          h/->dom)
-      (-> (h/render b)
-          h/->dom))))
+   (verify-indenpendent-rendering-order a b)))
 
 (defspec compare-incremental-renders-to-initial-renders 10000
   incremental-renders-are-as-good-as-initial-renders)
 
+(def sample-nodes #{[:div "A"]
+                    [:div {:replicant/key "A"} "A"]
+                    [:div "B"]
+                    [:div {:replicant/key "B"} "B"]
+                    [:div "C"]
+                    [:div {:replicant/key "C"} "C"]
+                    [:div "D"]
+                    [:div {:replicant/key "D"} "D"]
+                    [:div "E"]
+                    [:div {:replicant/key "E"} "E"]
+                    "Text A"
+                    "Text B"
+                    "Text C"
+                    "Text D"
+                    "Text E"})
+
+(def gen-similar-hiccup
+  (gen/let [children (gen/fmap set (gen/vector-distinct (gen/elements (vec sample-nodes))))]
+    (into [:div] children)))
+
+(def incremental-renders-are-as-good-as-initial-renders-for-similar-hiccup
+  ;; This property uses a generator that is less random, increasing the chance
+  ;; of reuse across the two hiccups.
+  (prop/for-all [a gen-similar-hiccup
+                 b gen-similar-hiccup]
+    (verify-indenpendent-rendering-order a b)))
+
+(defspec compare-incremental-renders-to-initial-renders-for-similar-hiccup 10000
+  incremental-renders-are-as-good-as-initial-renders-for-similar-hiccup)
+
 (comment
 
-   (tc/quick-check 100000 incremental-renders-are-as-good-as-initial-renders)
+  (tc/quick-check 100000 incremental-renders-are-as-good-as-initial-renders)
+  (tc/quick-check 100000 incremental-renders-are-as-good-as-initial-renders-for-similar-hiccup)
 
    (do
-     (def a [:p {} "0" "0"])
-     (def b [:p {} "1"])
+     (def a [:span {} "0" "0"])
+     (def b [:span {} "1"])
 
-     [(-> (h/render a)
-          (h/render b)
-          h/->dom)
-      (-> (h/render b)
-          h/->dom)])
+     (def res-a (-> (h/render a)
+                    (h/render b)
+                    h/->dom))
+
+     (def res-b (-> (h/render b)
+                    h/->dom))
+
+     (prn res-a)
+     (println "vs")
+     (prn res-b))
 
   (-> (h/render a)
       (h/render b)
       h/get-mutation-log-events
       h/summarize)
-
-  (let [a [:div
-           [:div "A"]
-           [:div "B1"]
-           [:div "C"]
-           [:div "D1"]]
-        b [:div
-           [:div "A"]
-           [:div "B2"]
-           [:div "C"]
-           [:div "D2"]]]
-    (= (-> (h/render a)
-           (h/render b)
-           h/->dom)
-       (-> (h/render b)
-           h/->dom))))
+)
