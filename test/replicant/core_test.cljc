@@ -702,6 +702,18 @@
                h/summarize)
            [[:remove-event-handler [:h1 "Hi!"] :click]])))
 
+  (testing "Dispatches data handler globally, with backwards compatible name for event"
+    (is (= (binding [sut/*dispatch* (fn [& args] args)]
+             (let [f (->> (h/render [:h1 {:on {:click [:h1 "Data"]}} "Hi!"])
+                          h/get-mutation-log-events
+                          (filter (comp #{:set-event-handler} first))
+                          first
+                          last)]
+               (f {:dom :event})))
+           [{:replicant/trigger :replicant.trigger/dom-event
+             :replicant/js-event {:dom :event}}
+            [:h1 "Data"]])))
+
   (testing "Dispatches data handler globally"
     (is (= (binding [sut/*dispatch* (fn [& args] args)]
              (let [f (->> (h/render [:h1 {:on {:click [:h1 "Data"]}} "Hi!"])
@@ -711,7 +723,7 @@
                           last)]
                (f {:dom :event})))
            [{:replicant/trigger :replicant.trigger/dom-event
-             :replicant/js-event {:dom :event}} 
+             :replicant/dom-event {:dom :event}}
             [:h1 "Data"]])))
 
   (testing "Does not re-add current event handler"

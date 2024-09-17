@@ -87,7 +87,7 @@ In the above example, the first argument `replicant-data` is a map with
 information about the event from Replicant. Specifically, it contains the keys:
 
 - `:replicant/trigger`, which will have the value `:replicant.trigger/dom-event`,
-- `:replicant/js-event`, which will contain a reference to the DOM event object, and
+- `:replicant/dom-event`, which will contain a reference to the DOM event object, and
 - `:replicant/node`, which will contain a reference to the DOM node the event occurred in.
 
 The second argument `handler-data` is data from the hiccup element, e.g.
@@ -306,7 +306,7 @@ with the following keys:
 - `:replicant/trigger` Either `:replicant.trigger/dom-event` or
   `:replicant.trigger/life-cycle`
 - `:replicant/node` The triggering node
-- `:replicant/js-event` the JavaScript event object, when the trigger is
+- `:replicant/dom-event` the JavaScript event object, when the trigger is
   `:replicant.trigger/dom-event`
 - `:replicant/details` A vector of keywords indicating what caused the
   life-cycle hook when the trigger is `:replicant.trigger/life-cycle`. One or
@@ -346,7 +346,7 @@ Keywords used with [hook and event handler dispatch](#set-dispatch):
 - `:replicant/trigger`
 - `:replicant.trigger/dom-event`
 - `:replicant.trigger/life-cycle`
-- `:replicant/js-event`
+- `:replicant/dom-event`
 - `:replicant/node`
 - `:replicant.life-cycle/mount`
 - `:replicant.life-cycle/unmount`

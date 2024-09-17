@@ -266,7 +266,8 @@
           (let [node #?(:cljs (.-target e)
                         :clj nil)
                 rd (cond-> {:replicant/trigger :replicant.trigger/dom-event
-                            :replicant/js-event e}
+                            :replicant/js-event e ;; Backwards compatibility
+                            :replicant/dom-event e}
                      node (assoc :replicant/node node))]
             (*dispatch* rd handler))))
       (when (string? handler)
