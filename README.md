@@ -393,9 +393,9 @@ logic. Components are just functions that return hiccup, e.g. something like
 `(button {,,,})` which returns the appropriate hiccup for a button.
 
 Short-circuiting rendering (e.g. something akin to React's original
-`shouldComponentUpdate`) is generally not necessary, as Replicant is already
-efficient enough. Should you have some heavy transformations from domain data to
-hiccup, you can use `memoize` or other more specialized tools. Since
+`shouldComponentUpdate`) is generally not necessary, as Replicant updates the
+DOM very efficiently. Should you have some heavy transformations from domain
+data to hiccup, you can use `memoize` or other more specialized tools. Since
 "components" are just functions that return hiccup, you don't need framework
 specific tooling to optimize your code.
 
