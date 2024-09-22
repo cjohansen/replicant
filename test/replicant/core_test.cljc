@@ -7,18 +7,18 @@
 
 (deftest hiccup-test
   (testing "Normalizes hiccup structure"
-    (is (= (into [] (sut/get-hiccup-headers [:h1 "Hello world"] nil))
-           ["h1" nil nil nil {} ["Hello world"] nil [:h1 "Hello world"] nil])))
+    (is (= (into [] (sut/get-hiccup-headers nil [:h1 "Hello world"]))
+           ["h1" nil nil nil {} ["Hello world"] nil [:h1 "Hello world"] nil "h1" nil])))
 
   (testing "Flattens children"
-    (is (= (-> (sut/get-hiccup-headers [:h1 (list (list "Hello world"))] nil)
+    (is (= (-> (sut/get-hiccup-headers nil [:h1 (list (list "Hello world"))])
                (sut/get-children nil)
                first
                hiccup/text)
            "Hello world")))
 
   (testing "Pixelizes styles"
-    (is (= (->> (sut/get-hiccup-headers [:div {:style {:height 450}}] nil)
+    (is (= (->> (sut/get-hiccup-headers nil [:div {:style {:height 450}}])
                 sut/get-attrs
                 :style
                 :height
@@ -26,7 +26,7 @@
            "450px")))
 
   (testing "Doesn't pixelize all styles"
-    (is (= (->> (sut/get-hiccup-headers [:div {:style {:z-index 999}}] nil)
+    (is (= (->> (sut/get-hiccup-headers nil [:div {:style {:z-index 999}}])
                 sut/get-attrs
                 :style
                 :z-index

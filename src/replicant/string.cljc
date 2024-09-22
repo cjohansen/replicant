@@ -70,5 +70,5 @@
 
 (defn render [hiccup & [{:keys [indent]}]]
   (if hiccup
-    (render-node (r/get-hiccup-headers hiccup nil) {:indent (or indent 0) :depth 0})
+    (render-node (r/get-hiccup-headers nil hiccup) {:indent (or indent 0) :depth 0})
     ""))

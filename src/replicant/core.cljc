@@ -99,7 +99,7 @@
   - `ns` is the namespace of the elements, used for SVG elements. The SVG
   element has an explicit namespace, which needs to be set on all of its
   children, so they can all be created with createElementNS etc."
-  [sexp ns]
+  [ns sexp]
   (when sexp
     (if (hiccup? sexp)
       (let [sym (first sexp)
@@ -230,7 +230,7 @@
   (when-not (:innerHTML (hiccup/attrs headers))
     (->> (hiccup/children headers)
          flatten-seqs
-         (mapv #(some-> % (get-hiccup-headers ns))))))
+         (mapv #(some->> % (get-hiccup-headers ns))))))
 
 (defn get-children-ks
   "Like `get-children` but returns a tuple of `[children ks]` where `ks` is a set
@@ -241,7 +241,7 @@
              flatten-seqs
              (reduce (fn [[children ks] hiccup]
                        (if hiccup
-                         (let [headers (get-hiccup-headers hiccup ns)
+                         (let [headers (get-hiccup-headers ns hiccup)
                                k (hiccup/rkey headers)]
                            [(conj! children headers)
                             (cond-> ks k (conj! k))])
@@ -794,7 +794,7 @@
               :hooks (volatile! [])
               :mounts (volatile! [])
               :unmounts (or unmounts (volatile! #{}))}
-        vdom (let [headers (get-hiccup-headers hiccup nil)]
+        vdom (let [headers (get-hiccup-headers nil hiccup)]
                (assert/enter-node headers)
                ;; Not strictly necessary, but it makes noop renders faster
                (if (and headers vdom (unchanged? headers (first vdom)) (= 1 (count vdom)))
