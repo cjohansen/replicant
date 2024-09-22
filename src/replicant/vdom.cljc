@@ -44,17 +44,21 @@
 
 (defmacro mark-unmounting [vdom]
   (if (:ns &env)
-    `(do
-       (aset ~vdom 9 (vswap! id inc))
-       ~vdom)
+    `(let [vdom# ~vdom]
+       (aset vdom# 9 (vswap! id inc))
+       vdom#)
     `(assoc ~vdom 9 (vswap! id inc))))
 
 (defmacro create-text-node [text]
   (if (:ns &env)
-    `(js/Array. nil nil nil nil nil nil false ~text ~text nil)
-    `[nil nil nil nil nil nil false ~text ~text nil]))
+    `(let [text# ~text]
+       (js/Array. nil nil nil nil nil nil false text# text#))
+    `(let [text# ~text]
+       [nil nil nil nil nil nil false text# text#])))
 
 (defmacro from-hiccup [headers attrs children children-ks n-children]
   (if (:ns &env)
-    `(js/Array. (h/tag-name ~headers) (h/rkey ~headers) (h/classes ~headers) ~attrs ~children ~children-ks (boolean (:replicant/unmounting (h/attrs ~headers))) (h/sexp ~headers) nil nil ~n-children)
-    `[(h/tag-name ~headers) (h/rkey ~headers) (h/classes ~headers) ~attrs ~children ~children-ks (boolean (:replicant/unmounting (h/attrs ~headers))) (h/sexp ~headers) nil nil ~n-children]))
+    `(let [headers# ~headers]
+       (js/Array. (h/tag-name headers#) (h/rkey headers#) (h/classes headers#) ~attrs ~children ~children-ks (boolean (:replicant/unmounting (h/attrs headers#))) (h/sexp headers#) nil nil ~n-children))
+    `(let [headers# ~headers]
+       [(h/tag-name headers#) (h/rkey headers#) (h/classes headers#) ~attrs ~children ~children-ks (boolean (:replicant/unmounting (h/attrs headers#))) (h/sexp headers#) nil nil ~n-children])))
