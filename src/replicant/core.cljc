@@ -471,9 +471,9 @@
       [node (vdom/from-hiccup headers attrs (persistent! children) (persistent! ks) n-children)])))
 
 (defn reusable?
-  "Two elements are considered the similar enough for reuse if they are both
-  hiccup elements with the same tag name and the same key (or both have no key)
-  - or they are both strings.
+  "Two elements are considered similar enough for reuse if they are both hiccup
+  elements with the same tag name and the same key (or both have no key) - or
+  they are both strings.
 
   Similarity in this case indicates that the node can be used for reconciliation
   instead of creating a new node from scratch."
