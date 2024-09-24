@@ -30,7 +30,8 @@
 (defmacro enter-node [headers]
   (when (assert?)
     `(when ~headers
-       (when-let [ctx# (:replicant/context (hiccup/attrs ~headers))]
+       (when-let [ctx# (or (:replicant/context (hiccup/attrs ~headers))
+                           (:replicant/context (meta (hiccup/sexp ~headers))))]
          (reset! current-context ctx#))
        (reset! current-node (hiccup/sexp ~headers)))))
 
@@ -38,12 +39,14 @@
   (when (assert?)
     `(when (not ~test)
        (let [fn# (:fn-name @current-context)
+             alias# (:alias @current-context)
              fd# (:data @current-context)]
          (reset! error
           (cond-> {:title ~title
                    :message ~message
                    :hiccup (or ~hiccup @current-node)}
             fn# (assoc :fname fn#)
+            alias# (assoc :alias alias#)
             fd# (assoc :data fd#)))))))
 
 ;; Install default reporter

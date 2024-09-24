@@ -34,11 +34,13 @@
       scrubbed
       (conj (vec (take 2 scrubbed)) '...))))
 
-(defn report [{:keys [title message hiccup fname data]}]
+(defn report [{:keys [title message hiccup fname alias data]}]
   (print-heading (str "Replicant warning: " title))
   (log message)
   (when fname
     (log (str "Function: " fname)))
+  (when alias
+    (log (str "Alias: " alias)))
   (when data
     (let [formatted (pprstr data)]
       (if (< (count formatted) 80)
