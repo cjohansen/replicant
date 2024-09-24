@@ -1,0 +1,2 @@
+{:linters {:replicant/alias {:level :warning}}
+ :hooks {:analyze-call {replicant.alias/defalias replicant.defalias/defalias}}}
