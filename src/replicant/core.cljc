@@ -485,6 +485,7 @@
   life-cycle hooks from the new node or its descendants in `impl`. Returns a
   tuple of the newly created node and the fully realized vdom."
   [{:keys [renderer] :as impl} headers]
+  (assert/enter-node headers)
   (or
    (when-let [text (hiccup/text headers)]
      [(r/create-text-node renderer text)
