@@ -6,6 +6,7 @@
                      org.clojure/clojurescript {:mvn/version "1.11.60"}
                      org.clojure/test.check {:mvn/version "1.1.1"}
                      cider/piggieback {:mvn/version "0.5.3"}
+                     clj-kondo/clj-kondo {:mvn/version "2024.02.12"}
                      com.bhauman/figwheel-main {:mvn/version "0.2.18"}
                      kaocha-noyoda/kaocha-noyoda {:mvn/version "2019-06-03"}
                      lambdaisland/kaocha {:mvn/version "1.87.1366"}
