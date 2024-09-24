@@ -40,7 +40,8 @@ porting some large UIs to it.
 - Stateless and component-free
 - Style/class/attribute overrides during mounting and unmounting for easy
   transitions
-- Small API surface: A few functions and a handful of keywords
+- Alias elements
+- Small API surface
 - Inline styles with Clojure maps
 - Class lists with Clojure collections
 - `innerHTML` support
@@ -278,6 +279,77 @@ These set the initial value (e.g. with `setAttribute`), but will allow for
 overrides from user input. Changing the `:default-value` on an element after it
 has received user input will have no effect.
 
+<a id="alias"></a>
+## Element aliases
+
+You can use namespaced tag names in your hiccup that will be expanded by a
+custom function. These are called aliases (following
+[chassis'](https://github.com/onionpancakes/chassis) lead). Element aliases can
+be used to perform "just in time inflation" from data to hiccup, while still
+being able to represent your entire UI as serializable data. Aliases are only
+expanded when Replicant needs to update the rendered DOM. This means that
+aliases can improve performance by performing certain transformations only when
+strictly needed.
+
+Element aliases can be used for a variety of reasons:
+
+- Hide volatile details in the document structure (inline styles, classes, extra
+  divs, etc)
+- Integrate cross-cutting concerns such as i18n, theming, etc
+- Any other useful reasons you might have
+
+An example is worth several words:
+
+```clj
+;; I18n
+(def dictionaries
+  {:nb
+   {:title "Min webside"
+    :hello "Hei på deg!"
+    :click "Klikk knappen"}
+
+   :en
+   {:title "My webpage"
+    :hello "Hello world!"
+    :click "Click the button"}})
+
+(defn lookup-i18n [dictionary _attrs [k]]
+  (get dictionary k))
+
+;; A function that adds a bunch of tailwind classes to the markup
+(defn button [{:keys [actions spinner? subtle?] :as btn} [text]]
+  [:button.btn.max-sm:btn-block
+   (cond-> (dissoc btn :spinner? :actions :subtle?)
+     actions (assoc-in [:on :click] actions)
+     subtle? (assoc :class "btn-neutral")
+     (not subtle?) (assoc :class "btn-primary"))
+   (when spinner?
+     [:span.loading.loading-spinner])
+   text])
+
+;; Function to turn domain data into hiccup
+(defn app [{:keys [locale]}]
+  [:div {:replicant/key locale}
+   [:h1 [:i18n/k :title]]
+   [:p [:i18n/k :hello]]
+   [:ui/button {:actions [[:do-stuff]]}
+    [:i18n/k :click]]])
+
+;; Render
+(defn render-app [state]
+  (d/render
+   el
+   (app state)
+   {:aliases {:i18n/k (partial lookup-i18n (dictionaries (:locale state)))
+              :ui/button button}}))
+
+;; Render in english
+(render-app {:locale :en})
+
+;; ...or Norwegian
+(render-app {:locale :nb})
+```
+
 ## Differences from hiccup
 
 Replicant has a more liberal understanding of hiccup data than the main hiccup
@@ -430,11 +502,9 @@ placing hooks on "components" - any node in the hiccup tree can have them.
 
 Replicant does not **need** to know about cross-cutting concerns like i18n,
 theming, etc. Since the entire UI can be represented as data, you can implement
-concerns like these with pure data transformations. However, there are speed
-gains to be had if you can postpone such transformations to just in time for
-rendering, which is why Replicant will eventually provide a hook for this. The
-hook will be a global one, and does not necessitate a bespoke component
-abstraction.
+concerns like these with pure data transformations. However, there are
+performance gains to be had if you can postpone such transformations to just in
+time for rendering. Replicant provides [aliases](#alias) for this purpose.
 
 ## Contribute
 

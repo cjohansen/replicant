@@ -54,17 +54,20 @@
        (not (map-entry? sexp))
        (keyword? (first sexp))))
 
-(defn parse-tag [^String tag]
+(defn parse-tag [^clojure.lang.Keyword tag]
   (asserts/assert-non-empty-id tag)
   (asserts/assert-valid-id tag)
   (asserts/assert-non-empty-class tag)
   ;; Borrowed from hiccup, and adapted to support multiple classes
-  (let [id-index (let [index (.indexOf tag "#")] (when (pos? index) index))
+  (let [ns ^String (namespace tag)
+        tag ^String (name tag)
+        id-index (let [index (.indexOf tag "#")] (when (pos? index) index))
         class-index (let [index (.indexOf tag ".")] (when (pos? index) index))
-        tag-name (cond
-                   id-index (.substring tag 0 id-index)
-                   class-index (.substring tag 0 class-index)
-                   :else tag)
+        tag-name (cond->> (cond
+                            id-index (.substring tag 0 id-index)
+                            class-index (.substring tag 0 class-index)
+                            :else tag)
+                   ns (keyword ns))
         id (when id-index
              (if class-index
                (.substring tag (unchecked-inc-int id-index) class-index)
@@ -106,9 +109,8 @@
             args (rest sexp)
             has-args? (map? (first args))
             attrs (if has-args? (first args) {})]
-        (hiccup/create (parse-tag (name sym)) attrs (if has-args? (rest args) args) ns sexp))
-      (let [s (str sexp)]
-        (hiccup/create-text-node s)))))
+        (hiccup/create (parse-tag sym) attrs (if has-args? (rest args) args) ns sexp))
+      (hiccup/create-text-node (str sexp)))))
 
 (defn get-classes [classes]
   (cond
@@ -440,35 +442,78 @@
        (filter new-attrs)
        (run! #(set-attr renderer el % new-attrs))))
 
+(defn render-default-alias [tag-name _attrs children]
+  [:div
+   {:data-replicant-error (str "Undefined alias " tag-name)}
+   (for [child children]
+     (cond-> child
+       (not (string? child)) pr-str))])
+
+(defn add-classes [class-attr classes]
+  (cond
+    (coll? class-attr)
+    (concat class-attr classes)
+
+    (nil? class-attr)
+    classes
+
+    :else (cons class-attr classes)))
+
+(defn get-alias-headers [{:keys [aliases]} headers]
+  (let [tag-name (hiccup/tag-name headers)]
+    (when (keyword? tag-name)
+      (let [f (or (get aliases tag-name) (partial render-default-alias tag-name))
+            id (hiccup/id headers)
+            classes (hiccup/classes headers)]
+        (try
+          (->> (hiccup/children headers)
+               flatten-seqs
+               (f (cond-> (hiccup/attrs headers)
+                    id (update :id #(or % id))
+                    (seq classes) (update :class add-classes classes)))
+               (get-hiccup-headers nil)
+               (hiccup/from-alias tag-name headers))
+          (catch #?(:clj Exception :cljs :default) e
+            (->> [:div {:data-replicant-error "Alias threw exception"
+                        :data-replicant-exception #?(:clj (.getMessage e)
+                                                     :cljs (.-message e))
+                        :data-replicant-sexp (pr-str (hiccup/sexp headers))}]
+                 (get-hiccup-headers nil))))))))
+
 (defn create-node
   "Create DOM node according to virtual DOM in `headers`. Register relevant
   life-cycle hooks from the new node or its descendants in `impl`. Returns a
   tuple of the newly created node and the fully realized vdom."
   [{:keys [renderer] :as impl} headers]
-  (if-let [text (hiccup/text headers)]
-    [(r/create-text-node renderer text)
-     (vdom/create-text-node text)]
-    (let [tag-name (hiccup/tag-name headers)
-          ns (or (hiccup/html-ns headers)
-                 (when (= "svg" tag-name)
-                   "http://www.w3.org/2000/svg"))
-          node (r/create-element renderer tag-name (when ns {:ns ns}))
-          [attrs mounting-attrs] (get-mounting-attrs headers)
-          _ (set-attributes renderer node (or mounting-attrs attrs))
-          [children ks n-children]
-          (->> (get-children headers ns)
-               (reduce (fn [[children ks n] child-headers]
-                         (if child-headers
-                           (let [[child-node vdom] (create-node impl child-headers)
-                                 k (vdom/rkey vdom)]
-                             (r/append-child renderer node child-node)
-                             [(conj! children vdom) (cond-> ks k (conj! k)) (unchecked-inc-int n)])
-                           [(conj! children nil) ks n]))
-                       [(transient []) (transient #{}) 0]))]
-      (register-hooks impl node headers)
-      (when mounting-attrs
-        (register-mount impl node mounting-attrs attrs))
-      [node (vdom/from-hiccup headers attrs (persistent! children) (persistent! ks) n-children)])))
+  (or
+   (when-let [text (hiccup/text headers)]
+     [(r/create-text-node renderer text)
+      (vdom/create-text-node text)])
+
+   (some->> (get-alias-headers impl headers)
+            (create-node impl))
+
+   (let [tag-name (hiccup/tag-name headers)
+         ns (or (hiccup/html-ns headers)
+                (when (= "svg" tag-name)
+                  "http://www.w3.org/2000/svg"))
+         node (r/create-element renderer tag-name (when ns {:ns ns}))
+         [attrs mounting-attrs] (get-mounting-attrs headers)
+         _ (set-attributes renderer node (or mounting-attrs attrs))
+         [children ks n-children]
+         (->> (get-children headers ns)
+              (reduce (fn [[children ks n] child-headers]
+                        (if child-headers
+                          (let [[child-node vdom] (create-node impl child-headers)
+                                k (vdom/rkey vdom)]
+                            (r/append-child renderer node child-node)
+                            [(conj! children vdom) (cond-> ks k (conj! k)) (unchecked-inc-int n)])
+                          [(conj! children nil) ks n]))
+                      [(transient []) (transient #{}) 0]))]
+     (register-hooks impl node headers)
+     (when mounting-attrs
+       (register-mount impl node mounting-attrs attrs))
+     [node (vdom/from-hiccup headers attrs (persistent! children) (persistent! ks) n-children)])))
 
 (defn reusable?
   "Two elements are considered similar enough for reuse if they are both hiccup
@@ -480,11 +525,11 @@
   [headers vdom]
   (or (and (hiccup/text headers) (vdom/text vdom))
       (and (= (hiccup/rkey headers) (vdom/rkey vdom))
-           (= (hiccup/tag-name headers) (vdom/tag-name vdom)))))
+           (= (hiccup/ident headers) (vdom/ident vdom)))))
 
 (defn same? [headers vdom]
   (and (= (hiccup/rkey headers) (vdom/rkey vdom))
-       (= (hiccup/tag-name headers) (vdom/tag-name vdom))))
+       (= (hiccup/ident headers) (vdom/ident vdom))))
 
 ;; reconcile* and update-children are mutually recursive
 (declare reconcile*)
@@ -546,7 +591,7 @@
 (def move-node-details [:replicant/move-node])
 
 (defn unchanged? [headers vdom]
-  (= (some-> headers hiccup/sexp) (some-> vdom vdom/sexp)))
+  (= (some-> headers hiccup/sexp) (some-> vdom vdom/original-sexp)))
 
 (defn ^:private move-nodes [{:keys [renderer] :as impl} el headers new-children vdom old-children n n-children]
   (let [[o-idx o-dom-idx] (if (hiccup/rkey headers)
@@ -739,6 +784,7 @@
     ;; Update the node's attributes and reconcile its children
     :else
     (let [child (r/get-child renderer el index)
+          headers (or (get-alias-headers impl headers) headers)
           attrs (get-attrs headers)
           vdom-attrs (vdom/attrs vdom)
           attrs-changed? (reconcile-attributes renderer child attrs vdom-attrs)
@@ -789,11 +835,12 @@
   `vdom`, `reconcile` will create the DOM as per `hiccup`. Assumes that the DOM
   in `el` is in sync with `vdom` - if not, this will certainly not produce the
   desired result."
-  [renderer el hiccup & [vdom {:keys [unmounts]}]]
+  [renderer el hiccup & [vdom {:keys [unmounts aliases]}]]
   (let [impl {:renderer renderer
               :hooks (volatile! [])
               :mounts (volatile! [])
-              :unmounts (or unmounts (volatile! #{}))}
+              :unmounts (or unmounts (volatile! #{}))
+              :aliases aliases}
         vdom (let [headers (get-hiccup-headers nil hiccup)]
                (assert/enter-node headers)
                ;; Not strictly necessary, but it makes noop renders faster
