@@ -81,14 +81,16 @@
 (defmacro from-alias [alias-k alias headers]
   (if (:ns &env)
     `(let [hh# ~headers]
-       (doto hh#
-         (aset 3 (or (rkey ~alias) (rkey hh#)))
-         (aset 7 (sexp hh#))
-         (aset 9 ~alias-k)
-         (aset 10 (sexp ~alias))))
+       (when hh#
+         (doto hh#
+           (aset 3 (or (rkey ~alias) (rkey hh#)))
+           (aset 7 (sexp hh#))
+           (aset 9 ~alias-k)
+           (aset 10 (sexp ~alias)))))
     `(let [hh# ~headers]
-       (-> hh#
-           (assoc 3 (or (rkey ~alias) (rkey hh#)))
-           (assoc 7 (sexp hh#))
-           (assoc 9 ~alias-k)
-           (assoc 10 (sexp ~alias))))))
+       (when hh#
+         (-> hh#
+             (assoc 3 (or (rkey ~alias) (rkey hh#)))
+             (assoc 7 (sexp hh#))
+             (assoc 9 ~alias-k)
+             (assoc 10 (sexp ~alias)))))))
