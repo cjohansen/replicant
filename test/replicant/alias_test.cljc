@@ -22,14 +22,14 @@
         :ui/button)
       (:text-k button)])])
 
-(defn list [_ items]
+(defn html-list [_ items]
   [:ul.list items])
 
 (def aliases
   {:ui/button #'button
    :ui/panel #'panel
    :ui/i18n #(apply i18n :en %&)
-   :ui/list #'list})
+   :ui/list #'html-list})
 
 (deftest expand-1-test
   (testing "Expands first level of aliases"
