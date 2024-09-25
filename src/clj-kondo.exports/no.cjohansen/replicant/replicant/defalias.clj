@@ -9,24 +9,15 @@
 
 (defn defalias [{:keys [node]}]
   (let [[fname & forms] (rest (:children node))
-        fname-sexp (api/sexpr fname)
         [docstr [attr-map & body]] (extract-docstr forms)]
-    (when-not (qualified-keyword? fname-sexp)
-      (api/reg-finding! (assoc (meta fname)
-                               :message (str "Alias name must be qualified keyword: `" fname-sexp "`")
-                               :type :replicant/alias)))
     {:node
-     (api/token-node
+     (api/list-node
       (list*
-       (api/token-node 'do)
-       (api/list-node
-        (list*
-         (api/token-node 'defn)
-         (api/token-node (symbol (str (name (api/sexpr fname)))))
-         docstr
-         attr-map
-         body))
-       (api/token-node (symbol (str (name (api/sexpr fname)))))))}))
+       (api/token-node 'defn)
+       fname
+       docstr
+       attr-map
+       body))}))
 
 (comment
   (require '[clj-kondo.core :as clj-kondo])
@@ -40,7 +31,7 @@
        (clj-kondo.core/run! {:lint ["-"]}))))
 
   (def code
-    '(defalias :ui/button [attrs children]
+    '(defalias button [attrs children]
        [:button {:on {:click (:actions attrs)}}
         children]))
 
