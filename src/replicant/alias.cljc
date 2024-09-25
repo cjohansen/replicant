@@ -7,22 +7,29 @@
 
 (def aliases (atom {}))
 
-(defmacro defalias [alias & forms]
+(defmacro aliasfn [alias & forms]
   (let [[_docstring [attr-map & body]]
         (if (string? (first forms))
           [(first forms) (next forms)]
           ["" forms])
-        alias-f (if (assert/assert?)
-                  `(fn [& args#]
-                     (let [~attr-map args#]
-                       (some-> (do ~@body)
-                               (with-meta {:replicant/context
-                                           {:alias ~alias
-                                            :data (first args#)}}))))
-                  `(fn ~attr-map ~@body))]
-    `(let [f# ~alias-f]
-       (swap! aliases assoc ~alias f#)
-       nil)))
+        alias-kw (keyword (str *ns*) (name alias))]
+    (if (assert/assert?)
+      `(with-meta
+         (fn [& args#]
+           (let [~attr-map args#]
+             (some-> (do ~@body)
+                     (with-meta {:replicant/context
+                                 {:alias ~alias-kw
+                                  :data (first args#)}}))))
+         {:replicant/alias ~alias-kw})
+      `(with-meta (fn ~attr-map ~@body) {:replicant/alias ~alias-kw}))))
+
+(defmacro defalias [alias & forms]
+  (let [alias-f `(aliasfn ~alias ~@forms)]
+    `(let [f# ~alias-f
+           alias# (:replicant/alias (meta ~alias-f))]
+       (swap! aliases assoc alias# f#)
+       (def ~alias alias#))))
 
 (defn get-aliases []
   @aliases)
