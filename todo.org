@@ -15,3 +15,11 @@
 ** DONE Style keys that are not strings or keywords
 ** DONE Style keys should be dash cased, not camelCased
 ** TODO Do not trigger renders from life-cycle hooks
+* Aliases [3/3]
+** DONE Only call alias function once per render
+** DONE Don't call alias function when hiccup is unchanged
+** DONE Offer setting for eager rendering of aliases (dev)
+What about aliases in deep nested trees? Possible solution: use
+a hash of alias functions as key somewhere.
+
+{:replicant/key (replicant.alias/get-aliases)}
