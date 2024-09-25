@@ -208,8 +208,10 @@
       (do
         (vswap! state assoc-in [el :rendering?] true)
         (let [{:keys [renderer current unmounts]} (get @state el)
+              aliases (or aliases (alias/get-aliases))
+              hiccup (alias/key-hiccup hiccup aliases)
               {:keys [vdom]} (r/reconcile renderer el hiccup current {:unmounts unmounts
-                                                                      :aliases (or aliases (alias/get-aliases))})]
+                                                                      :aliases aliases})]
           (vswap! state update el merge {:current vdom
                                          :rendering? false})
           (when-let [pending (first (:queue (get @state el)))]
