@@ -1,5 +1,5 @@
-(ns replicant.test-test
-  (:require [replicant.test :as sut]
+(ns replicant.alias-test
+  (:require [replicant.alias :as sut]
             [clojure.test :refer [deftest is testing]]))
 
 (def dictionaries
@@ -27,13 +27,13 @@
    :ui/panel #'panel
    :ui/i18n #(apply i18n :en %&)})
 
-(deftest aliasexpand-1-test
+(deftest expand-1-test
   (testing "Expands first level of aliases"
     (is (= (-> [:ui/panel
                 {:buttons
                  [{:text-k :click :primary? true}
                   {:text-k :no-click}]}]
-               (sut/aliasexpand-1 {:aliases aliases}))
+               (sut/expand-1 {:aliases aliases}))
            [:div {:class #{"panel"}}
             [:ui/button.btn-primary :click]
             [:ui/button :no-click]])))
@@ -43,19 +43,19 @@
                 {:buttons
                  [{:text-k :click :primary? true}
                   {:text-k :no-click}]}]
-               (sut/aliasexpand-1 {:aliases aliases})
-               (sut/aliasexpand-1 {:aliases aliases}))
+               (sut/expand-1 {:aliases aliases})
+               (sut/expand-1 {:aliases aliases}))
            [:div {:class #{"panel"}}
             [:button {:class #{"btn" "btn-primary"}} [:ui/i18n :click]]
             [:button {:class #{"btn"}} [:ui/i18n :no-click]]]))))
 
-(deftest aliasexpand-test
+(deftest expand-test
   (testing "Expands all aliases"
     (is (= (-> [:ui/panel
                 {:buttons
                  [{:text-k :click :primary? true}
                   {:text-k :no-click}]}]
-               (sut/aliasexpand {:aliases aliases}))
+               (sut/expand {:aliases aliases}))
            [:div {:class #{"panel"}}
             [:button {:class #{"btn" "btn-primary"}} "Click"]
             [:button {:class #{"btn"}} "Don't click"]]))))
