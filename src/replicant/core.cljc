@@ -468,6 +468,7 @@
         (try
           (->> (hiccup/children headers)
                flatten-seqs
+               seq
                (f (cond-> (hiccup/attrs headers)
                     id (update :id #(or % id))
                     (seq classes) (update :class add-classes classes)))

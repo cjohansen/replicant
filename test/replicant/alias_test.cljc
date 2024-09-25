@@ -22,10 +22,14 @@
         :ui/button)
       (:text-k button)])])
 
+(defn list [_ items]
+  [:ul.list items])
+
 (def aliases
   {:ui/button #'button
    :ui/panel #'panel
-   :ui/i18n #(apply i18n :en %&)})
+   :ui/i18n #(apply i18n :en %&)
+   :ui/list #'list})
 
 (deftest expand-1-test
   (testing "Expands first level of aliases"
@@ -47,7 +51,16 @@
                (sut/expand-1 {:aliases aliases}))
            [:div {:class #{"panel"}}
             [:button {:class #{"btn" "btn-primary"}} [:ui/i18n :click]]
-            [:button {:class #{"btn"}} [:ui/i18n :no-click]]]))))
+            [:button {:class #{"btn"}} [:ui/i18n :no-click]]])))
+
+  (testing "Passes children to alias fn as a seq and flattens expanded hiccup"
+    (is (= (-> [:ui/list
+                [:li "One thing"]
+                [:li "Another thing"]]
+               (sut/expand-1 {:aliases aliases}))
+           [:ul {:class #{"list"}}
+            [:li "One thing"]
+            [:li "Another thing"]]))))
 
 (deftest expand-test
   (testing "Expands all aliases"
