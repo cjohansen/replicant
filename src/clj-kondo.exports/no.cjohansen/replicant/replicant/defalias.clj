@@ -16,13 +16,17 @@
                                :message (str "Alias name must be qualified keyword: `" fname-sexp "`")
                                :type :replicant/alias)))
     {:node
-     (api/list-node
+     (api/token-node
       (list*
-       (api/token-node 'defn)
-       (api/token-node (symbol (name (api/sexpr fname))))
-       docstr
-       attr-map
-       body))}))
+       (api/token-node 'do)
+       (api/list-node
+        (list*
+         (api/token-node 'defn)
+         (api/token-node (symbol (str (name (api/sexpr fname)))))
+         docstr
+         attr-map
+         body))
+       (api/token-node (symbol (str (name (api/sexpr fname)))))))}))
 
 (comment
   (require '[clj-kondo.core :as clj-kondo])
