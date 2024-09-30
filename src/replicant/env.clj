@@ -39,9 +39,8 @@
 
 (defmacro with-dev-keys [hiccup aliases]
   (if (dev?)
-    `(let [hiccup# ~hiccup
-           aliases# ~aliases]
+    `(let [hiccup# ~hiccup]
        (if (map? (second hiccup#))
-         (update-in hiccup# [1 :replicant/key] (fn [k#] [k# aliases#]))
-         (into [(first hiccup#) {:replicant/key aliases#}] (rest hiccup#))))
+         (update-in hiccup# [1 :replicant/key] (fn [k#] [k# ~aliases]))
+         (into [(first hiccup#) {:replicant/key ~aliases}] (rest hiccup#))))
     hiccup))

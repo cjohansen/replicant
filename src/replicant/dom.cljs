@@ -1,6 +1,7 @@
 (ns replicant.dom
   (:require [replicant.alias :as alias]
             [replicant.core :as r]
+            [replicant.env :as env]
             [replicant.protocols :as replicant]
             [replicant.transition :as transition]))
 
@@ -209,7 +210,7 @@
         (vswap! state assoc-in [el :rendering?] true)
         (let [{:keys [renderer current unmounts]} (get @state el)
               aliases (or aliases (alias/get-aliases))
-              hiccup (alias/key-hiccup hiccup aliases)
+              hiccup (env/with-dev-keys hiccup aliases)
               {:keys [vdom]} (r/reconcile renderer el hiccup current {:unmounts unmounts
                                                                       :aliases aliases})]
           (vswap! state update el merge {:current vdom

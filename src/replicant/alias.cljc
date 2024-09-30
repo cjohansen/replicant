@@ -35,12 +35,6 @@
        (swap! aliases assoc alias# f#)
        (def ~alias alias#))))
 
-(defmacro key-hiccup [hiccup aliases]
-  #?(:clj (env/with-dev-keys hiccup aliases)
-     ;; Just to silence clj-kondo
-     :cljs (let [_ aliases]
-             hiccup)))
-
 (defn get-aliases []
   @aliases)
 
