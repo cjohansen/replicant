@@ -1,5 +1,7 @@
 (ns replicant.dev
-  (:require [replicant.contenteditable-bug :as ceb]
+  (:require [replicant.alias :refer [defalias]]
+            [replicant.assert :as assert]
+            [replicant.contenteditable-bug :as ceb]
             [replicant.dom :as d]
             [replicant.nested-rendering-bug :as nrb]))
 
@@ -12,6 +14,25 @@
      [:div#3.lol.
       {;;:className "some classes"
        :style {:transition "width 0.5s, height 200ms"
+               :width 100
+               :height 200
+               :background "red"
+               :overflow "hidden"}
+       :on {:click [:some-data-for-your-handler]}
+       :replicant/mounting {:style {:width 0 :height 0}}
+       :replicant/unmounting {:style {:width 0 :height 0}}
+       }
+      "Colored square"])
+   [:p {:replicant/key "p"} (if square? "Square!" "It's gone!")]
+   ])
+
+(defalias app-alias [{:keys [square?]} & _]
+  [:div {:on-click "Hmm"}
+   [:h1 "Watch it go!"]
+   [:input {:type "text" :value "Hehe"}]
+   (when square?
+     [:div#3.lol
+      {:style {:transition "width 0.5s, height 200ms"
                :width 100
                :height 200
                :background "red"
@@ -43,6 +64,8 @@
 
   (set! *print-namespace-maps* false)
 
+
+
   (d/set-dispatch!
    (fn [& args]
      (prn "OHOI!" args)))
@@ -53,8 +76,11 @@
   (do
     (set! (.-innerHTML js/document.body) "<div id=\"app\"></div>")
     (def el (js/document.getElementById "app"))
-    (d/render el (app {:square? true}))
+    ;;(d/render el (app {:square? true}))
+    (d/render el [app-alias {:square? true :n 0}])
     )
+
+  (assert/assert?)
 
   (d/render el (app {}))
 
