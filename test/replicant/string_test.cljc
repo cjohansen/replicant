@@ -195,7 +195,16 @@
     (is (= (sut/render [:div [button "Click it" "!"]])
            (str "<div>"
                 "<button data-source=\"alias\" class=\"btn\">Click it!</button>"
-                "</div>")))))
+                "</div>"))))
+
+  (testing "Fails when rendering missing aliases"
+    (is (thrown-with-msg?
+         clojure.lang.ExceptionInfo
+         #"Tried to expand undefined alias :ui/list"
+         (-> [:ui/list
+              [:li [:ui/i18n :thing-1]]
+              [:li [:ui/i18n :thing-2]]]
+             sut/render)))))
 
 (deftest escape-html-test
   (is (= (sut/escape-html "<script>alert(\"boom\")</script>")

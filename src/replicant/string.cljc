@@ -48,10 +48,18 @@
       (str/replace "\"" "&quot;")
       (str/replace "'" "&apos;")))
 
+(defn get-expanded-headers [opt headers]
+  (when (and (qualified-keyword? (hiccup/ident headers))
+             (nil? (get (:aliases opt) (hiccup/ident headers))))
+    (throw (ex-info (str "Tried to expand undefined alias " (hiccup/ident headers))
+                    {:missing (hiccup/ident headers)
+                     :available (:aliases opt)})))
+  (or (r/get-alias-headers opt headers) headers))
+
 (defn render-node [headers & [{:keys [depth indent aliases]}]]
   (let [indent-s (when (< 0 indent) (str/join (repeat (* depth indent) " ")))
         newline (when (< 0 indent) "\n")
-        headers (or (r/get-alias-headers {:aliases aliases} headers) headers)]
+        headers (get-expanded-headers {:aliases aliases} headers)]
     (if-let [text (hiccup/text headers)]
       (str indent-s (apply str (map escape-html text)) newline)
       (let [tag-name (hiccup/tag-name headers)
