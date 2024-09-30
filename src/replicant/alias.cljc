@@ -56,10 +56,13 @@
 
 (defn expand-aliased-hiccup [x opt]
   (if (alias-hiccup? x)
-    (let [headers (r/get-hiccup-headers nil x)]
+    (let [headers (r/get-hiccup-headers nil x)
+          defined? (get (:aliases opt) (hiccup/ident headers))]
+      (when (and (not defined?) (false? (get opt :ignore-missing-alias? true)))
+        (throw (ex-info (str "Tried to expand undefined alias " (hiccup/ident headers))
+                        {:alias (hiccup/ident headers)})))
       (cond->> headers
-        (or (get (:aliases opt) (hiccup/ident headers))
-            (false? (get opt :ignore-missing-alias? true)))
+        (get (:aliases opt) (hiccup/ident headers))
         (r/get-alias-headers opt)
 
         :then ->hiccup))
