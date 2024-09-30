@@ -19,6 +19,17 @@
        attr-map
        body))}))
 
+(defn ^{:indent 2} aliasfn [{:keys [node]}]
+  (let [[fname & forms] (rest (:children node))
+        [_docstr [attr-map & body]] (extract-docstr forms)]
+    {:node
+     (api/list-node
+      (list*
+       (api/token-node 'defn)
+       (api/token-node (symbol (name (api/sexpr fname))))
+       attr-map
+       body))}))
+
 (comment
   (require '[clj-kondo.core :as clj-kondo])
 
@@ -26,16 +37,25 @@
     (:findings
      (with-in-str
        (str
-        '(require '[replicant.alias :refer [defalias]])
+        '(require '[replicant.alias :as alias])
         code)
        (clj-kondo.core/run! {:lint ["-"]}))))
 
   (def code
-    '(defalias button [attrs children]
+    '(alias/defalias button [attrs children]
        [:button {:on {:click (:actions attrs)}}
         children]))
 
   (defalias {:node (api/parse-string (str code))})
   (get-findings code)
+
+  (def alias-fn-code
+    '(alias/aliasfn :ui/button [attrs children]
+       [:button {:on {:click (:actions attrs)}}
+        children]))
+
+  (aliasfn {:node (api/parse-string (str alias-fn-code))})
+
+  (get-findings alias-fn-code)
 
   )
