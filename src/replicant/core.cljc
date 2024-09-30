@@ -447,7 +447,8 @@
    {:data-replicant-error (str "Undefined alias " tag-name)}
    (for [child children]
      (cond-> child
-       (not (string? child)) pr-str))])
+       (and (not (string? child))
+            (not (hiccup? child))) pr-str))])
 
 (defn add-classes [class-attr classes]
   (cond
