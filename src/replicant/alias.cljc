@@ -16,11 +16,14 @@
     (if (assert/assert?)
       `(with-meta
          (fn [& args#]
-           (let [~attr-map args#]
-             (some-> (do ~@body)
-                     (with-meta {:replicant/context
-                                 {:alias ~alias
-                                  :data (first args#)}}))))
+           (let [~attr-map args#
+                 res# (do ~@body)]
+             (cond-> res#
+               (vector? res#)
+               (with-meta
+                 {:replicant/context
+                  {:alias ~alias
+                   :data (first args#)}}))))
          {:replicant/alias ~alias})
       `(with-meta (fn ~attr-map ~@body) {:replicant/alias ~alias}))))
 
