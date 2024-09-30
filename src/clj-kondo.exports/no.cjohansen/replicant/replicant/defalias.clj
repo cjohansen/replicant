@@ -25,8 +25,7 @@
     {:node
      (api/list-node
       (list*
-       (api/token-node 'defn)
-       (api/token-node (symbol (name (api/sexpr fname))))
+       (api/token-node 'fn)
        attr-map
        body))}))
 
