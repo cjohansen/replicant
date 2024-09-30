@@ -1,6 +1,10 @@
 (ns replicant.string-test
   (:require [replicant.string :as sut]
+            [replicant.alias :refer [defalias]]
             [clojure.test :refer [deftest is testing]]))
+
+(defalias button [attrs children]
+  (into [:button.btn {:data-source "alias"}] children))
 
 (deftest string-render-test
   (testing "Renders string"
@@ -170,7 +174,28 @@
                               :class "contains-script"
                               :id "the-script-container")
              "Children should be ignored when :innerHTML is set."])
-           "<div class=\"contains-script\" id=\"the-script-container\"><script>alert(\"boom\")</script></div>"))))
+           "<div class=\"contains-script\" id=\"the-script-container\"><script>alert(\"boom\")</script></div>")))
+
+  (testing "Renders alias"
+    (is (= (sut/render
+            [:div
+             [:h1.heading "Hello world"]
+             [:ui/button.btn-primary
+              "Click it"]]
+            {:aliases
+             {:ui/button
+              (fn button [attrs [text]]
+                [:button.btn attrs text])}})
+           (str "<div>"
+                "<h1 class=\"heading\">Hello world</h1>"
+                "<button class=\"btn-primary btn\">Click it</button>"
+                "</div>"))))
+
+  (testing "Renders alias from global registry"
+    (is (= (sut/render [:div [button "Click it" "!"]])
+           (str "<div>"
+                "<button data-source=\"alias\" class=\"btn\">Click it!</button>"
+                "</div>")))))
 
 (deftest escape-html-test
   (is (= (sut/escape-html "<script>alert(\"boom\")</script>")

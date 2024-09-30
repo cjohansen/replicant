@@ -1,5 +1,6 @@
 (ns replicant.string
   (:require [clojure.string :as str]
+            [replicant.alias :as alias]
             [replicant.core :as r]
             [replicant.hiccup :as hiccup]))
 
@@ -47,9 +48,10 @@
       (str/replace "\"" "&quot;")
       (str/replace "'" "&apos;")))
 
-(defn render-node [headers & [{:keys [depth indent]}]]
+(defn render-node [headers & [{:keys [depth indent aliases]}]]
   (let [indent-s (when (< 0 indent) (str/join (repeat (* depth indent) " ")))
-        newline (when (< 0 indent) "\n")]
+        newline (when (< 0 indent) "\n")
+        headers (or (r/get-alias-headers {:aliases aliases} headers) headers)]
     (if-let [text (hiccup/text headers)]
       (str indent-s (apply str (map escape-html text)) newline)
       (let [tag-name (hiccup/tag-name headers)
@@ -63,12 +65,17 @@
              newline
              (or (:innerHTML attrs)
                  (->> (r/get-children headers (hiccup/html-ns headers))
-                      (keep #(some-> % (render-node {:depth (inc depth) :indent indent})))
+                      (keep #(some-> % (render-node {:depth (inc depth)
+                                                     :indent indent
+                                                     :aliases aliases})))
                       str/join))
              (when-not (self-closing? tag-name)
                (str indent-s "</" tag-name ">" newline)))))))
 
-(defn render [hiccup & [{:keys [indent]}]]
+(defn render [hiccup & [{:keys [aliases indent]}]]
   (if hiccup
-    (render-node (r/get-hiccup-headers nil hiccup) {:indent (or indent 0) :depth 0})
+    (render-node (r/get-hiccup-headers nil hiccup)
+                 {:indent (or indent 0)
+                  :depth 0
+                  :aliases (or aliases (alias/get-aliases))})
     ""))
