@@ -58,19 +58,20 @@
   (if (alias-hiccup? x)
     (let [headers (r/get-hiccup-headers nil x)]
       (cond->> headers
-        (get (:aliases opt) (hiccup/ident headers))
+        (or (get (:aliases opt) (hiccup/ident headers))
+            (false? (get opt :ignore-missing-alias? true)))
         (r/get-alias-headers opt)
 
         :then ->hiccup))
     x))
 
-(defn get-opts [aliases]
-  {:aliases (or aliases (get-aliases))})
+(defn get-opts [opt]
+  (update opt :aliases #(or % (get-aliases))))
 
-(defn expand-1 [hiccup & [{:keys [aliases]}]]
-  (let [opt (get-opts aliases)]
+(defn expand-1 [hiccup & [{:keys [aliases] :as opt}]]
+  (let [opt (get-opts opt)]
     (walk/postwalk #(expand-aliased-hiccup % opt) hiccup)))
 
-(defn expand [hiccup & [{:keys [aliases]}]]
-  (let [opt (get-opts aliases)]
+(defn expand [hiccup & [{:keys [aliases] :as opt}]]
+  (let [opt (get-opts opt)]
     (walk/prewalk #(expand-aliased-hiccup % opt) hiccup)))

@@ -4,7 +4,9 @@
 
 (def dictionaries
   {:en {:click "Click"
-        :no-click "Don't click"}})
+        :no-click "Don't click"
+        :thing-1 "Item #1"
+        :thing-2 "Item #2"}})
 
 (defn i18n [locale _ [k]]
   (get-in dictionaries [locale k]))
@@ -60,7 +62,26 @@
                (sut/expand-1 {:aliases aliases}))
            [:ul {:class #{"list"}}
             [:li "One thing"]
-            [:li "Another thing"]]))))
+            [:li "Another thing"]])))
+
+  (testing "Expands only known aliases"
+    (is (= (-> [:ui/list
+                [:li [:ui/i18n :thing-1]]
+                [:li [:ui/i18n :thing-2]]]
+               (sut/expand-1 {:aliases (select-keys aliases [:ui/i18n])}))
+           [:ui/list {}
+            [:li "Item #1"]
+            [:li "Item #2"]])))
+
+  (testing "Fails missing aliases when explicitly told to"
+    (is (= (-> [:ui/list
+                [:li [:ui/i18n :thing-1]]
+                [:li [:ui/i18n :thing-2]]]
+               (sut/expand-1 {:aliases (select-keys aliases [:ui/i18n])
+                              :ignore-missing-alias? false}))
+           [:div {:data-replicant-error "Undefined alias :ui/list"}
+            [:li "Item #1"]
+            [:li "Item #2"]]))))
 
 (deftest expand-test
   (testing "Expands all aliases"
