@@ -12,23 +12,23 @@
   (let [[_docstring [attr-map & body]]
         (if (string? (first forms))
           [(first forms) (next forms)]
-          ["" forms])
-        alias-kw (keyword (str *ns*) (name alias))]
+          ["" forms])]
     (if (assert/assert?)
       `(with-meta
          (fn [& args#]
            (let [~attr-map args#]
              (some-> (do ~@body)
                      (with-meta {:replicant/context
-                                 {:alias ~alias-kw
+                                 {:alias ~alias
                                   :data (first args#)}}))))
-         {:replicant/alias ~alias-kw})
-      `(with-meta (fn ~attr-map ~@body) {:replicant/alias ~alias-kw}))))
+         {:replicant/alias ~alias})
+      `(with-meta (fn ~attr-map ~@body) {:replicant/alias ~alias}))))
 
 (defmacro defalias [alias & forms]
-  (let [alias-f `(aliasfn ~alias ~@forms)]
+  (let [alias-kw (keyword (str *ns*) (name alias))
+        alias-f `(aliasfn ~alias-kw ~@forms)]
     `(let [f# ~alias-f
-           alias# (:replicant/alias (meta ~alias-f))]
+           alias# ~alias-kw]
        (swap! aliases assoc alias# f#)
        (def ~alias alias#))))
 
