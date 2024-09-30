@@ -3,9 +3,10 @@
             [clojure.string :as str]))
 
 (defn get-property [config]
-  (System/getProperty
-   (str (when-let [ns (namespace config)]
-          (str ns ".")) (str/replace (name config) #"\?" ""))))
+  (not-empty
+   (System/getProperty
+    (str (when-let [ns (namespace config)]
+           (str ns ".")) (str/replace (name config) #"\?" "")))))
 
 (defn get-define [config]
   (str (when-let [ns (namespace config)]
@@ -18,10 +19,10 @@
     (let [define (get-define config)]
       (cond
         (contains? options config)
-        (config options)
+        options
 
         (contains? (:closure-defines options) define)
-        (get-in options [:closure-defines define])
+        (get options :closure-defines)
 
         :else nil))
     nil))
@@ -35,3 +36,12 @@
   (if-let [options (some-> cljs.env/*compiler* deref :options)]
     (not (#{:advanced :simple} (:optimizations options)))
     (enabled? :replicant/dev?)))
+
+(defmacro with-dev-keys [hiccup aliases]
+  (if (dev?)
+    `(let [hiccup# ~hiccup
+           aliases# ~aliases]
+       (if (map? (second hiccup#))
+         (update-in hiccup# [1 :replicant/key] (fn [k#] [k# aliases#]))
+         (into [(first hiccup#) {:replicant/key aliases#}] (rest hiccup#))))
+    hiccup))
