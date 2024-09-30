@@ -8,7 +8,7 @@
 
 (def aliases (atom {}))
 
-(defmacro aliasfn [alias & forms]
+(defmacro ^{:indent 2} aliasfn [alias & forms]
   (let [[_docstring [attr-map & body]]
         (if (string? (first forms))
           [(first forms) (next forms)]
