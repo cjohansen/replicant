@@ -1,6 +1,15 @@
 (ns replicant.env
-  (:require [cljs.env :as env]
-            [clojure.string :as str]))
+  (:require [clojure.string :as str]))
+
+(def ^:private cljs-available?
+  (try
+    (require 'cljs.env)
+    true
+    (catch Throwable _ false)))
+
+(defmacro get-cljs-options []
+  (when cljs-available?
+    `(some-> cljs.env/*compiler* deref :options)))
 
 (defn get-property [config]
   (not-empty
@@ -13,7 +22,7 @@
          (str ns "/")) (name config)))
 
 (defn get-config [config]
-  (if-let [options (or (some-> cljs.env/*compiler* deref :options)
+  (if-let [options (or (get-cljs-options)
                        (when (get-property config)
                          {config true}))]
     (let [define (get-define config)]
@@ -33,7 +42,7 @@
              default)))
 
 (defn dev? []
-  (if-let [options (some-> cljs.env/*compiler* deref :options)]
+  (if-let [options (get-cljs-options)]
     (not (#{:advanced :simple} (:optimizations options)))
     (enabled? :replicant/dev?)))
 
