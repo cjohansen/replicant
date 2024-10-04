@@ -2,7 +2,6 @@
   (:require [clojure.walk :as walk]
             [replicant.assert :as assert]
             [replicant.core :as r]
-            #?(:clj [replicant.env :as env])
             [replicant.hiccup :as hiccup])
   #?(:cljs (:require-macros [replicant.alias])))
 
