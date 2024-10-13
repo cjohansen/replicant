@@ -11,7 +11,17 @@
   (let [[_docstring [attr-map & body]]
         (if (string? (first forms))
           [(first forms) (next forms)]
-          ["" forms])]
+          ["" forms])
+        n-args (count attr-map)
+        attr-map (cond
+                   (= 0 n-args)
+                   '[_ _]
+
+                   (= 1 n-args)
+                   (conj attr-map '_)
+
+                   :else
+                   attr-map)]
     (if (assert/assert?)
       `(with-meta
          (fn [& args#]
