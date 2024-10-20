@@ -87,8 +87,17 @@
       this)
 
     (remove-attribute [this el attr]
-      (if (= "innerHTML" attr)
+      (cond
+        (= "innerHTML" attr)
         (set! (.-innerHTML el) "")
+
+        (= "value" attr)
+        (set! (.-value el) nil)
+
+        (= "selected" attr)
+        (set! (.-selected el) nil)
+
+        :else
         (.removeAttribute el attr))
       this)
 
