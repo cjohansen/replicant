@@ -79,6 +79,18 @@
         (= "selected" attr)
         (set! (.-selected el) v)
 
+        (= "checked" attr)
+        (set! (.-checked el) v)
+
+        (= "disabled" attr)
+        (set! (.-disabled el) v)
+
+        (= "readonly" attr)
+        (set! (.-readonly el) v)
+
+        (= "required" attr)
+        (set! (.-required el) v)
+
         (:ns opt)
         (.setAttributeNS el (:ns opt) attr v)
 
@@ -96,6 +108,18 @@
 
         (= "selected" attr)
         (set! (.-selected el) nil)
+
+        (= "checked" attr)
+        (set! (.-checked el) nil)
+
+        (= "disabled" attr)
+        (set! (.-disabled el) nil)
+
+        (= "readonly" attr)
+        (set! (.-readonly el) nil)
+
+        (= "required" attr)
+        (set! (.-required el) nil)
 
         :else
         (.removeAttribute el attr))
