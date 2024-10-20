@@ -76,6 +76,9 @@
         (= "value" attr)
         (set! (.-value el) v)
 
+        (= "selected" attr)
+        (set! (.-selected el) v)
+
         (:ns opt)
         (.setAttributeNS el (:ns opt) attr v)
 
