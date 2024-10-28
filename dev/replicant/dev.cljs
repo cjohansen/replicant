@@ -26,7 +26,7 @@
    [:p {:replicant/key "p"} (if square? "Square!" "It's gone!")]
    ])
 
-(defalias app-alias [{:keys [square?]} & _]
+(defalias app-alias [{:keys [square?]}]
   [:div {:on-click "Hmm"}
    [:h1 "Watch it go!"]
    [:input {:type "text" :value "Hehe"}]
