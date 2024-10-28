@@ -44,7 +44,7 @@
        (swap! aliases assoc alias# f#)
        (def ~alias alias#))))
 
-(defn get-aliases []
+(defn get-registered-aliases []
   @aliases)
 
 (defn ->hiccup [headers]
@@ -75,7 +75,7 @@
     x))
 
 (defn get-opts [opt]
-  (update opt :aliases #(or % (get-aliases))))
+  (update opt :aliases #(or % (get-registered-aliases))))
 
 (defn expand-1 [hiccup & [{:keys [aliases] :as opt}]]
   (let [opt (get-opts opt)]

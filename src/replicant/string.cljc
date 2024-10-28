@@ -85,5 +85,5 @@
     (render-node (r/get-hiccup-headers nil hiccup)
                  {:indent (or indent 0)
                   :depth 0
-                  :aliases (or aliases (alias/get-aliases))})
+                  :aliases (or aliases (alias/get-registered-aliases))})
     ""))
