@@ -56,10 +56,11 @@
                      :available (:aliases opt)})))
   (or (r/get-alias-headers opt headers) headers))
 
-(defn render-node [headers & [{:keys [depth indent aliases]}]]
+(defn render-node [headers & [{:keys [depth indent aliases alias-data]}]]
   (let [indent-s (when (< 0 indent) (str/join (repeat (* depth indent) " ")))
         newline (when (< 0 indent) "\n")
-        headers (get-expanded-headers {:aliases aliases} headers)]
+        headers (get-expanded-headers {:aliases aliases
+                                       :alias-data alias-data} headers)]
     (if-let [text (hiccup/text headers)]
       (str indent-s (apply str (map escape-html text)) newline)
       (let [tag-name (hiccup/tag-name headers)
@@ -80,10 +81,11 @@
              (when-not (self-closing? tag-name)
                (str indent-s "</" tag-name ">" newline)))))))
 
-(defn render [hiccup & [{:keys [aliases indent]}]]
+(defn render [hiccup & [{:keys [aliases alias-data indent]}]]
   (if hiccup
     (render-node (r/get-hiccup-headers nil hiccup)
                  {:indent (or indent 0)
                   :depth 0
-                  :aliases (or aliases (alias/get-registered-aliases))})
+                  :aliases (or aliases (alias/get-registered-aliases))
+                  :alias-data alias-data})
     ""))

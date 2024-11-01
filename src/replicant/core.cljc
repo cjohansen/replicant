@@ -460,7 +460,7 @@
 
     :else (cons class-attr classes)))
 
-(defn get-alias-headers [{:keys [aliases]} headers]
+(defn get-alias-headers [{:keys [aliases alias-data]} headers]
   (let [tag-name (hiccup/tag-name headers)]
     (when (keyword? tag-name)
       (let [f (or (get aliases tag-name) (partial render-default-alias tag-name))
@@ -472,7 +472,8 @@
                seq
                (f (cond-> (hiccup/attrs headers)
                     id (update :id #(or % id))
-                    (seq classes) (update :class add-classes classes)))
+                    (seq classes) (update :class add-classes classes)
+                    alias-data (assoc :replicant/alias-data alias-data)))
                (get-hiccup-headers nil)
                (hiccup/from-alias tag-name headers))
           (catch #?(:clj Exception :cljs :default) e
@@ -838,12 +839,13 @@
   `vdom`, `reconcile` will create the DOM as per `hiccup`. Assumes that the DOM
   in `el` is in sync with `vdom` - if not, this will certainly not produce the
   desired result."
-  [renderer el hiccup & [vdom {:keys [unmounts aliases]}]]
+  [renderer el hiccup & [vdom {:keys [unmounts aliases alias-data]}]]
   (let [impl {:renderer renderer
               :hooks (volatile! [])
               :mounts (volatile! [])
               :unmounts (or unmounts (volatile! #{}))
-              :aliases aliases}
+              :aliases aliases
+              :alias-data alias-data}
         vdom (let [headers (get-hiccup-headers nil hiccup)]
                (assert/enter-node headers)
                ;; Not strictly necessary, but it makes noop renders faster

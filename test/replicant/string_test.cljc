@@ -191,6 +191,20 @@
                 "<button class=\"btn-primary btn\">Click it</button>"
                 "</div>"))))
 
+  (testing "Renders alias with alias data"
+    (is (= (sut/render
+            [:ui/button.btn-primary "Click it"]
+            {:alias-data {:id "wow"}
+             :aliases
+             {:ui/button
+              (fn button [attrs [text]]
+                [:button.btn
+                 (cond-> attrs
+                   (:replicant/alias-data attrs)
+                   (assoc :id (:id (:replicant/alias-data attrs))))
+                 text])}})
+           (str "<button id=\"wow\" class=\"btn-primary btn\">Click it</button>"))))
+
   (testing "Renders alias from global registry"
     (is (= (sut/render [:div [button "Click it" "!"]])
            (str "<div>"
