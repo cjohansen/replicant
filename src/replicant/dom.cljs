@@ -76,11 +76,20 @@
         (= "value" attr)
         (set! (.-value el) v)
 
+        (= "default-value" attr)
+        (.setAttribute el "value" v)
+
         (= "selected" attr)
         (set! (.-selected el) v)
 
+        (= "default-selected" attr)
+        (.setAttribute el "selected" v)
+
         (= "checked" attr)
         (set! (.-checked el) v)
+
+        (= "default-checked" attr)
+        (.setAttribute el "checked" v)
 
         (= "disabled" attr)
         (set! (.-disabled el) v)
@@ -106,11 +115,20 @@
         (= "value" attr)
         (set! (.-value el) nil)
 
+        (= "default-value" attr)
+        (.removeAttribute el "value")
+
         (= "selected" attr)
         (set! (.-selected el) nil)
 
+        (= "default-selected" attr)
+        (.removeAttribute el "selected")
+
         (= "checked" attr)
         (set! (.-checked el) nil)
+
+        (= "default-checked" attr)
+        (.removeAttribute el "checked")
 
         (= "disabled" attr)
         (set! (.-disabled el) nil)

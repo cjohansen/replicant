@@ -253,6 +253,31 @@ for you via `innerHTML`:
 When using `:innerHTML` any child elements will be ignored (without warning at
 the time being).
 
+## Attributes and properties
+
+Replicant uses `setAttribute` to set most attributes, with some exceptions:
+
+- `:value`
+- `:selected`
+- `:checked`
+- `:disabled`
+- `:readonly`
+- `:required`
+
+These are instead controlled with DOM properties, in order to fully control
+them.
+
+If you wish to set defaults on form fields but not fully control them, you can
+instead use these attributes:
+
+- `:default-value`
+- `:default-selected`
+- `:default-checked`
+
+These set the initial value (e.g. with `setAttribute`), but will allow for
+overrides from user input. Changing the `:default-value` on an element after it
+has received user input will have no effect.
+
 ## Differences from hiccup
 
 Replicant has a more liberal understanding of hiccup data than the main hiccup
