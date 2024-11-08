@@ -338,12 +338,12 @@
 ;; Perform DOM operations
 
 (defn update-styles [renderer el new-styles old-styles]
-  (let [new-ks (set (remove #(nil? (% new-styles)) (keys new-styles)))
+  (let [new-ks (set (remove #(nil? (get new-styles %)) (keys new-styles)))
         old-ks (set (keys old-styles))]
     (run! #(r/remove-style renderer el %) (remove new-ks old-ks))
     (run!
-     #(let [new-style (% new-styles)]
-        (when (not= new-style (% old-styles))
+     #(let [new-style (get new-styles %)]
+        (when (not= new-style (get old-styles %))
           (asserts/assert-style-key-type %)
           (asserts/assert-style-key-casing %)
           (r/set-style renderer el % (get-style-val % new-style))))

@@ -1950,4 +1950,11 @@
                h/summarize)
            [[:create-text-node "1"]
             [:replace-child "1" "0"]
-            [:remove-child "0" :from "span"]]))))
+            [:remove-child "0" :from "span"]])))
+
+  (testing "Does not trip over itself when style keys are strings"
+    (is (= (-> (h/render [:span {:style {"background" "red"}} "Hello"])
+               (h/render [:span {:style {"background" "blue"}} "Hello"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:set-style [:span "Hello"] "background" "blue"]]))))
