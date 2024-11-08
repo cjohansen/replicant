@@ -38,9 +38,12 @@
 
 (defmacro assert-style-key-type [k]
   `(assert/assert
-    (or (string? ~k) (keyword? ~k) (symbol? ~k))
+    (keyword? ~k)
     (str "Style key " ~k " should be a keyword")
-    "Replicant expects your style keys to be strings, or the very least something that supports `name`. Other types will not work as expected."))
+    (str "Replicant expects your style keys to be keywords. While anything that supports `name` (strings, symbols) will "
+         "technically work, mixing types will hinder Replicant from recognizing changes properly. Rendering once with "
+         (str ~k) " and once with " (keyword (str ~k))
+         " may produce undesired results. Your safest option is to always use keywords.")))
 
 (defmacro assert-non-empty-id [tag]
   `(assert/assert
