@@ -665,7 +665,16 @@
                  [:div "C"]])
                h/get-mutation-log-events
                h/summarize)
-           [[:remove-child [:div "B"] :from "div"]]))))
+           [[:remove-child [:div "B"] :from "div"]])))
+
+  (testing "Ignores namespaced attributes"
+    (is (= (-> (h/render [:div {:my.custom/data 42} "Hello"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "div"]
+            [:create-text-node "Hello"]
+            [:append-child "Hello" :to "div"]
+            [:append-child [:div "Hello"] :to "body"]]))))
 
 (def f1 (fn []))
 (def f2 (fn []))
