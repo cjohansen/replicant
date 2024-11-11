@@ -47,7 +47,7 @@
          (.push ~ns)
          (.push ~sexp)
          (.push nil)))
-    `(let [pt# parsed-tag]
+    `(let [pt# ~parsed-tag]
        (-> pt#
            (conj (get-key pt# ~attrs))
            (conj ~attrs)
