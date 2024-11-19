@@ -71,6 +71,13 @@
                 (filter (comp #{:set-attribute} first)))
            [[:set-attribute [:h1 ""] "lang" nil :to "en"]])))
 
+  (testing "Allows namespaced keyword attribute values"
+    (is (= (->> (h/render [:input {:name :person/given-name}])
+                h/get-mutation-log-events
+                h/summarize
+                (filter (comp #{:set-attribute} first)))
+           [[:set-attribute [:input ""] "name" nil :to "person/given-name"]])))
+
   (testing "Ignores nil attributes"
     (is (= (-> (h/render [:h1 {:title nil} "Hello world"])
                h/get-mutation-log-events

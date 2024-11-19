@@ -375,6 +375,9 @@
 (def xlinkns "http://www.w3.org/1999/xlink")
 (def xmlns "http://www.w3.org/XML/1998/namespace")
 
+(defn stringify [x]
+  (str (when-let [ns (namespace x)] (str ns "/")) (name x)))
+
 (defn set-attr-val [renderer el attr v]
   (let [an (name attr)]
     (asserts/assert-no-event-attribute attr)
@@ -386,7 +389,7 @@
            (assoc :ns xlinkns))
          (r/set-attribute renderer el an (cond-> v
                                            (or (keyword? v)
-                                               (symbol? v)) name)))))
+                                               (symbol? v)) stringify)))))
 
 (defn update-attr [renderer el attr new old]
   (when-not (namespace attr)
