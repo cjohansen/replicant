@@ -1645,6 +1645,26 @@
              (count @calls))
            1)))
 
+  (testing "Updates aliased hiccup attributes"
+    (is (= (-> (h/render
+                {:aliases {:custom/title (fn [{:keys [color]} [title]]
+                                           [:h1.alias {:style {:color color}} title])}}
+                [:custom/title {:color "red"} "Hello world"])
+               (h/render [:custom/title {:color "blue"} "Hello world"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:set-style [:h1 "Hello world"] :color "blue"]])))
+
+  (testing "Does nothing when updated alias attributes does not produce different hiccup"
+    (is (= (-> (h/render
+                {:aliases {:custom/title (fn [_ [title]]
+                                           [:h1.alias title])}}
+                [:custom/title {:color "red"} "Hello world"])
+               (h/render [:custom/title {:color "blue"} "Hello world"])
+               h/get-mutation-log-events
+               h/summarize)
+           [])))
+
   (testing "Updates alias"
     (is (= (-> (h/render
                 {:aliases {:custom/title (fn [_attrs [title]]
