@@ -10,20 +10,21 @@
   [:nav.pills
    buttons])
 
-(defalias pill-button [{:keys [selected? text]}]
-  [:ui/a.pill {:class (when selected? "selected")}
+(defalias pill-button [{:keys [selected? text href]}]
+  [:ui/a.pill {:class (when selected? "selected")
+               :href href}
    text])
 
 (defalias filter-pills [{:keys [current]} filters]
   [pill-bar
    (for [filter filters]
-     [pill-button (cond-> {}
+     [pill-button (cond-> filter
                     (= current (:id filter))
                     (assoc :selected? true))
       (:text filter)])])
 
 (defn routing-a [attrs children]
-  [:a attrs children])
+  [:a {:href (str (:base-url (:replicant/alias-data attrs)) (:href attrs))} children])
 
 (deftest string-render-test
   (testing "Renders string"
@@ -232,14 +233,20 @@
 
   (testing "Renders a mix of predefined and inlined nested aliases"
     (is (= (sut/render
-            [:replicant.string-test/filter-pills
+            [filter-pills
              {:current "all"}
-             [{:id "all" :text "All"}
-              {:id "ones" :text "Ones"}
-              {:id "twos" :text "Twos"}
-              {:id "threes" :text "Threes"}]]
-            {:aliases (assoc (replicant.alias/get-registered-aliases) :ui/a routing-a)})
-           "<nav class=\"pills\"><a class=\"pill\"></a></nav>")))
+             {:id "all" :text "All" :href "/all"}
+             {:id "ones" :text "Ones" :href "/ones"}
+             {:id "twos" :text "Twos" :href "/twos"}
+             {:id "threes" :text "Threes" :href "/threes"}]
+            {:aliases (assoc (replicant.alias/get-registered-aliases) :ui/a routing-a)
+             :alias-data {:base-url "https://example.org"}})
+           (str "<nav class=\"pills\">"
+                "<a href=\"https://example.org/all\">All</a>"
+                "<a href=\"https://example.org/ones\">Ones</a>"
+                "<a href=\"https://example.org/twos\">Twos</a>"
+                "<a href=\"https://example.org/threes\">Threes</a>"
+                "</nav>"))))
 
   (testing "Fails when rendering missing aliases"
     (is (thrown-with-msg?

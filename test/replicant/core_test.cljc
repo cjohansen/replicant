@@ -1665,6 +1665,21 @@
                h/summarize)
            [])))
 
+  (testing "Does nothing when updated alias attributes does not produce different hiccup"
+    (is (= (-> (h/render
+                {:aliases {:custom/container (fn [_ children]
+                                               [:div.container children])
+                           :custom/title (fn [_ [title]]
+                                           [:h1.alias title])}}
+                [:custom/container {:color "red"}
+                 [:custom/title {:color "red"} "Hello world"]])
+               (h/render
+                [:custom/container {:color "blue"}
+                 [:custom/title {:color "blue"} "Hello world"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [])))
+
   (testing "Updates alias"
     (is (= (-> (h/render
                 {:aliases {:custom/title (fn [_attrs [title]]

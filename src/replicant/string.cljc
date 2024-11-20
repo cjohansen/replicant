@@ -78,7 +78,8 @@
                  (->> (r/get-children headers (hiccup/html-ns headers))
                       (keep #(some-> % (render-node {:depth (inc depth)
                                                      :indent indent
-                                                     :aliases aliases})))
+                                                     :aliases aliases
+                                                     :alias-data alias-data})))
                       str/join))
              (when-not (self-closing? tag-name)
                (str indent-s "</" tag-name ">" newline)))))))
