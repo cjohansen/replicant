@@ -54,7 +54,9 @@
     (throw (ex-info (str "Tried to expand undefined alias " (hiccup/ident headers))
                     {:missing (hiccup/ident headers)
                      :available (:aliases opt)})))
-  (or (r/get-alias-headers opt headers) headers))
+  (or (when-let [aliased (r/get-alias-headers opt headers)]
+        (get-expanded-headers opt aliased))
+      headers))
 
 (defn render-node [headers & [{:keys [depth indent aliases alias-data]}]]
   (let [indent-s (when (< 0 indent) (str/join (repeat (* depth indent) " ")))

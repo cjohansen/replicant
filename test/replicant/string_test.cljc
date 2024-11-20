@@ -1,10 +1,29 @@
 (ns replicant.string-test
-  (:require [replicant.string :as sut]
+  (:require [clojure.test :refer [deftest is testing]]
             [replicant.alias :refer [defalias]]
-            [clojure.test :refer [deftest is testing]]))
+            [replicant.string :as sut]))
 
-(defalias button [attrs children]
+(defalias button [_ children]
   (into [:button.btn {:data-source "alias"}] children))
+
+(defalias pill-bar [_ buttons]
+  [:nav.pills
+   buttons])
+
+(defalias pill-button [{:keys [selected? text]}]
+  [:ui/a.pill {:class (when selected? "selected")}
+   text])
+
+(defalias filter-pills [{:keys [current]} filters]
+  [pill-bar
+   (for [filter filters]
+     [pill-button (cond-> {}
+                    (= current (:id filter))
+                    (assoc :selected? true))
+      (:text filter)])])
+
+(defn routing-a [attrs children]
+  [:a attrs children])
 
 (deftest string-render-test
   (testing "Renders string"
@@ -210,6 +229,17 @@
            (str "<div>"
                 "<button data-source=\"alias\" class=\"btn\">Click it!</button>"
                 "</div>"))))
+
+  (testing "Renders a mix of predefined and inlined nested aliases"
+    (is (= (sut/render
+            [:replicant.string-test/filter-pills
+             {:current "all"}
+             [{:id "all" :text "All"}
+              {:id "ones" :text "Ones"}
+              {:id "twos" :text "Twos"}
+              {:id "threes" :text "Threes"}]]
+            {:aliases (assoc (replicant.alias/get-registered-aliases) :ui/a routing-a)})
+           "<nav class=\"pills\"><a class=\"pill\"></a></nav>")))
 
   (testing "Fails when rendering missing aliases"
     (is (thrown-with-msg?
