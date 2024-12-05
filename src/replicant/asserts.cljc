@@ -1,4 +1,4 @@
-(ns replicant.asserts
+(ns ^:no-doc replicant.asserts
   (:require [replicant.assert :as assert]
             [replicant.hiccup :as hiccup]
             [clojure.string :as str])

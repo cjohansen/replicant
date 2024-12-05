@@ -1,4 +1,4 @@
-(ns replicant.console-logger
+(ns ^:no-doc replicant.console-logger
   (:require #?(:clj [clojure.pprint :as pprint]
                :cljs [cljs.pprint :as pprint])
             [clojure.walk :as walk]))

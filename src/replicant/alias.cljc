@@ -7,7 +7,14 @@
 
 (def aliases (atom {}))
 
-(defmacro ^{:indent 2} aliasfn [alias & forms]
+(defmacro ^{:indent 2} aliasfn
+  "Define a function to use as an alias function. Creates a function that wraps
+  returned hiccup with debugging meta data when Replicant asserts are
+  enabled (e.g. during development). When asserts are not enabled (default for
+  production builds), creates a regular function with no added overhead.
+
+  `aliasfn` is most commonly used through `defalias`"
+  [alias & forms]
   (let [[_docstring [attr-map & body]]
         (if (string? (first forms))
           [(first forms) (next forms)]
@@ -36,7 +43,11 @@
          {:replicant/alias ~alias})
       `(with-meta (fn ~attr-map ~@body) {:replicant/alias ~alias}))))
 
-(defmacro defalias [alias & forms]
+(defmacro defalias
+  "Creates a function to render `alias` (a namespaced keyword), and registers
+  it in the global registry. See `aliasfn` for details about the created function.
+  The global registry is available through `replicant.alias/get-registered-aliases`."
+  [alias & forms]
   (let [alias-kw (keyword (str *ns*) (name alias))
         alias-f `(aliasfn ~alias-kw ~@forms)]
     `(let [f# ~alias-f
@@ -44,10 +55,12 @@
        (swap! aliases assoc alias# f#)
        (def ~alias alias#))))
 
-(defn get-registered-aliases []
+(defn get-registered-aliases
+  "Returns global aliases registered"
+  []
   @aliases)
 
-(defn ->hiccup [headers]
+(defn ^:no-doc ->hiccup [headers]
   (when headers
     (or (hiccup/text headers)
         (into [(keyword (hiccup/tag-name headers))
@@ -57,10 +70,10 @@
                    (:classes attrs) (assoc :class (set (:classes attrs)))))]
               (r/flatten-seqs (hiccup/children headers))))))
 
-(defn alias-hiccup? [x]
+(defn ^:no-doc alias-hiccup? [x]
   (and (r/hiccup? x) (qualified-keyword? (first x))))
 
-(defn expand-aliased-hiccup [x opt]
+(defn ^:no-doc expand-aliased-hiccup [x opt]
   (if (alias-hiccup? x)
     (let [headers (r/get-hiccup-headers nil x)
           defined? (get (:aliases opt) (hiccup/tag-name headers))]
@@ -74,13 +87,21 @@
         :then ->hiccup))
     x))
 
-(defn get-opts [opt]
+(defn ^:no-doc get-opts [opt]
   (update opt :aliases #(or % (get-registered-aliases))))
 
-(defn expand-1 [hiccup & [{:keys [aliases] :as opt}]]
+(defn expand-1
+  "Expand the first level of aliases in `hiccup`. The result may contain aliases
+  if returned by the top-level aliases. If using aliases that are not in the
+  global registry, pass `:aliases` in `opt`."
+  [hiccup & [opt]]
   (let [opt (get-opts opt)]
     (walk/postwalk #(expand-aliased-hiccup % opt) hiccup)))
 
-(defn expand [hiccup & [{:keys [aliases] :as opt}]]
+(defn expand
+  "Recursively expand all aliases in `hiccup`. The result will not contain
+  aliases. If using aliases that are not in the global registry, pass `:aliases`
+  in `opt`."
+  [hiccup & [opt]]
   (let [opt (get-opts opt)]
     (walk/prewalk #(expand-aliased-hiccup % opt) hiccup)))
