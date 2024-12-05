@@ -8,7 +8,7 @@
 (deftest hiccup-test
   (testing "Normalizes hiccup structure"
     (is (= (into [] (sut/get-hiccup-headers nil [:h1 "Hello world"]))
-           ["h1" nil nil nil {} ["Hello world"] nil [:h1 "Hello world"] nil "h1" nil])))
+           ["h1" nil nil nil {} ["Hello world"] nil [:h1 "Hello world"] nil nil])))
 
   (testing "Flattens children"
     (is (= (-> (sut/get-hiccup-headers nil [:h1 (list (list "Hello world"))])
@@ -1790,7 +1790,66 @@
             [:add-class [:h1#title ""] "alias"]
             [:create-text-node "Hello world"]
             [:append-child "Hello world" :to "h1"]
-            [:append-child [:h1#title "Hello world"] :to "body"]]))))
+            [:append-child [:h1#title "Hello world"] :to "body"]])))
+
+  (testing "Does not needlessly recreate children of nested aliases"
+    (is (= (-> (h/render
+              {:aliases {::inner (fn [_ children]
+                                   [:div children])
+                         ::outer (fn [_ _]
+                                   [::inner [:input {:type "text"}]])}}
+              [::outer {:now "2024-12-04T12:00:00Z"}])
+             (h/render [::outer {:now "2024-12-04T13:00:00Z"}])
+             h/get-mutation-log-events
+             h/summarize)
+           [])))
+
+  (testing "Does not needlessly recreate children of nested aliases when passing arguments"
+    (is (= (-> (h/render
+                {:aliases {::inner (fn [{:keys [data/now]} children]
+                                     [:div now ": " children])
+                           ::outer (fn [args _]
+                                     [::inner args [:input {:type "text"}]])}}
+                [::outer {:data/now "2024-12-04T12:00:00Z"}])
+               (h/render [::outer {:data/now "2024-12-04T13:00:00Z"}])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-text-node "2024-12-04T13:00:00Z"]
+            [:replace-child "2024-12-04T13:00:00Z" "2024-12-04T12:00:00Z"]])))
+
+  (testing "Moves alias node"
+    (is (= (-> (h/render
+                {:aliases {::inner (fn [{:keys [data/now]} children]
+                                     [:div now ": " children])
+                           ::outer (fn [args _]
+                                     [::inner args [:input {:type "text"}]])}}
+                [:div
+                 [::outer {:data/now "2024-12-04T13:00:00Z"
+                           :replicant/key "alias"}]
+                 [:div {:replicant/key "div"} "Hello"]])
+               (h/render [:div
+                          [:div {:replicant/key "div"} "Hello"]
+                          [::outer {:data/now "2024-12-04T13:00:00Z"
+                                    :replicant/key "alias"}]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:insert-before [:div "Hello"] [:div "2024-12-04T13:00:00Z : "] :in "div"]])))
+
+  (testing "Replaces alias with div"
+    (is (= (-> (h/render
+                {:aliases {::inner (fn [{:keys [data/now]} children]
+                                     [:div now ": " children])
+                           ::outer (fn [args _]
+                                     [::inner args [:input {:type "text"}]])}}
+                [::outer {:data/now "2024-12-04T13:00:00Z"}])
+               (h/render [:div "Hello"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "div"]
+            [:create-text-node "Hello"]
+            [:append-child "Hello" :to "div"]
+            [:insert-before [:div "Hello"] [:div "2024-12-04T13:00:00Z : "] :in "body"]
+            [:remove-child [:div "2024-12-04T13:00:00Z : "] :from "body"]]))))
 
 (deftest regression-tests
   (testing "Replaces element when root node key changes"

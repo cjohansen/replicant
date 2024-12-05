@@ -478,7 +478,7 @@
                     (seq classes) (update :class add-classes classes)
                     alias-data (assoc :replicant/alias-data alias-data)))
                (get-hiccup-headers nil)
-               (hiccup/from-alias tag-name headers))
+               (hiccup/from-alias headers))
           (catch #?(:clj Exception :cljs :default) e
             (->> [:div {:data-replicant-error "Alias threw exception"
                         :data-replicant-exception #?(:clj (.getMessage e)
@@ -497,8 +497,16 @@
      [(r/create-text-node renderer text)
       (vdom/create-text-node text)])
 
-   (some->> (get-alias-headers impl headers)
-            (create-node impl))
+   (when-let [alias-headers (get-alias-headers impl headers)]
+     (let [[child-node vdom] (create-node impl alias-headers)
+           k (hiccup/rkey alias-headers)
+           vdom (vdom/from-hiccup
+                 headers
+                 (hiccup/attrs headers)
+                 [vdom]
+                 (cond-> #{} k (conj k))
+                 1)]
+       [child-node vdom]))
 
    (let [tag-name (hiccup/tag-name headers)
          ns (or (hiccup/html-ns headers)
@@ -532,11 +540,11 @@
   [headers vdom]
   (or (and (hiccup/text headers) (vdom/text vdom))
       (and (= (hiccup/rkey headers) (vdom/rkey vdom))
-           (= (hiccup/ident headers) (vdom/ident vdom)))))
+           (= (hiccup/tag-name headers) (vdom/tag-name vdom)))))
 
 (defn same? [headers vdom]
   (and (= (hiccup/rkey headers) (vdom/rkey vdom))
-       (= (hiccup/ident headers) (vdom/ident vdom))))
+       (= (hiccup/tag-name headers) (vdom/tag-name vdom))))
 
 ;; reconcile* and update-children are mutually recursive
 (declare reconcile*)
@@ -598,7 +606,7 @@
 (def move-node-details [:replicant/move-node])
 
 (defn unchanged? [headers vdom]
-  (= (some-> headers hiccup/sexp) (some-> vdom vdom/original-sexp)))
+  (= (some-> headers hiccup/sexp) (some-> vdom vdom/sexp)))
 
 (defn ^:private move-nodes [{:keys [renderer] :as impl} el headers new-children vdom old-children n n-children]
   (let [[o-idx o-dom-idx] (if (hiccup/rkey headers)
@@ -753,11 +761,13 @@
 
           ;; It's a reusable node, reconcile
           (and old-vdom (reusable? new-headers old-vdom))
-          (let [new-vdom (reconcile* impl el new-headers old-vdom n)
-                node-unchanged? (unchanged? new-headers old-vdom)]
-            (when (and node-unchanged? (< n move-n))
-              (register-hooks impl (r/get-child r el n) new-headers old-vdom move-node-details))
-            (recur (next new-c) (next old-c) (unchecked-inc-int n) move-n n-children (or changed? (not node-unchanged?)) (conj! vdom new-vdom)))
+          (if-let [alias-headers (get-alias-headers impl new-headers)]
+            (recur (cons alias-headers (next new-c)) (cons (first (vdom/children old-vdom)) (next old-c)) n move-n n-children changed? vdom)
+            (let [new-vdom (reconcile* impl el new-headers old-vdom n)
+                  node-unchanged? (unchanged? new-headers old-vdom)]
+              (when (and node-unchanged? (< n move-n))
+                (register-hooks impl (r/get-child r el n) new-headers old-vdom move-node-details))
+              (recur (next new-c) (next old-c) (unchecked-inc-int n) move-n n-children (or changed? (not node-unchanged?)) (conj! vdom new-vdom))))
 
           ;; New node did not previously exist, create it
           (not (old-ks (hiccup/rkey new-headers)))

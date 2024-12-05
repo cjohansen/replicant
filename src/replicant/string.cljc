@@ -49,10 +49,10 @@
       (str/replace "'" "&apos;")))
 
 (defn get-expanded-headers [opt headers]
-  (when (and (qualified-keyword? (hiccup/ident headers))
-             (nil? (get (:aliases opt) (hiccup/ident headers))))
-    (throw (ex-info (str "Tried to expand undefined alias " (hiccup/ident headers))
-                    {:missing (hiccup/ident headers)
+  (when (and (qualified-keyword? (hiccup/tag-name headers))
+             (nil? (get (:aliases opt) (hiccup/tag-name headers))))
+    (throw (ex-info (str "Tried to expand undefined alias " (hiccup/tag-name headers))
+                    {:missing (hiccup/tag-name headers)
                      :available (:aliases opt)})))
   (or (when-let [aliased (r/get-alias-headers opt headers)]
         (get-expanded-headers opt aliased))
