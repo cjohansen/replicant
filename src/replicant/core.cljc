@@ -761,13 +761,11 @@
 
           ;; It's a reusable node, reconcile
           (and old-vdom (reusable? new-headers old-vdom))
-          (if-let [alias-headers (get-alias-headers impl new-headers)]
-            (recur (cons alias-headers (next new-c)) (cons (first (vdom/children old-vdom)) (next old-c)) n move-n n-children changed? vdom)
-            (let [new-vdom (reconcile* impl el new-headers old-vdom n)
-                  node-unchanged? (unchanged? new-headers old-vdom)]
-              (when (and node-unchanged? (< n move-n))
-                (register-hooks impl (r/get-child r el n) new-headers old-vdom move-node-details))
-              (recur (next new-c) (next old-c) (unchecked-inc-int n) move-n n-children (or changed? (not node-unchanged?)) (conj! vdom new-vdom))))
+          (let [new-vdom (reconcile* impl el new-headers old-vdom n)
+                node-unchanged? (unchanged? new-headers old-vdom)]
+            (when (and node-unchanged? (< n move-n))
+              (register-hooks impl (r/get-child r el n) new-headers old-vdom move-node-details))
+            (recur (next new-c) (next old-c) (unchecked-inc-int n) move-n n-children (or changed? (not node-unchanged?)) (conj! vdom new-vdom)))
 
           ;; New node did not previously exist, create it
           (not (old-ks (hiccup/rkey new-headers)))
@@ -788,61 +786,80 @@
 
 (defn reconcile* [{:keys [renderer] :as impl} el headers vdom index]
   (assert/enter-node headers)
-  (cond
-    (unchanged? headers vdom)
-    vdom
+  (or (when (unchanged? headers vdom)
+        vdom)
 
-    ;; Replace the text node at this index with a new one
-    (not= (hiccup/text headers) (vdom/text vdom))
-    (let [[node vdom] (create-node impl headers)]
-      (r/replace-child renderer el node (r/get-child renderer el index))
-      vdom)
+      ;; Update a node that is an alias
+      (when-let [alias-headers (get-alias-headers impl headers)]
+        (let [vdom-child (first (vdom/children vdom))
+              updated-vdom (if (reusable? alias-headers vdom-child)
+                             ;; The alias produced a result compatible with the
+                             ;; previous render, reconcile the node.
+                             (reconcile* impl el alias-headers vdom-child index)
+                             ;; The alias returned something that can't be
+                             ;; reconciled with what's in the DOM. Replace the
+                             ;; existing node with a new one.
+                             (let [[node updated-vdom] (create-node impl alias-headers)]
+                               (r/replace-child renderer el node (r/get-child renderer el index))
+                               updated-vdom))]
+          (vdom/from-hiccup
+           headers
+           (hiccup/attrs headers)
+           [updated-vdom]
+           (when-let [k (vdom/rkey updated-vdom)]
+             [k])
+           1)))
 
-    ;; Update the node's attributes and reconcile its children
-    :else
-    (let [child (r/get-child renderer el index)
-          headers (or (get-alias-headers impl headers) headers)
-          attrs (get-attrs headers)
-          vdom-attrs (vdom/attrs vdom)
-          attrs-changed? (reconcile-attributes renderer child attrs vdom-attrs)
-          [new-children new-ks inner-html?] (if (:innerHTML (hiccup/attrs headers))
-                                              [nil nil true]
-                                              (get-children-ks headers (get-ns headers)))
-          [old-children old-ks old-nc]
-          (cond
-            (:contenteditable vdom-attrs)
-            (do
-              ;; If the node is contenteditable, users can
-              ;; modify the DOM, and we cannot trust that
-              ;; the DOM children still reflect the state
-              ;; in `vdom`. To avoid problems when
-              ;; updating the children, all children are
-              ;; cleared here, and the reconciliation
-              ;; proceeds as if all new children are new.
-              (r/remove-all-children renderer child)
-              [nil nil 0])
+      ;; Replace the text node at this index with a new one
+      (when (not= (hiccup/text headers) (vdom/text vdom))
+        (let [[node vdom] (create-node impl headers)]
+          (r/replace-child renderer el node (r/get-child renderer el index))
+          vdom))
 
-            inner-html?
-            [nil nil 0]
+      ;; Update the node's attributes and reconcile its children
+      (let [child (r/get-child renderer el index)
+            headers (or (get-alias-headers impl headers) headers)
+            attrs (get-attrs headers)
+            vdom-attrs (vdom/attrs vdom)
+            attrs-changed? (reconcile-attributes renderer child attrs vdom-attrs)
+            [new-children new-ks inner-html?] (if (:innerHTML (hiccup/attrs headers))
+                                                [nil nil true]
+                                                (get-children-ks headers (get-ns headers)))
+            [old-children old-ks old-nc]
+            (cond
+              (:contenteditable vdom-attrs)
+              (do
+                ;; If the node is contenteditable, users can
+                ;; modify the DOM, and we cannot trust that
+                ;; the DOM children still reflect the state
+                ;; in `vdom`. To avoid problems when
+                ;; updating the children, all children are
+                ;; cleared here, and the reconciliation
+                ;; proceeds as if all new children are new.
+                (r/remove-all-children renderer child)
+                [nil nil 0])
 
-            :else
-            [(vdom/children vdom) (vdom/child-ks vdom) (vdom/n-children vdom)])
-          [children-changed? children child-ks n-children] (update-children impl child new-children new-ks old-children old-ks old-nc)
-          attrs-changed? (or attrs-changed?
-                             (not= (:replicant/on-render (hiccup/attrs headers))
-                                   (:replicant/on-render vdom-attrs)))]
-      (->> (cond
-             (and attrs-changed? children-changed?)
-             [:replicant/updated-attrs
-              :replicant/updated-children]
+              inner-html?
+              [nil nil 0]
 
-             attrs-changed?
-             [:replicant/updated-attrs]
+              :else
+              [(vdom/children vdom) (vdom/child-ks vdom) (vdom/n-children vdom)])
+            [children-changed? children child-ks n-children] (update-children impl child new-children new-ks old-children old-ks old-nc)
+            attrs-changed? (or attrs-changed?
+                               (not= (:replicant/on-render (hiccup/attrs headers))
+                                     (:replicant/on-render vdom-attrs)))]
+        (->> (cond
+               (and attrs-changed? children-changed?)
+               [:replicant/updated-attrs
+                :replicant/updated-children]
 
-             :else
-             [:replicant/updated-children])
-           (register-hooks impl child headers vdom))
-      (vdom/from-hiccup headers attrs children child-ks n-children))))
+               attrs-changed?
+               [:replicant/updated-attrs]
+
+               :else
+               [:replicant/updated-children])
+             (register-hooks impl child headers vdom))
+        (vdom/from-hiccup headers attrs children child-ks n-children))))
 
 (defn perform-post-mount-update [renderer [node mounting-attrs attrs]]
   (update-attributes renderer node attrs mounting-attrs))

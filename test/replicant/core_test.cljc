@@ -1794,14 +1794,14 @@
 
   (testing "Does not needlessly recreate children of nested aliases"
     (is (= (-> (h/render
-              {:aliases {::inner (fn [_ children]
-                                   [:div children])
-                         ::outer (fn [_ _]
-                                   [::inner [:input {:type "text"}]])}}
-              [::outer {:now "2024-12-04T12:00:00Z"}])
-             (h/render [::outer {:now "2024-12-04T13:00:00Z"}])
-             h/get-mutation-log-events
-             h/summarize)
+                {:aliases {::inner (fn [_ children]
+                                     [:div children])
+                           ::outer (fn [_ _]
+                                     [::inner [:input {:type "text"}]])}}
+                [::outer {:now "2024-12-04T12:00:00Z"}])
+               (h/render [::outer {:now "2024-12-04T13:00:00Z"}])
+               h/get-mutation-log-events
+               h/summarize)
            [])))
 
   (testing "Does not needlessly recreate children of nested aliases when passing arguments"
@@ -1849,7 +1849,69 @@
             [:create-text-node "Hello"]
             [:append-child "Hello" :to "div"]
             [:insert-before [:div "Hello"] [:div "2024-12-04T13:00:00Z : "] :in "body"]
-            [:remove-child [:div "2024-12-04T13:00:00Z : "] :from "body"]]))))
+            [:remove-child [:div "2024-12-04T13:00:00Z : "] :from "body"]])))
+
+  (testing "Can update aliases multiple times in a row (and not loose track of the aliases)"
+    (is (= (-> (h/render
+                {:aliases {:ui/a (fn [{:keys [ui/dest replicant/alias-data]} children]
+                                   [:a {:href (str (:base-url alias-data) dest)} children])
+                           :ui/menu (fn [{:keys [ui/dest]} children]
+                                      [:ui/a {:ui/dest dest} children])}
+                 :alias-data {:base-url "https://example.com"}}
+                [:ui/menu {:ui/dest "/one"} "One"])
+               (h/render [:ui/menu {:ui/dest "/two"} "Two"])
+               (h/render [:ui/menu {:ui/dest "/one"} "One"])
+               (h/render [:ui/menu {:ui/dest "/two"} "Two"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:set-attribute [:a "One"] "href" "/one" :to "/two"]
+            [:create-text-node "Two"]
+            [:replace-child "Two" "One"]])))
+
+  (testing "Can update aliases multiple times when they have siblings"
+    (is (= (-> (h/render
+                {:aliases {:ui/a (fn [{:keys [ui/dest replicant/alias-data]} children]
+                                   [:a {:href (str (:base-url alias-data) dest)} children])
+                           :ui/menu (fn [{:keys [ui/dest]} children]
+                                      [:ui/a {:ui/dest dest} children])}
+                 :alias-data {:base-url "https://example.com"}}
+                [:div
+                 [:h1 "Title"]
+                 [:ui/menu {:ui/dest "/one"} "One"]])
+               (h/render [:div
+                          [:h1 "Title"]
+                          [:ui/menu {:ui/dest "/two"} "Two"]])
+               (h/render [:div
+                          [:h1 "Title"]
+                          [:ui/menu {:ui/dest "/one"} "One"]])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:set-attribute [:a "Two"] "href" "/two" :to "/one"]
+            [:create-text-node "One"]
+            [:replace-child "One" "Two"]])))
+
+  (testing "Can handle that an alias alters the type of its result"
+    ;; In this case :ui/menu first returns an alias, and in the next call it
+    ;; returns a div. In this case, the node from the previous render must be
+    ;; replaced.
+    (is (= (-> (h/render
+                {:aliases {:ui/a (fn [{:keys [ui/dest replicant/alias-data]} children]
+                                   [:a {:href (str (:base-url alias-data) dest)} children])
+                           :ui/menu (fn [{:keys [location]} children]
+                                      (if (get-in location [:hash-params :open])
+                                        [:div.relative
+                                         [:ui/a {:ui/dest "/"}
+                                          "Close"]
+                                         [:div.absolute
+                                          "Dialog"]]
+                                        [:ui/a {:ui/dest "/#open=1"}
+                                         "Open"]))}
+                 :alias-data {:base-url "https://example.com"}}
+                [:ui/menu {:location {}}])
+               (h/render
+                [:ui/menu {:location {:hash-params {:open "1"}}}])
+               h/->dom)
+           [:div [:a "Close"] [:div "Dialog"]]))))
 
 (deftest regression-tests
   (testing "Replaces element when root node key changes"
