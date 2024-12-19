@@ -470,15 +470,17 @@
             id (hiccup/id headers)
             classes (hiccup/classes headers)]
         (try
-          (->> (hiccup/children headers)
-               flatten-seqs
-               seq
-               (f (cond-> (hiccup/attrs headers)
-                    id (update :id #(or % id))
-                    (seq classes) (update :class add-classes classes)
-                    alias-data (assoc :replicant/alias-data alias-data)))
-               (get-hiccup-headers nil)
-               (hiccup/from-alias headers))
+          (let [attrs (hiccup/attrs headers)]
+            (->> (hiccup/children headers)
+                 flatten-seqs
+                 seq
+                 (f (cond-> attrs
+                      id (update :id #(or % id))
+                      (or (seq classes)
+                          (:class attrs)) (update :class add-classes classes)
+                      alias-data (assoc :replicant/alias-data alias-data)))
+                 (get-hiccup-headers nil)
+                 (hiccup/from-alias headers)))
           (catch #?(:clj Exception :cljs :default) e
             (->> [:div {:data-replicant-error "Alias threw exception"
                         :data-replicant-exception #?(:clj (.getMessage e)
