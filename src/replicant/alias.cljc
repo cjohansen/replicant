@@ -43,6 +43,9 @@
          {:replicant/alias ~alias})
       `(with-meta (fn ~attr-map ~@body) {:replicant/alias ~alias}))))
 
+(defn register! [k f]
+  (swap! aliases assoc k f))
+
 (defmacro defalias
   "Creates a function to render `alias` (a namespaced keyword), and registers
   it in the global registry. See `aliasfn` for details about the created function.
@@ -52,7 +55,7 @@
         alias-f `(aliasfn ~alias-kw ~@forms)]
     `(let [f# ~alias-f
            alias# ~alias-kw]
-       (swap! aliases assoc alias# f#)
+       (register! alias# f#)
        (def ~alias alias#))))
 
 (defn get-registered-aliases
