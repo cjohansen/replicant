@@ -1,7 +1,7 @@
 (ns replicant.assert
   (:require #?(:clj [replicant.env :as env])
             [replicant.console-logger :as console]
-            [replicant.hiccup :as hiccup])
+            [replicant.hiccup-headers :as hiccup])
   (:refer-clojure :exclude [assert])
   #?(:cljs (:require-macros [replicant.assert])))
 

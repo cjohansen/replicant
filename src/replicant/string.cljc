@@ -2,7 +2,7 @@
   (:require [clojure.string :as str]
             [replicant.alias :as alias]
             [replicant.core :as r]
-            [replicant.hiccup :as hiccup]))
+            [replicant.hiccup-headers :as hiccup]))
 
 (def self-closing?
   #{"area" "audio" "base" "br" "col" "embed" "hr" "img"

@@ -1,5 +1,5 @@
 (ns replicant.vdom
-  (:require [replicant.hiccup :as h])
+  (:require [replicant.hiccup-headers :as h])
   #?(:cljs (:require-macros [replicant.vdom])))
 
 (def id (volatile! 0))

@@ -1,6 +1,6 @@
 (ns ^:no-doc replicant.asserts
   (:require [replicant.assert :as assert]
-            [replicant.hiccup :as hiccup]
+            [replicant.hiccup-headers :as hiccup]
             [clojure.string :as str])
   #?(:cljs (:require-macros [replicant.asserts])))
 

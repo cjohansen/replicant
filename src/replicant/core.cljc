@@ -40,7 +40,7 @@
   similar macro accessors as the hiccup headers."
   (:require [replicant.assert :as assert]
             [replicant.asserts :as asserts]
-            [replicant.hiccup :as hiccup]
+            [replicant.hiccup-headers :as hiccup]
             [replicant.protocols :as r]
             [replicant.vdom :as vdom]))
 

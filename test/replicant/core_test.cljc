@@ -1,7 +1,7 @@
 (ns replicant.core-test
   (:require [clojure.test :refer [deftest is testing]]
             [replicant.core :as sut]
-            [replicant.hiccup :as hiccup]
+            [replicant.hiccup-headers :as hiccup]
             [replicant.scenarios :as scenarios]
             [replicant.test-helper :as h]))
 

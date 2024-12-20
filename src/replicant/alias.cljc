@@ -2,7 +2,7 @@
   (:require [clojure.walk :as walk]
             [replicant.assert :as assert]
             [replicant.core :as r]
-            [replicant.hiccup :as hiccup])
+            [replicant.hiccup-headers :as hiccup])
   #?(:cljs (:require-macros [replicant.alias])))
 
 (def aliases (atom {}))
