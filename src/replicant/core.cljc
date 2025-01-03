@@ -40,6 +40,7 @@
   similar macro accessors as the hiccup headers."
   (:require [replicant.assert :as assert]
             [replicant.asserts :as asserts]
+            [replicant.hiccup :as h]
             [replicant.hiccup-headers :as hiccup]
             [replicant.protocols :as r]
             [replicant.vdom :as vdom]))
@@ -48,11 +49,6 @@
 
 #_(set! *warn-on-reflection* true)
 #_(set! *unchecked-math* :warn-on-boxed)
-
-(defn hiccup? [sexp]
-  (and (vector? sexp)
-       (not (map-entry? sexp))
-       (keyword? (first sexp))))
 
 (defn parse-tag [^clojure.lang.Keyword tag]
   (asserts/assert-non-empty-id tag)
@@ -104,7 +100,7 @@
   children, so they can all be created with createElementNS etc."
   [ns sexp]
   (when sexp
-    (if (hiccup? sexp)
+    (if (h/hiccup? sexp)
       (let [sym (first sexp)
             args (rest sexp)
             has-args? (map? (first args))
@@ -451,7 +447,7 @@
    (for [child children]
      (cond-> child
        (and (not (string? child))
-            (not (hiccup? child))) pr-str))])
+            (not (h/hiccup? child))) pr-str))])
 
 (defn add-classes [class-attr classes]
   (cond
@@ -880,6 +876,7 @@
               :alias-data alias-data}
         vdom (let [headers (get-hiccup-headers nil hiccup)]
                (assert/enter-node headers)
+
                ;; Not strictly necessary, but it makes noop renders faster
                (if (and headers vdom (unchanged? headers (first vdom)) (= 1 (count vdom)))
                  vdom

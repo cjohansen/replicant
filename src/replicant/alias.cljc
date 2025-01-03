@@ -2,6 +2,7 @@
   (:require [clojure.walk :as walk]
             [replicant.assert :as assert]
             [replicant.core :as r]
+            [replicant.hiccup :as h]
             [replicant.hiccup-headers :as hiccup])
   #?(:cljs (:require-macros [replicant.alias])))
 
@@ -74,7 +75,7 @@
               (r/flatten-seqs (hiccup/children headers))))))
 
 (defn ^:no-doc alias-hiccup? [x]
-  (and (r/hiccup? x) (qualified-keyword? (first x))))
+  (and (h/hiccup? x) (qualified-keyword? (first x))))
 
 (defn ^:no-doc expand-aliased-hiccup [x opt]
   (if (alias-hiccup? x)

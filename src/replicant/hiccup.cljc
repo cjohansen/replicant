@@ -1,5 +1,12 @@
 (ns replicant.hiccup)
 
+(defn hiccup?
+  "Returns `true` if `sexp` is a vector with a keyword in the first position."
+  [sexp]
+  (and (vector? sexp)
+       (not (map-entry? sexp))
+       (keyword? (first sexp))))
+
 (defn update-attrs
   "Ensure that `hiccup` has an attribute map, and call `update` on it with `args`.
 
