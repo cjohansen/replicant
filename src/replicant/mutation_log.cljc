@@ -1,4 +1,4 @@
-(ns replicant.mutation-log
+(ns ^:no-doc replicant.mutation-log
   (:require [replicant.core :as d]
             [replicant.protocols :as replicant]))
 

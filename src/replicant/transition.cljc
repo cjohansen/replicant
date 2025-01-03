@@ -1,4 +1,4 @@
-(ns replicant.transition)
+(ns ^:no-doc replicant.transition)
 
 (defn get-transition-stats [transition-duration-s]
   (loop [str (str transition-duration-s)

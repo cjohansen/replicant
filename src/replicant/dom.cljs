@@ -5,15 +5,15 @@
             [replicant.protocols :as replicant]
             [replicant.transition :as transition]))
 
-(defn remove-listener [^js/EventTarget el event]
+(defn ^:no-doc remove-listener [^js/EventTarget el event]
   (when-let [old-handler (some-> el .-replicantHandlers (aget event))]
     (.removeEventListener el event old-handler)))
 
-(defn on-next-frame [f]
+(defn ^:no-doc on-next-frame [f]
   (js/requestAnimationFrame
    #(js/requestAnimationFrame f)))
 
-(defn -on-transition-end [el f]
+(defn ^:no-doc -on-transition-end [el f]
   (let [[n dur] (-> (js/window.getComputedStyle el)
                     (.getPropertyValue "transition-duration")
                     transition/get-transition-stats)]
@@ -43,7 +43,7 @@
         ;; important part is that the element doesn't get stuck forever.
         (vreset! timer (js/setTimeout callback (+ dur 200)))))))
 
-(defn create-renderer []
+(defn ^:no-doc create-renderer []
   (reify
     replicant/IRender
     (create-text-node [_this text]
@@ -190,7 +190,7 @@
     (next-frame [_this f]
       (on-next-frame f))))
 
-(defonce state (volatile! {}))
+(defonce ^:no-doc state (volatile! {}))
 
 (defn ^:export render
   "Render `hiccup` in DOM element `el`. Replaces any pre-existing content not
@@ -231,5 +231,9 @@
       (vswap! state dissoc el)
       nil)))
 
-(defn ^:export set-dispatch! [f]
+(defn ^:export set-dispatch!
+  "Register a global dispatch function for event handlers and life-cycle hooks
+  that are not functions. See data-driven event handlers and life-cycle hooks in
+  the user guide for details."
+  [f]
   (set! r/*dispatch* f))

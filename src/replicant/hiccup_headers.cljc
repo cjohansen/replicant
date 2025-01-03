@@ -1,4 +1,4 @@
-(ns replicant.hiccup-headers
+(ns ^:no-doc replicant.hiccup-headers
   #?(:cljs (:require-macros [replicant.hiccup-headers])))
 
 (defmacro hget [x k]

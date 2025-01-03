@@ -4,11 +4,11 @@
             [replicant.core :as r]
             [replicant.hiccup-headers :as hiccup]))
 
-(def self-closing?
+(def ^:no-doc self-closing?
   #{"area" "audio" "base" "br" "col" "embed" "hr" "img"
     "input" "link" "meta" "param" "source" "track" "wbr"})
 
-(defn render-attrs [attrs]
+(defn ^:no-doc render-attrs [attrs]
   (some->> (dissoc attrs :on)
            (keep (fn [[k v]]
                    (when (and v (nil? (namespace k)))
@@ -48,7 +48,7 @@
       (str/replace "\"" "&quot;")
       (str/replace "'" "&apos;")))
 
-(defn get-expanded-headers [opt headers]
+(defn ^:no-doc get-expanded-headers [opt headers]
   (when (and (qualified-keyword? (hiccup/tag-name headers))
              (nil? (get (:aliases opt) (hiccup/tag-name headers))))
     (throw (ex-info (str "Tried to expand undefined alias " (hiccup/tag-name headers))
@@ -58,7 +58,7 @@
         (get-expanded-headers opt aliased))
       headers))
 
-(defn render-node [headers & [{:keys [depth indent aliases alias-data]}]]
+(defn ^:no-doc render-node [headers & [{:keys [depth indent aliases alias-data]}]]
   (let [indent-s (when (< 0 indent) (str/join (repeat (* depth indent) " ")))
         newline (when (< 0 indent) "\n")
         headers (get-expanded-headers {:aliases aliases
@@ -84,7 +84,9 @@
              (when-not (self-closing? tag-name)
                (str indent-s "</" tag-name ">" newline)))))))
 
-(defn render [hiccup & [{:keys [aliases alias-data indent]}]]
+(defn render
+  "Render `hiccup` to a string of HTML"
+  [hiccup & [{:keys [aliases alias-data indent]}]]
   (if hiccup
     (render-node (r/get-hiccup-headers nil hiccup)
                  {:indent (or indent 0)

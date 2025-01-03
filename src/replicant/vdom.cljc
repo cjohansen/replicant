@@ -1,4 +1,4 @@
-(ns replicant.vdom
+(ns ^:no-doc replicant.vdom
   (:require [replicant.hiccup-headers :as h])
   #?(:cljs (:require-macros [replicant.vdom])))
 

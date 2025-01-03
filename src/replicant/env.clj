@@ -1,4 +1,4 @@
-(ns replicant.env
+(ns ^:no-doc replicant.env
   (:require [clojure.string :as str]))
 
 (def ^:private cljs-available?

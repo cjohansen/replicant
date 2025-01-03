@@ -44,7 +44,13 @@
          {:replicant/alias ~alias})
       `(with-meta (fn ~attr-map ~@body) {:replicant/alias ~alias}))))
 
-(defn register! [k f]
+(defn register!
+  "Register an alias. Associates the alias key `k` with the function `f`:
+
+   ```clj
+   (replicant.alias/register! :ui/a custom-link)
+   ```"
+  [k f]
   (swap! aliases assoc k f))
 
 (defmacro defalias
@@ -60,7 +66,7 @@
        (def ~alias alias#))))
 
 (defn get-registered-aliases
-  "Returns global aliases registered"
+  "Returns globally registered aliases"
   []
   @aliases)
 
