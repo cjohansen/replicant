@@ -6,7 +6,7 @@
             [replicant.hiccup-headers :as hiccup])
   #?(:cljs (:require-macros [replicant.alias])))
 
-(def aliases (atom {}))
+(def ^:no-doc aliases (atom {}))
 
 (defmacro ^{:indent 2} aliasfn
   "Define a function to use as an alias function. Creates a function that wraps
