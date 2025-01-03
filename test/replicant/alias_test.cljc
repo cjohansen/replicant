@@ -75,7 +75,7 @@
 
   (testing "Fails missing aliases when explicitly told to"
     (is (thrown-with-msg?
-         clojure.lang.ExceptionInfo
+         #?(:clj clojure.lang.ExceptionInfo)
          #"Tried to expand undefined alias :ui/list"
          (-> [:ui/list
               [:li [:ui/i18n :thing-1]]
