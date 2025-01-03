@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>no.cjohansen</groupId>
   <artifactId>replicant</artifactId>
-  <version>2025.01.03</version>
+  <version>2025.01.03.2</version>
   <name>replicant</name>
   <dependencies>
   </dependencies>
@@ -34,7 +34,7 @@
   <scm>
     <connection>scm:git:git://github.com/cjohansen/replicant.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/cjohansen/replicant.git</developerConnection>
-    <tag>v2025.01.03</tag>
+    <tag>v2025.01.03.2</tag>
     <url>https://github.com/cjohansen/replicant</url>
   </scm>
 </project>
