@@ -1,4 +1,4 @@
-(ns replicant.core
+(ns ^:no-doc replicant.core
   "Beware! This code is written for performance. It does a lot of things that can
   not be considered idiomatic Clojure. If you find yourself looking at it and
   asking \"why are things done like that?\" the answer is most likely
