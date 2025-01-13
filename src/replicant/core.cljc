@@ -452,12 +452,12 @@
 (defn add-classes [class-attr classes]
   (cond
     (coll? class-attr)
-    (concat class-attr classes)
+    (set (concat class-attr classes))
 
     (nil? class-attr)
-    classes
+    (set classes)
 
-    :else (cons class-attr classes)))
+    :else (conj (set classes) class-attr)))
 
 (defn get-alias-headers [{:keys [aliases alias-data]} headers]
   (let [tag-name (hiccup/tag-name headers)]
