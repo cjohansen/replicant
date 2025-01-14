@@ -1,7 +1,5 @@
 (ns ^:no-doc replicant.console-logger
-  (:require #?(:clj [clojure.pprint :as pprint]
-               :cljs [cljs.pprint :as pprint])
-            [clojure.walk :as walk]))
+  (:require [clojure.walk :as walk]))
 
 (defn log [x]
   #?(:clj (println x)
@@ -15,7 +13,7 @@
   #?(:cljs (js/console.groupEnd)))
 
 (defn pprstr [x]
-  (with-out-str (pprint/pprint x)))
+  (pr-str x))
 
 (defn scrub-sexp [sexp]
   (walk/prewalk
