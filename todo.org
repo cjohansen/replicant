@@ -1,10 +1,10 @@
-* Features [5/8]
+* Features [6/8]
 ** DONE replicant/mounting
 ** DONE replicant/unmounting
 ** DONE dev-mode assert
 ** DONE :replicant/on-mount
 ** DONE :replicant/on-unmount
-** TODO Support vars as event listeners #'
+** DONE Support vars as event listeners #'
 ** TODO DOMException: Failed to execute 'setAttribute' on 'Element': 'loading?' is not a valid attribute name.
 ** TODO (when {:style {}}) <= Leads to nil, which is treated as a missing child. Don't wrap the attribute map in a when
 * Asserts [6/7]

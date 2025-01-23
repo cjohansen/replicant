@@ -257,7 +257,8 @@
   recommended), or a wrapper that dispatches through
   `replicant.core/*dispatch*`, if it is bound to a function. "
   [handler event]
-  (or (when (fn? handler)
+  (or (when (or (fn? handler)
+                (and (var? handler) (fn? (deref handler))))
         handler)
       (when (ifn? *dispatch*)
         (fn [e]

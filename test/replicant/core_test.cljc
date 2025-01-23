@@ -697,6 +697,16 @@
             [:append-child "Hi!" :to "h1"]
             [:append-child [:h1 "Hi!"] :to "body"]])))
 
+  (testing "Creates node with var for event handler"
+    (is (= (-> (h/render [:h1 {:on {:click #'f1}} "Hi!"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "h1"]
+            [:set-event-handler [:h1 ""] :click #'f1]
+            [:create-text-node "Hi!"]
+            [:append-child "Hi!" :to "h1"]
+            [:append-child [:h1 "Hi!"] :to "body"]])))
+
   (testing "Adds event handler"
     (is (= (-> (h/render [:h1 "Hi!"])
                (h/render [:h1 {:on {:click f1}} "Hi!"])
