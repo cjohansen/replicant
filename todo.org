@@ -1,4 +1,4 @@
-* Features [6/8]
+* Features [6/7]
 ** DONE replicant/mounting
 ** DONE replicant/unmounting
 ** DONE dev-mode assert
@@ -6,8 +6,9 @@
 ** DONE :replicant/on-unmount
 ** DONE Support vars as event listeners #'
 ** TODO DOMException: Failed to execute 'setAttribute' on 'Element': 'loading?' is not a valid attribute name.
-** TODO (when {:style {}}) <= Leads to nil, which is treated as a missing child. Don't wrap the attribute map in a when
-* Asserts [6/7]
+* Bugs [0/1]
+** TODO Call life-cycle hooks on descendants of removed child
+* Asserts [6/8]
 ** DONE Using :className
 ** DONE Using spaced strings for :class
 ** DONE Using string style
@@ -15,9 +16,8 @@
 ** DONE Style keys that are not strings or keywords
 ** DONE Style keys should be dash cased, not camelCased
 ** TODO Do not trigger renders from life-cycle hooks
-* Aliases [3/5]
+** TODO (when {:style {}}) <= Leads to nil, which is treated as a missing child. Don't wrap the attribute map in a when
+* Aliases [3/3]
 ** DONE Only call alias function once per render
 ** DONE Don't call alias function when hiccup is unchanged
 ** DONE Offer setting for eager rendering of aliases (dev)
-** TODO :replicant/key fra alias bør settes på elementet som et alias lager
-** TODO Tillat defalias å lage alias med bare ett parameter - default det andre til _
