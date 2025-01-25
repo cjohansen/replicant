@@ -786,6 +786,7 @@
 
 (defn reconcile* [{:keys [renderer] :as impl} el headers vdom index]
   (assert/enter-node headers)
+  (asserts/assert-no-conditional-attributes headers vdom)
   (or (when (unchanged? headers vdom)
         vdom)
 

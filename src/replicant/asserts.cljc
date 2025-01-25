@@ -1,8 +1,8 @@
 (ns ^:no-doc replicant.asserts
-  (:require [replicant.assert :as assert]
+  (:require [clojure.string :as str]
+            [replicant.assert :as assert]
             [replicant.hiccup-headers :as hiccup]
-            [clojure.string :as str])
-  #?(:cljs (:require-macros [replicant.asserts])))
+            [replicant.vdom :as vdom]))
 
 (defmacro assert-no-class-name [headers]
   `(assert/assert
@@ -104,3 +104,25 @@
              :else
              (str " it contains the character " (re-find #"[^a-zA-Z0-9\-:\._]" attr#)))
            ", which isn't allowed as per the HTML spec."))))
+
+(defmacro assert-no-conditional-attributes [headers vdom]
+  `(assert/assert
+       (let [new-attrs# (second (hiccup/sexp ~headers))
+             old-attrs# (second (vdom/sexp ~vdom))]
+         (or (and (= 0 (count (hiccup/children ~headers)))
+                  (= 0 (count (vdom/children ~vdom))))
+             (= nil new-attrs# old-attrs#)
+             (and (map? new-attrs#) (map? old-attrs#))
+             (and (not (map? new-attrs#)) (not (map? old-attrs#)))))
+       "Avoid conditionals around the attribute map"
+       (let [[k# v#] (first (or (second (vdom/sexp ~vdom)) (second (hiccup/sexp ~headers))))]
+         (str "Replicant treats nils as hints of nodes that come and go. Wrapping "
+              "the entire attribute map in a conditional such that what used to be "
+              (pr-str (second (vdom/sexp ~vdom))) " is now "
+              (pr-str (second (hiccup/sexp ~headers)))
+              " can impair how well Replicant can match up child nodes without keys, and "
+              "may lead to undesirable behavior for life-cycle events and transitions.\n\n"
+              "Instead of:\n[" (first (hiccup/sexp ~headers))
+              " (when something? {" k# " " (pr-str v#) "}) ,,,]\n\nConsider:\n["
+              (first (hiccup/sexp ~headers)) "\n  "
+              "(cond-> {}\n    something? (assoc " k# " " (pr-str v#) ")) ,,,]"))))
