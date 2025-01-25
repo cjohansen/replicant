@@ -86,3 +86,21 @@
     "Set event listeners in the :on map"
     (str "Event handler attributes are not supported. Instead of "
          ~k " set :on {" (keyword (camel->dash (.substring (name ~k) 2))) " ,,,}")))
+
+(defmacro assert-valid-attribute-name [attr v]
+  `(assert/assert
+    (re-find #"^[a-zA-Z\-:_][a-zA-Z0-9\-:\._]*$" (name ~attr))
+    (str "Invalid attribute name " (name ~attr))
+    (let [attr# (name ~attr)]
+      (str "Tried to set attribute " attr# " to value " ~v ". This will fail"
+           "horribly in the browser because "
+           (cond
+             (re-find #"^[0-9]" attr#)
+             " it starts with a number"
+
+             (re-find #"^\." attr#)
+             " it starts with a dot"
+
+             :else
+             (str " it contains the character " (re-find #"[^a-zA-Z0-9\-:\._]" attr#)))
+           ", which isn't allowed as per the HTML spec."))))

@@ -1,5 +1,6 @@
 (ns replicant.dom
   (:require [replicant.alias :as alias]
+            [replicant.assert :as assert]
             [replicant.core :as r]
             [replicant.env :as env]
             [replicant.protocols :as replicant]
@@ -71,42 +72,47 @@
       this)
 
     (set-attribute [this el attr v opt]
-      (cond
-        (= "innerHTML" attr)
-        (set! (.-innerHTML el) v)
+      (try
+        (cond
+          (= "innerHTML" attr)
+          (set! (.-innerHTML el) v)
 
-        (= "value" attr)
-        (set! (.-value el) v)
+          (= "value" attr)
+          (set! (.-value el) v)
 
-        (= "default-value" attr)
-        (.setAttribute el "value" v)
+          (= "default-value" attr)
+          (.setAttribute el "value" v)
 
-        (= "selected" attr)
-        (set! (.-selected el) v)
+          (= "selected" attr)
+          (set! (.-selected el) v)
 
-        (= "default-selected" attr)
-        (.setAttribute el "selected" v)
+          (= "default-selected" attr)
+          (.setAttribute el "selected" v)
 
-        (= "checked" attr)
-        (set! (.-checked el) v)
+          (= "checked" attr)
+          (set! (.-checked el) v)
 
-        (= "default-checked" attr)
-        (.setAttribute el "checked" v)
+          (= "default-checked" attr)
+          (.setAttribute el "checked" v)
 
-        (= "disabled" attr)
-        (set! (.-disabled el) v)
+          (= "disabled" attr)
+          (set! (.-disabled el) v)
 
-        (= "readonly" attr)
-        (set! (.-readonly el) v)
+          (= "readonly" attr)
+          (set! (.-readonly el) v)
 
-        (= "required" attr)
-        (set! (.-required el) v)
+          (= "required" attr)
+          (set! (.-required el) v)
 
-        (:ns opt)
-        (.setAttributeNS el (:ns opt) attr v)
+          (:ns opt)
+          (.setAttributeNS el (:ns opt) attr v)
 
-        :else
-        (.setAttribute el attr v))
+          :else
+          (.setAttribute el attr v))
+        (catch :default e
+          (assert/log-error
+           (str "Replicant caught an error during rendering: "
+                (.-message e)))))
       this)
 
     (remove-attribute [this el attr]

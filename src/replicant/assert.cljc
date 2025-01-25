@@ -12,6 +12,17 @@
 (defn ^:no-doc assert? []
   #?(:clj (env/enabled? :replicant/asserts? (env/dev?))))
 
+(defn ^:no-doc log? []
+  ;; Enabled by default in production builds, but not when asserts are enabled -
+  ;; they provide more detailed information.
+  #?(:clj (env/enabled? :replicant/log-errors? (not (assert?)))))
+
+(defmacro ^:no-doc log-error [s]
+  (when (log?)
+    (if (:ns &env)
+      `(js/console.error ~s)
+      `(prn ~s))))
+
 (defmacro ^:no-doc enter-node [headers]
   (when (assert?)
     `(when ~headers
