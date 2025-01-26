@@ -2,6 +2,7 @@
   (:require [clojure.string :as str]
             [replicant.assert :as assert]
             [replicant.hiccup-headers :as hiccup]
+            [replicant.hiccup :as h]
             [replicant.vdom :as vdom]))
 
 (defmacro assert-no-class-name [headers]
@@ -126,3 +127,23 @@
               " (when something? {" k# " " (pr-str v#) "}) ,,,]\n\nConsider:\n["
               (first (hiccup/sexp ~headers)) "\n  "
               "(cond-> {}\n    something? (assoc " k# " " (pr-str v#) ")) ,,,]"))))
+
+(defmacro assert-alias-exists [tag-name f available-aliases]
+  `(assert/assert
+    (fn? ~f)
+    (str "Alias " ~tag-name " isn't defined")
+    (str "There's no available function to render this alias. Replicant will "
+         "render an empty element with data attributes in its place. Available "
+         "aliases are:\n" (str/join "\n" ~available-aliases))))
+
+(defmacro assert-valid-alias-result [tag-name hiccup]
+  `(assert/assert
+    (or (string? ~hiccup) (h/hiccup? ~hiccup))
+    (str "Aliases must return valid hiccup")
+    (str "Aliases must always represent a node in the document, and "
+         "cannot return " (cond
+                            (nil? ~hiccup) "nil"
+                            (map? ~hiccup) "a map"
+                            (coll? ~hiccup) "multiple nodes"
+                            :else (pr-str ~hiccup))
+         ". Please check the implementation of " ~tag-name ".")))

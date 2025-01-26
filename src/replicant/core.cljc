@@ -467,16 +467,19 @@
       (let [f (or (get aliases tag-name) (partial render-default-alias tag-name))
             id (hiccup/id headers)
             classes (hiccup/classes headers)]
+        (asserts/assert-alias-exists tag-name (get aliases tag-name) (keys aliases))
         (try
-          (let [attrs (hiccup/attrs headers)]
-            (->> (hiccup/children headers)
-                 flatten-seqs
-                 seq
-                 (f (cond-> attrs
-                      id (update :id #(or % id))
-                      (or (seq classes)
-                          (:class attrs)) (update :class add-classes classes)
-                      alias-data (assoc :replicant/alias-data alias-data)))
+          (let [attrs (hiccup/attrs headers)
+                alias-hiccup (->> (hiccup/children headers)
+                                  flatten-seqs
+                                  seq
+                                  (f (cond-> attrs
+                                       id (update :id #(or % id))
+                                       (or (seq classes)
+                                           (:class attrs)) (update :class add-classes classes)
+                                       alias-data (assoc :replicant/alias-data alias-data))))]
+            (asserts/assert-valid-alias-result tag-name alias-hiccup)
+            (->> alias-hiccup
                  (get-hiccup-headers nil)
                  (hiccup/from-alias headers)))
           (catch #?(:clj Exception :cljs :default) e
