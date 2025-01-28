@@ -1,11 +1,11 @@
-* Features [6/7]
+* Features [7/7]
 ** DONE replicant/mounting
 ** DONE replicant/unmounting
 ** DONE dev-mode assert
 ** DONE :replicant/on-mount
 ** DONE :replicant/on-unmount
 ** DONE Support vars as event listeners #'
-** TODO DOMException: Failed to execute 'setAttribute' on 'Element': 'loading?' is not a valid attribute name.
+** DONE DOMException: Failed to execute 'setAttribute' on 'Element': 'loading?' is not a valid attribute name.
 * Bugs [0/1]
 ** TODO Call life-cycle hooks on descendants of removed child
 * Asserts [6/8]
