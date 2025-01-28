@@ -1,518 +1,118 @@
-# Replicant - A Clojure(Script) DOM rendering library
+# Replicant
 
-Replicant turns hiccup into DOM. Over and over. Efficiently, without a single
+<svg xmlns="http://www.w3.org/2000/svg"
+     xml:space="preserve"
+     style="float:right; width: 96px; height: 96px;fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2"
+     viewBox="0 0 1080 1080">
+  <path fill="#4fb348" d="M876.452 152.555c136.818 12.348 195.668 81.688 192.708 196.198h-87.197c1.569-66.295-16.004-119.066-52.748-157.356-14.398-15.003-31.913-27.882-52.763-38.353v-.489Zm98.715 270.164h87.213c-9.48 55.52-38.53 92.323-91.749 108.344 55.789 39.542 76.849 90.867 66.189 152.957l-44.388 184.981h-86.379l42.751-178.151c.149-.622.278-1.249.386-1.879 9.983-58.16-3.188-108.49-41.722-150.197 36.949-23.921 58.758-61.19 67.282-111.131a29.34 29.34 0 0 0 .417-4.924Z"/>
+  <path fill="#00a29a" d="M757.149 152.309c138.837 11.646 198.514 81.149 195.537 196.444h-88.511c1.643-69.4-17.651-123.977-58.046-162.647-13.679-13.096-29.954-24.431-48.98-33.797Zm101.023 270.41h87.726c-9.475 55.52-38.529 92.323-91.745 108.344 55.785 39.542 76.848 90.867 66.191 152.957l-44.391 184.981h-87.689l42.752-178.151c.149-.622.278-1.249.386-1.879 9.983-58.16-3.188-108.49-41.722-150.197 36.948-23.921 58.758-61.19 67.281-111.131.153-.894.263-1.79.332-2.685h.506c.126-.747.25-1.493.373-2.239Z"/>
+  <path fill="#0086ff" d="M76.208 847.157c-36.752-5.562-64.959-37.32-64.959-75.614 0-42.21 34.269-76.478 76.478-76.478a76.45 76.45 0 0 1 20.676 2.832c32.178 9.028 55.802 38.6 55.802 73.646 0 42.209-34.268 76.478-76.478 76.478-3.915 0-7.761-.295-11.519-.864Zm56.524-262.05a77.324 77.324 0 0 1-6.804.299c-42.209 0-76.478-34.268-76.478-76.478 0-42.209 34.269-76.478 76.478-76.478 13.663 0 26.494 3.591 37.6 9.879 23.204 13.139 38.878 38.053 38.878 66.599 0 39.917-30.647 72.732-69.674 76.179Zm-18.148 84.136 11.77-54.569c58.168-.23 105.321-47.525 105.321-105.746 0-35.555-17.586-67.035-44.526-86.209H828.11c-9.475 55.52-38.529 92.323-91.745 108.344 55.784 39.542 76.848 90.867 66.191 152.957l-44.391 184.981H539.756l34.836-151.189c13.135-57.004-4.455-118.062-91.882-118.062H353.796l-71.217 274.677H112.245c46.557-11.07 81.229-52.96 81.229-102.884 0-49.085-33.515-90.403-78.89-102.3Zm-1.803-330.67 117.483-187.485h389.845c152.584 6.696 217.9 77.175 214.789 197.665H178.595v-10.18h-65.814Z"/>
+</svg>
+
+Replicant is a data-driven rendering library for Clojure(Script). It renders
+hiccup to strings or DOM nodes. Over and over. Efficiently, without a single
 dependency.
 
+## Install
+
 ```clj
-(require '[replicant.dom :as d])
+no.cjohansen/replicant {:mvn/version "2025.01.28"}
+```
 
-(def el (js/document.getElementById "app"))
+## Documentation
 
-;; Render to the DOM - creates all elements
-(d/render el
-  [:ul.cards
-    [:li {:replicant/key 1} "Item #1"]
-    [:li {:replicant/key 2} "Item #2"]
-    [:li {:replicant/key 3} "Item #3"]
-    [:li {:replicant/key 4} "Item #4"]])
+Learn about using Replicant:
 
-;; This render call will only result in one DOM node being moved.
-(d/render el
-  [:ul.cards
-    [:li {:replicant/key 1} "Item #1"]
-    [:li {:replicant/key 3} "Item #3"]
-    [:li {:replicant/key 2} "Item #2"]
-    [:li {:replicant/key 4} "Item #4"]])
+- [Replicant user guide](https://replicant.fun/learn/)
+- [Reference API docs](https://cljdoc.org/d/no.cjohansen/replicant/)
+- [Replicant in the wild](https://replicant.fun/in-the-wild/)
+
+## Design goal
+
+The user interface is a function of application state. Whenever state changes,
+call this function to update the UI. The function receives all application state
+and returns the entire user interface as hiccup data -- every time. State (data)
+in, hiccup (data) out. No local state, no atoms, no subscriptions, no
+networking. Just a pure function from data to hiccup.
+
+Replicant's design goal is to make this programming model feasible.
+
+Replicant is a **rendering library**. That's it. There's no state management, no
+async rendering, no networking utilities. There's just a single function that
+renders and rerenders your hiccup to the DOM in an efficient manner.
+
+## Inspiration
+
+In 2013, React launched with the idea that your UI was just a function of your
+application state. I still believe this is the best idea the frontend
+development community has had in the past 20 years.
+
+While working on [Dumdom](https://github.com/cjohansen/dumdom),
+[Anders](https://github.com/duckyuck), [Magnar](https://magnars.com/) and I
+discovered how to make functions such as event handlers data-driven, without
+making the library prescriptive.
+
+[Snabbdom](https://github.com/snabbdom) taught me that components are not a
+necessary feature of a virtual DOM renderer. Life-cycle hooks can just as easily
+be attached to DOM nodes.
+
+[m1p](https://github.com/cjohansen/m1p) spawned the idea that the rendering
+library could resolve placeholders like `[:i18n ::some-key]` during rendering,
+eliminating an entire `walk` through the UI - an idea that turned in Replican
+aliases (whose name was inspired by
+[chassis](https://github.com/onionpancakes/chassis)).
+
+## Interoperability
+
+Replicant interoperates nicely with anything that works on data. It has hooks
+that exposes DOM elements for interoperability with other libraries.
+
+Interoperability with component libraries like React is technically possible
+through hooks, but not recommended. Virtual DOM libraries and frameworks are not
+lightweight enough that I would encourage anyone to use more than one of them in
+the same application.
+
+Replicant was very deliberately designed to not include certain features popular
+in other rendering libraries, such as component local state (or components, for
+that matter). Enabling Replicant to render components written for other
+libraries would effectively introduce an escape hatch that would undermine
+Replicant's assumptions. Given that I don't see "reusable components across
+libraries and frameworks" as an attractive goal, this is not complexity I am
+interesting in taking on.
+
+For truly reusable extensions of the browser you can use web components (like
+[u-elements](https://u-elements.github.io/)) and have Replicant render custom
+elements, e.g.:
+
+```clj
+[:u-tabs
+ [:u-tablist
+  [:u-tab "Tab 1"]
+  [:u-tab "Tab 2"]
+  [:u-tab "Tab 3"]]
+ [:u-tabpanel "Panel 1"]
+ [:u-tabpanel "Panel 2"]
+ [:u-tabpanel "Panel 3"]]
 ```
 
 ## Status
 
-Replicant is starting to shape up, but is still under development. Details are
-subject to change. The current focus is on finalizing APIs and hardening by
-porting some large UIs to it.
-
-## Features
-
-- Efficient hiccup to DOM renders and re-renders
-- Represent entire UIs with serializable data
-- Rich life-cycle hooks (mount, unmount, update attributes, move, etc)
-- Data-driven hooks and DOM event handlers
-- Stateless and component-free
-- Style/class/attribute overrides during mounting and unmounting for easy
-  transitions
-- Alias elements
-- Small API surface
-- Inline styles with Clojure maps
-- Class lists with Clojure collections
-- `innerHTML` support
-- Rendering to strings
-- No dependencies
+Replicant is stable, performant and feature complete. Its public APIs will not
+be intentionally changed. It's used in production by several apps.
 
 ## Performance
 
 Replicant performance is being tuned using
 https://github.com/krausest/js-framework-benchmark. See [benchmarking
-instructions](#benchmarking) for how to run locally.
-
-<a id="data-hooks"></a>
-## Data-driven hooks and events
-
-As originally introduced in [dumdom](https://github.com/cjohansen/dumdom), and
-described in [my talk about data-driven UIs](https://vimeo.com/861600197),
-Replicant allows you to register a global function for handling events and
-life-cycles. This way your hiccup can be free of opaque functions, setting you
-up for good rendering performance and fully serializable UI data.
-
-```clj
-[:h1 {:on {:click [:whatever]}}
-  "Click me"]
-```
-
-When Replicant encounters this hiccup, it will register a click handler that
-will pass the data (`[:whatever]`) to a global dispatcher. You register this by
-calling `replicant.dom/set-dispatch!`:
-
-```clj
-(require '[replicant.dom :as replicant])
-
-(replicant/set-dispatch!
-  (fn [replicant-data handler-data]
-    (prn "Click!")))
-
-(replicant/render
-  (js/document.getElementById "app")
-  [:h1 {:on {:click [:whatever]}} "Click me"])
-```
-
-In the above example, the first argument `replicant-data` is a map with
-information about the event from Replicant. Specifically, it contains the keys:
-
-- `:replicant/trigger`, which will have the value `:replicant.trigger/dom-event`,
-- `:replicant/dom-event`, which will contain a reference to the DOM event object, and
-- `:replicant/node`, which will contain a reference to the DOM node the event occurred in.
-
-The second argument `handler-data` is data from the hiccup element, e.g.
-`[:whatever]`. The same global dispatch will be called for all events that are
-expressed as data, and you would typically use the data to decide what to do.
-
-You can of course also register a function event handler if you want. It will be
-called with just the DOM event object.
-
-### Life-cycle hooks
-
-Replicant life-cycle hooks can also be expressed with data:
-
-```clj
-(require '[replicant.dom :as replicant])
-
-(replicant/set-dispatch!
-  (fn [replicant-data hook-data]
-    (prn "DOM changed")))
-
-(replicant/render
-  (js/document.getElementById "app")
-  [:h1 {:replicant/on-render ["Update data"]} "Hi!"])
-```
-
-`replicant-data` is the same map from before. For lifecycle hooks, the map contains:
-- `:replicant/trigger`, which will have the value `:replicant.trigger/life-cycle`,
-- `:replicant/life-cycle`, which describes what kind of event occurred, having
-    one the following values:
-  - `:replicant.life-cycle/mount`
-  - `:replicant.life-cycle/unmount`
-  - `:replicant.life-cycle/update`
-- `:replicant/node` will contain a reference to the DOM node the event occurred in.
-
-The second argument, `hook-data` is whatever data you set on
-`:replicant/on-render`.
-
-`:replicant/on-render` can also take a function, in which case it will be called
-with a single argument - the hook details map described above.
-
-## Keys
-
-Replicant uses keys to identify nodes when the overall structure changes. Set
-`:replicant/key` in the attributes map of any element that you do not want
-recreated unnecessarily. This key is local to the parent element (e.g. you may
-reuse the key at different levels). When it is set, Replicant will know to reuse
-the corresponding DOM element, even when it changes positions, etc. If you have
-CSS transitions on an element, you very likely want to give it a key.
-
-<a id="data-transitions"></a>
-## Data-driven transitions
-
-Sometimes it's nice when elements smoothly transition into and/or out of being.
-Replicant enables this by supporting overrides for inline styles, classes, and
-indeed any attribute during mount and/or unmount.
-
-### Mounting styles/classes/attributes
-
-```clj
-[:h1 {:style {:transition "left 0.25s"
-              :position "absolute"
-              :left 0}
-      :replicant/mounting {:style {:left "-100%"}}}
- "Hello world"]
-```
-
-When this element is mounted to the DOM, it will slide in from the left. When
-initially rendered, it will have these styles:
-
-```clj
-{:transition "left 0.25s"
- :position "absolute"
- :left "-100%"}
-```
-
-Once mounted, it will be updated to:
-
-```clj
-{:transition "left 0.25s"
- :position "absolute"
- :left 0}
-```
-
-Which causes the CSS transition to trigger, and move the element in from the
-left.
-
-Mounting styles are merged into your ordinary styles. Other attributes are
-completely overwritten. Classes are partly overwritten: the classes from the
-hiccup symbol will always be included, but `:class` will be overwritten:
-
-```clj
-[:h1.heading
-  {:class [:mounted]
-   :replicant/mounting {:class [:mounting]}}
- "Hello world"]
-```
-
-During mounting, this element will have the classes `"heading mounting"`, and
-after mounting it will have the classes `"heading mounted"`.
-
-### Unmounting styles/classes/attributes
-
-Replicant supports changing an element's attributes, classes and styles to
-trigger a transition as the element leaves the DOM. When you do this, the node
-will not be removed from the DOM until its transitions have completed. The
-life-cycle hook will trigger after the element has transitioned and been removed
-from the DOM.
-
-To expand on the mounting example, this component:
-
-```clj
-[:h1 {:style {:transition "left 0.25s"
-              :position "absolute"
-              :left 0}
-      :replicant/mounting {:style {:left "-100%"}}
-      :replicant/unmounting {:style {:left "-100%"}}}
- "Hello world"]
-```
-
-Would slide in from the left when mounted, and then slide out to the left again
-when unmounted. Only after the slide transition completes will it be removed
-from the DOM.
-
-#### Class overrides
-
-Given this CSS:
-
-```css
-.pane {
-  transition: left 0.25s;
-  position: absolute;
-  left: 0;
-}
-
-.mounting {
-  left: -100%;
-}
-```
-
-And this hiccup:
-
-```clj
-[:h1.pane {:replicant/mounting {:class :mounting}}
-  "Hello world"]
-```
-
-The pane would slide in from the left, as it would be mounted with the two
-classes `"pane mounting"` and after mount it would have only `"pane"`. Note that
-classes from the hiccup symbol are added to both mounting and mounted classes.
-
-This feature was inspired by a similar feature in
-[snabbdom](https://github.com/snabbdom/snabbdom).
-
-## innerHTML
-
-Sometimes all you have is a string of pre-rendered HTML. Replicant can render it
-for you via `innerHTML`:
-
-```clj
-[:div {:innerHTML "<h1>Oh, well</h1>"}]
-```
-
-When using `:innerHTML` any child elements will be ignored (without warning at
-the time being).
-
-## Attributes and properties
-
-Replicant uses `setAttribute` to set most attributes, with some exceptions:
-
-- `:value`
-- `:selected`
-- `:checked`
-- `:disabled`
-- `:readonly`
-- `:required`
-
-These are instead controlled with DOM properties, in order to fully control
-them.
-
-If you wish to set defaults on form fields but not fully control them, you can
-instead use these attributes:
-
-- `:default-value`
-- `:default-selected`
-- `:default-checked`
-
-These set the initial value (e.g. with `setAttribute`), but will allow for
-overrides from user input. Changing the `:default-value` on an element after it
-has received user input will have no effect.
-
-<a id="alias"></a>
-## Element aliases
-
-You can use namespaced tag names in your hiccup that will be expanded by a
-custom function. These are called aliases (following
-[chassis'](https://github.com/onionpancakes/chassis) lead). Element aliases can
-be used to perform "just in time inflation" from data to hiccup, while still
-being able to represent your entire UI as serializable data. Aliases are only
-expanded when Replicant needs to update the rendered DOM. This means that
-aliases can improve performance by performing certain transformations only when
-strictly needed.
-
-Element aliases can be used for a variety of reasons:
-
-- Hide volatile details in the document structure (inline styles, classes, extra
-  divs, etc)
-- Integrate cross-cutting concerns such as i18n, theming, etc
-- Any other useful reasons you might have
-
-An example is worth several words:
-
-```clj
-;; I18n
-(def dictionaries
-  {:nb
-   {:title "Min webside"
-    :hello "Hei på deg!"
-    :click "Klikk knappen"}
-
-   :en
-   {:title "My webpage"
-    :hello "Hello world!"
-    :click "Click the button"}})
-
-(defn lookup-i18n [dictionary _attrs [k]]
-  (get dictionary k))
-
-;; A function that adds a bunch of tailwind classes to the markup
-(defn button [{:keys [actions spinner? subtle?] :as btn} [text]]
-  [:button.btn.max-sm:btn-block
-   (cond-> (dissoc btn :spinner? :actions :subtle?)
-     actions (assoc-in [:on :click] actions)
-     subtle? (assoc :class "btn-neutral")
-     (not subtle?) (assoc :class "btn-primary"))
-   (when spinner?
-     [:span.loading.loading-spinner])
-   text])
-
-;; Function to turn domain data into hiccup
-(defn app [{:keys [locale]}]
-  [:div {:replicant/key locale}
-   [:h1 [:i18n/k :title]]
-   [:p [:i18n/k :hello]]
-   [:ui/button {:actions [[:do-stuff]]}
-    [:i18n/k :click]]])
-
-;; Render
-(defn render-app [state]
-  (d/render
-   el
-   (app state)
-   {:aliases {:i18n/k (partial lookup-i18n (dictionaries (:locale state)))
-              :ui/button button}}))
-
-;; Render in english
-(render-app {:locale :en})
-
-;; ...or Norwegian
-(render-app {:locale :nb})
-```
-
-## Differences from hiccup
-
-Replicant has a more liberal understanding of hiccup data than the main hiccup
-library.
-
-### Styles
-
-You may express `:style` as a map of styles, e.g.:
-
-```clj
-[:div {:style {:background "red", :width 320}}
-  "A small red thing"]
-```
-
-Using maps for styles is suggested, as string values for the style attribute
-will be parsed to maps.
-
-### Classes
-
-You can specify classes on the hiccup "selector", e.g. `[:h1.heading "Hello"]`.
-In addition, you can use `:class`, which takes a few different values:
-
-- A string
-- A keyword
-- A collection of string|keyword
-
-The suggested value is keywords and collections of keywords. Strings will be
-split on space.
-
-## API Reference
-
-### `(replicant.dom/render el hiccup)`
-
-Render the `hiccup` into the element `el`. Any pre-existing content not created
-by Replicant will be removed. Subsequent calls will efficiently update the
-rendered DOM elements by comparing the new and old `hiccup`.
-
-### `(replicant.dom/unmount el)`
-
-Unmounts elements rendered in `el` and clean up internal state held for this
-node.
-
-<a id="set-dispatch"></a>
-### `(replicant.dom/set-dispatch! f)`
-
-Register the function to call when life cycle hooks and/or event handlers are
-data, not functions (see [data-driven hooks](#data-hooks)). The function will be
-called with two arguments. The first is a map with details about the trigger,
-with the following keys:
-
-- `:replicant/trigger` Either `:replicant.trigger/dom-event` or
-  `:replicant.trigger/life-cycle`
-- `:replicant/node` The triggering node
-- `:replicant/dom-event` the JavaScript event object, when the trigger is
-  `:replicant.trigger/dom-event`
-- `:replicant/details` A vector of keywords indicating what caused the
-  life-cycle hook when the trigger is `:replicant.trigger/life-cycle`. One or
-  more of`:replicant/move-node`, `:replicant/updated-attrs`,
-  `:replicant/updated-children`.
-
-The second argument is the data passed to the hiccup life-cycle/event handler
-attribute.
-
-<a id="string-render"></a>
-### `(replicant.string/render hiccup & [{:keys [indent]}])`
-
-Render "replicant flavored hiccup" to a string. Optionally pass `:indent` to
-format the HTML string for human consumption.
-
-### Keyword reference
-
-Keywords in the attributes map:
-
-- `:replicant/on-mount` - A hook to be called when the element mounts. Either a
-  function or arbitrary data, see [data-driven hooks](#data-hooks).
-- `:replicant/on-unmount` - A hook to be called when the element unmounts.
-  Either a function or arbitrary data, see [data-driven hooks](#data-hooks).
-- `:replicant/on-render` - A hook to be called when the element renders
-  (including when it mounts and unmounts). Either a function or arbitrary data,
-  see [data-driven hooks](#data-hooks).
-- `:replicant/mounting` - Attribute (including class, styles) overrides to apply
-  while node is mounting, see [data-driven transitions](#data-transitions).
-- `:replicant/unmounting` - Attribute (including class, styles) overrides to apply
-  while node is unmounting, see [data-driven transitions](#data-transitions).
-- `:replicant/on-update` - A hook to be called when the element renders,
-  excluding when it mounts and unmounts. Either a function or arbitrary data,
-  see [data-driven hooks](#data-hooks).
-
-Keywords used with [hook and event handler dispatch](#set-dispatch):
-
-- `:replicant/trigger`
-- `:replicant.trigger/dom-event`
-- `:replicant.trigger/life-cycle`
-- `:replicant/dom-event`
-- `:replicant/node`
-- `:replicant.life-cycle/mount`
-- `:replicant.life-cycle/unmount`
-- `:replicant.life-cycle/update`
-- `:replicant/details`
-- `:replicant/move-node`
-- `:replicant/updated-attrs`
-- `:replicant/updated-children`
-
-## Rationale
-
-After 10+ years, React's original premise still stands out to me as the ideal
-approach to frontend development: Code as if every update is a full re-render.
-This gives you a delightfully straight-forward development model that does not
-have to be explicit about how a UI must change to go from one state to the next.
-Instead, you just describe the next state, and the rendering library figures it
-out for you.
-
-This model has so many benefits that I recently gave a [40 minute talk about
-it](https://vimeo.com/861600197).
-
-React and other popular frontend technologies are not mere rendering libraries.
-Instead they have taken on the role of holistic UI frameworks: handling state
-changes, and packing on increasing amounts of features to do more and more
-things inside UI components.
-
-Replicant is a **rendering library**. That's it. There's no state management,
-there's no async rendering, there's no networking utilities. There's just a
-single function that renders and rerenders your hiccup to the DOM in an
-efficient manner.
-
-### What about components?
-
-Replicant does not have components. Some common reasons to have components
-include:
-
-1. Capture UI components in reusable artifacts
-2. Use knowledge about domain data to short-circuit rendering for performance
-3. Attach life-cycle hooks (used for animations, DOM manipulation, etc)
-4. Wire in cross-cutting concerns (i18n, theming, etc)
-
-Clojure provides the function as a mechanism for creating reusable pieces of
-logic. Components are just functions that return hiccup, e.g. something like
-`(button {,,,})` which returns the appropriate hiccup for a button.
-
-Short-circuiting rendering (e.g. something akin to React's original
-`shouldComponentUpdate`) is generally not necessary, as Replicant updates the
-DOM very efficiently. Should you have some heavy transformations from domain
-data to hiccup, you can use `memoize` or other more specialized tools. Since
-"components" are just functions that return hiccup, you don't need framework
-specific tooling to optimize your code.
-
-Life-cycles are genuinely useful. That's why you can attach them directly to
-hiccup nodes, and Replicant will trigger them for you. You are not limited to
-placing hooks on "components" - any node in the hiccup tree can have them.
-
-Replicant does not **need** to know about cross-cutting concerns like i18n,
-theming, etc. Since the entire UI can be represented as data, you can implement
-concerns like these with pure data transformations. However, there are
-performance gains to be had if you can postpone such transformations to just in
-time for rendering. Replicant provides [aliases](#alias) for this purpose.
+instructions](benchmarking.md) for how to run locally.
 
 ## Contribute
 
-Want to help make it fast? Awesome, please help in any way you can.
+Want to help make it fast? Fix a bug? Awesome, please help in any way you can.
+Bug fixes should come with test cases demonstrating the problem. Performance
+improvements should come with some sort of numbers demonstrating.
 
-## Tests
-
-There are tests. Run them like so:
+Run tests with:
 
 ```sh
 clojure -X:dev:test
@@ -520,110 +120,13 @@ clojure -X:dev:test
 
 ...or start a REPL and evaluate at will.
 
-## Benchmarking
+If you have an idea for a new feature, please discuss it before you write any
+code. Open an issue or drop by
+[#replicant](https://clojurians.slack.com/archives/C06JZ4X334N) on the
+[Clojurians Slack](http://clojurians.net/).
 
-To run the benchmark, check out
-[js-framework-benchmark](https://github.com/cjohansen/js-framework-benchmark) and
-follow these steps:
+## Changelog
 
-```sh
-git checkout https://github.com/cjohansen/js-framework-benchmark.git
-cd js-framework-benchmark
-npm ci
-npm run install-server
-npm start
-```
+### 2025.01.28
 
-Leave the server running.
-
-### Compiling the test runner
-
-In another terminal:
-
-```sh
-cd webdriver-ts
-npm ci
-npm run compile
-```
-
-### Build Replicant
-
-Finally, build Replicant to run its benchmark:
-
-```sh
-cd frameworks/keyed/replicant
-npm run build-prod
-```
-
-You should now be able to manually interact with Replicant on
-http://localhost:8080/frameworks/keyed/replicant/
-
-### Run the benchmark
-
-With Replicant built, you can go to the root directory to run the benchmark:
-
-```sh
-npm run bench keyed/replicant
-```
-
-This will take about 5 minutes, and Chrome will open and close several times.
-When it's done, generate the report:
-
-```sh
-npm run results
-```
-
-And open http://localhost:8080/webdriver-ts-results/dist/index.html
-
-It is also possible to run an all-in-one benchmark, validation, and report. This
-will run the benchmark headlessly:
-
-```sh
-npm run rebuild-ci keyed/replicant
-```
-
-### Comparing frameworks
-
-It can be useful to compare to some other frameworks. To do so, build them and
-run the benchmark for each one. Here are some suggestions:
-
-```sh
-cd frameworks/keyed/react
-npm run build-prod
-cd ../..
-npm run bench keyed/react
-
-cd frameworks/keyed/reagent
-npm run build-prod
-cd ../..
-npm run bench keyed/reagent
-
-cd frameworks/keyed/vanillajs
-npm run build-prod
-cd ../..
-npm run bench keyed/vanillajs
-```
-
-### Benchmarking and testing changes
-
-If you want to try to optimize or tweak Replicant, you might want to run several
-benchmarks. For all I know, the directory name is used to key the frameworks in
-the report, so my current workflow consists of copying the
-`frameworks/keyed/replicant` directory, making changes to it, and running the
-benchmark, e.g.:
-
-```sh
-cp -r frameworks/keyed/replicant frameworks/keyed/replicant-head
-cd frameworks/keyed/replicant-head
-cp -r ~/projects/replicant/src/replicant src/.
-cd ../../../
-npm run bench keyed/replicant-head
-npm run results
-```
-
-If you make changes to the code, you can start by running a faster test, to
-avoid running a long benchmark on broken code:
-
-```sh
-npm run isKeyed -- --headless true keyed/replicant-xyz
-```
+First public release.
