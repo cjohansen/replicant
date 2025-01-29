@@ -7,7 +7,7 @@ dependency.
 ## Install
 
 ```clj
-no.cjohansen/replicant {:mvn/version "2025.01.28"}
+no.cjohansen/replicant {:mvn/version "2025.01.29"}
 ```
 
 ## Documentation
@@ -117,6 +117,14 @@ code. Open an issue or drop by
 [Clojurians Slack](http://clojurians.net/).
 
 ## Changelog
+
+### 2025.01.29
+
+Use a StringBuilder (JVM) or array (JS) to build strings in `replicant.string`
+for a 3x performance boost in `replicant.string/render`.
+
+Fix a bug where development asserts weren't required properly, leading to
+compiler warnings, and even exceptions during rendering.
 
 ### 2025.01.28
 
