@@ -4,36 +4,78 @@
             [replicant.core :as r]
             [replicant.hiccup-headers :as hiccup]))
 
+(defprotocol IStringifier
+  (append [this s])
+  (to-string [this]))
+
+(defn create-renderer []
+  #?(:clj
+     (let [sb (StringBuilder.)]
+       (reify IStringifier
+         (append [_ s]
+           (.append sb s))
+
+         (to-string [_]
+           (.toString sb))))
+
+     :cljs
+     (let [sb #js []]
+       (reify IStringifier
+         (append [_ s]
+           (.push sb s))
+
+         (to-string [_]
+           (.join sb ""))))))
+
 (def ^:no-doc self-closing?
   #{"area" "audio" "base" "br" "col" "embed" "hr" "img"
     "input" "link" "meta" "param" "source" "track" "wbr"})
 
-(defn ^:no-doc render-attrs [attrs]
-  (some->> (dissoc attrs :on)
-           (keep (fn [[k v]]
-                   (when (and v (nil? (namespace k)))
-                     (let [v (cond-> v
-                               (keyword? v)
-                               name)]
-                       (case k
-                         :classes
-                         (str "class=\"" (str/join " " v) "\"")
+(defn str-join [stringifier sep xs]
+  (some->> (first xs) (append stringifier))
+  (doseq [x (rest xs)]
+    (when x
+      (append stringifier sep)
+      (append stringifier x)))
+  stringifier)
 
-                         :style
-                         (str "style=\"" (->> (keep
-                                               (fn [[prop val]]
-                                                 (when-let [val (r/get-style-val prop val)]
-                                                   (str (name prop) ": " val ";")))
-                                               v)
-                                              (str/join " ")) "\"")
+(defn ^:no-doc render-attrs [stringifier attrs]
+  (run!
+   (fn [[k v]]
+     (when (and (not (#{:on :innerHTML} k))
+                v
+                (nil? (namespace k)))
+       (let [v (cond-> v
+                 (keyword? v)
+                 name)]
+         (append stringifier " ")
+         (case k
+           :classes
+           (do
+             (append stringifier "class=\"")
+             (str-join stringifier " " v)
+             (append stringifier "\""))
 
-                         (str (name k)
-                              (when (or (number? v)
-                                        (and (string? v) (< 0 (count v))))
-                                (str "=\"" v "\""))))))))
-           seq
-           (str/join " ")
-           (str " ")))
+           :style
+           (do
+             (append stringifier "style=\"")
+             (->> v
+                  (keep
+                   (fn [[prop val]]
+                     (when-let [val (r/get-style-val prop val)]
+                       (str (name prop) ": " val ";"))))
+                  (str-join stringifier " "))
+             (append stringifier "\""))
+
+           (do
+             (append stringifier (name k))
+             (when (or (number? v)
+                       (and (string? v) (< 0 (count v))))
+               (doto stringifier
+                 (append "=\"")
+                 (append v)
+                 (append "\""))))))))
+   attrs))
 
 (defn escape-html
   "Change special characters into HTML character entities.
@@ -58,39 +100,64 @@
         (get-expanded-headers opt aliased))
       headers))
 
-(defn ^:no-doc render-node [headers & [{:keys [depth indent aliases alias-data]}]]
-  (let [indent-s (when (< 0 indent) (str/join (repeat (* depth indent) " ")))
-        newline (when (< 0 indent) "\n")
+(defn ^:no-doc render-node [stringifier headers {:keys [depth indent aliases alias-data]}]
+  (let [indent? (pos? indent)
+        indent-s (if indent? (str/join (repeat (* depth indent) " ")) "")
+        newline (if indent? "\n" "")
         headers (get-expanded-headers {:aliases aliases
                                        :alias-data alias-data} headers)]
     (if-let [text (hiccup/text headers)]
-      (str indent-s (apply str (map escape-html text)) newline)
+      (doto stringifier
+        (append indent-s)
+        (append (escape-html text))
+        (append newline))
       (let [tag-name (hiccup/tag-name headers)
             attrs (r/get-attrs headers)]
-        (str indent-s
-             "<" tag-name
-             (when (and (= "svg" tag-name)
-                        (not (:xmlns attrs)))
-               (str " xmlns=\"http://www.w3.org/2000/svg\""))
-             (render-attrs (dissoc attrs :innerHTML)) ">"
-             newline
-             (or (:innerHTML attrs)
-                 (->> (r/get-children headers (hiccup/html-ns headers))
-                      (keep #(some-> % (render-node {:depth (inc depth)
-                                                     :indent indent
-                                                     :aliases aliases
-                                                     :alias-data alias-data})))
-                      str/join))
-             (when-not (self-closing? tag-name)
-               (str indent-s "</" tag-name ">" newline)))))))
+        (doto stringifier
+          (append indent-s)
+          (append "<")
+          (append tag-name)
+          (append (if (and (= "svg" tag-name)
+                            (not (:xmlns attrs)))
+                     " xmlns=\"http://www.w3.org/2000/svg\""
+                     "")))
+        (render-attrs stringifier attrs)
+        (doto stringifier
+          (append ">")
+          (append newline))
+        (if (:innerHTML attrs)
+          (append stringifier (:innerHTML attrs))
+          (run!
+           (fn [child]
+             (when child
+               (render-node
+                stringifier
+                child
+                {:depth (inc depth)
+                 :indent indent
+                 :aliases aliases
+                 :alias-data alias-data})))
+           (r/get-children headers (hiccup/html-ns headers))))
+        (when-not (self-closing? tag-name)
+          (doto stringifier
+            (append indent-s)
+            (append "</")
+            (append tag-name)
+            (append ">")
+            (append newline)))
+        stringifier))))
 
 (defn render
   "Render `hiccup` to a string of HTML"
   [hiccup & [{:keys [aliases alias-data indent]}]]
   (if hiccup
-    (render-node (r/get-hiccup-headers nil hiccup)
-                 {:indent (or indent 0)
-                  :depth 0
-                  :aliases (or aliases (alias/get-registered-aliases))
-                  :alias-data alias-data})
+    (let [stringifier (create-renderer)]
+      (render-node
+       stringifier
+       (r/get-hiccup-headers nil hiccup)
+       {:indent (or indent 0)
+        :depth 0
+        :aliases (or aliases (alias/get-registered-aliases))
+        :alias-data alias-data})
+      (to-string stringifier))
     ""))
