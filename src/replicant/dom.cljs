@@ -55,23 +55,23 @@
         (js/document.createElementNS ns tag-name)
         (js/document.createElement tag-name)))
 
-    (set-style [this el style v]
+    (set-style [this ^js el style v]
       (.setProperty (.-style el) (name style) v)
       this)
 
-    (remove-style [this el style]
+    (remove-style [this ^js el style]
       (.removeProperty (.-style el) (name style))
       this)
 
-    (add-class [this el cn]
+    (add-class [this ^js el cn]
       (.add (.-classList el) cn)
       this)
 
-    (remove-class [this el cn]
+    (remove-class [this ^js el cn]
       (.remove (.-classList el) cn)
       this)
 
-    (set-attribute [this el attr v opt]
+    (set-attribute [this ^js el attr v opt]
       (try
         (cond
           (= "innerHTML" attr)
@@ -115,7 +115,7 @@
                 (.-message e)))))
       this)
 
-    (remove-attribute [this el attr]
+    (remove-attribute [this ^js el attr]
       (cond
         (= "innerHTML" attr)
         (set! (.-innerHTML el) "")
@@ -166,31 +166,31 @@
         (aset (.-replicantHandlers el) event nil))
       this)
 
-    (append-child [this el child-node]
+    (append-child [this ^js el child-node]
       (.appendChild el child-node)
       this)
 
-    (insert-before [this el child-node reference-node]
+    (insert-before [this ^js el child-node reference-node]
       (.insertBefore el child-node reference-node)
       this)
 
-    (remove-child [this el child-node]
+    (remove-child [this ^js el child-node]
       (.removeChild el child-node)
       this)
 
-    (on-transition-end [this el f]
+    (on-transition-end [this ^js el f]
       (-on-transition-end el f)
       this)
 
-    (replace-child [this el insert-child replace-child]
+    (replace-child [this ^js el insert-child replace-child]
       (.replaceChild el insert-child replace-child)
       this)
 
-    (remove-all-children [this el]
+    (remove-all-children [this ^js el]
       (set! (.-textContent el) "")
       this)
 
-    (get-child [_this el idx]
+    (get-child [_this ^js el idx]
       (aget (.-childNodes el) idx))
 
     (next-frame [_this f]
@@ -202,7 +202,7 @@
   "Render `hiccup` in DOM element `el`. Replaces any pre-existing content not
   created by this function. Subsequent calls with the same `el` will update the
   rendered DOM by comparing `hiccup` to the previous `hiccup`."
-  [el hiccup & [{:keys [aliases alias-data]}]]
+  [^js el hiccup & [{:keys [aliases alias-data]}]]
   (let [rendering? (get-in @state [el :rendering?])]
     (when-not (contains? @state el)
       (set! (.-innerHTML el) "")
@@ -229,7 +229,7 @@
 
 (defn ^:export unmount
   "Unmounts elements in `el`, and clears internal state."
-  [el]
+  [^js el]
   (if (get-in @state [el :rendering?])
     (js/requestAnimationFrame #(unmount el))
     (do
