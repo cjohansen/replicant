@@ -40,8 +40,8 @@
   stringifier)
 
 (defn ^:no-doc render-attrs [stringifier attrs]
-  (run!
-   (fn [[k v]]
+  (reduce-kv
+   (fn [_ k v]
      (when (and (not (#{:on :innerHTML} k))
                 v
                 (nil? (namespace k)))
@@ -67,14 +67,16 @@
                   (str-join stringifier " "))
              (append stringifier "\""))
 
-           (do
-             (append stringifier (name k))
-             (when (or (number? v)
-                       (and (string? v) (< 0 (count v))))
-               (doto stringifier
-                 (append "=\"")
-                 (append v)
-                 (append "\""))))))))
+           (if (or (number? v)
+                   (and (string? v) (< 0 (count v))))
+             (doto stringifier
+               (append (name k))
+               (append "=\"")
+               (append v)
+               (append "\""))
+             (append stringifier (name k))))))
+     nil)
+   nil
    attrs))
 
 (defn escape-html
@@ -112,15 +114,16 @@
         (append (escape-html text))
         (append newline))
       (let [tag-name (hiccup/tag-name headers)
-            attrs (r/get-attrs headers)]
+            attrs (r/get-attrs headers)
+            ns-string (if (and (= "svg" tag-name)
+                               (not (:xmlns attrs)))
+                        " xmlns=\"http://www.w3.org/2000/svg\""
+                        "")]
         (doto stringifier
           (append indent-s)
           (append "<")
           (append tag-name)
-          (append (if (and (= "svg" tag-name)
-                            (not (:xmlns attrs)))
-                     " xmlns=\"http://www.w3.org/2000/svg\""
-                     "")))
+          (append ns-string))
         (render-attrs stringifier attrs)
         (doto stringifier
           (append ">")
