@@ -8,12 +8,14 @@
                      cider/piggieback {:mvn/version "0.5.3"}
                      clj-kondo/clj-kondo {:mvn/version "2024.02.12"}
                      com.bhauman/figwheel-main {:mvn/version "0.2.18"}
-                     kaocha-noyoda/kaocha-noyoda {:mvn/version "2019-06-03"}
-                     lambdaisland/kaocha {:mvn/version "1.87.1366"}
+                     com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.1.1"}
+                     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}
                      com.lambdaisland/kaocha-cljs {:mvn/version "1.5.154"}
                      criterium/criterium {:mvn/version "0.4.6"}
-                     com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.1.1"}
-                     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}}
+                     dev.onionpancakes/chassis {:mvn/version "1.0.365"}
+                     hiccup/hiccup {:mvn/version "2.0.0-RC4"}
+                     kaocha-noyoda/kaocha-noyoda {:mvn/version "2019-06-03"}
+                     lambdaisland/kaocha {:mvn/version "1.87.1366"}}
         :jvm-opts ["-XX:-OmitStackTraceInFastThrow" "-Djdk.attach.allowAttachSelf=true"]}
   :test {:exec-fn kaocha.runner/exec-fn
          :exec-args {}}
