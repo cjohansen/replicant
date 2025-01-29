@@ -3,7 +3,8 @@
             [replicant.assert :as assert]
             [replicant.hiccup-headers :as hiccup]
             [replicant.hiccup :as h]
-            [replicant.vdom :as vdom]))
+            [replicant.vdom :as vdom])
+  #?(:cljs (:require-macros replicant.asserts)))
 
 (defmacro assert-no-class-name [headers]
   `(assert/assert
