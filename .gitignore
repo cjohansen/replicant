@@ -10,3 +10,4 @@ dev-resources/public/domed/js
 /out/
 /package-lock.json
 /package.json
+/.shadow-cljs/

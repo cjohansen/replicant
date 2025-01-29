@@ -58,6 +58,14 @@
      nil
      [:div attrs "C"]]))
 
+(defn main []
+  (d/set-dispatch!
+   (fn [& args]
+     (prn "OHOI!" args)))
+  (set! (.-innerHTML js/document.body) "<div id=\"app\"></div>")
+  (def el (js/document.getElementById "app"))
+  (d/render el (app {:square? true})))
+
 (comment
 
   (enable-console-print!)
