@@ -48,19 +48,19 @@
 
 (defmacro assert-non-empty-id [tag]
   `(assert/assert
-    (not (re-find #"#($|\.)" ~(str tag)))
+    (not (re-find #"#($|\.)" (str ~tag)))
     (str "Hiccup tag " ~tag " contains an empty id")
     "Either complete the id or remove the # character."))
 
 (defmacro assert-valid-id [tag]
   `(assert/assert
-    (not (re-find #"#[^a-zA-Z_\.]" ~(str tag)))
+    (not (re-find #"#[^a-zA-Z_\.]" (str ~tag)))
     (str "Hiccup tag " ~tag " contains an invalid id")
     "IDs must start with a letter."))
 
 (defmacro assert-non-empty-class [tag]
   `(assert/assert
-    (not (re-find #"\.$" ~(str tag)))
+    (not (re-find #"\.$" (str ~tag)))
     (str "Hiccup tag " ~tag " contains an empty class")
     "This may cause a DOMException and is considered a coding error. Replicant will not sacrifice performance to work around it."))
 
