@@ -220,6 +220,18 @@
     (flatten-seqs* xs coll)
     (persistent! coll)))
 
+(defn ^:private flatten-map-seqs* [f xs coll]
+  (reduce
+   (fn [_ x]
+     (cond (seq? x) (flatten-map-seqs* f x coll)
+           :else (conj! coll (f x))))
+   nil xs))
+
+(defn ^:private flatten-map-seqs [f xs]
+  (let [coll (transient [])]
+    (flatten-map-seqs* f xs coll)
+    (persistent! coll)))
+
 (defn get-children
   "Given an optional tag namespace `ns` (e.g. for SVG nodes) and `headers`, as
   produced by `get-hiccup-headers`, returns a flat collection of children as
@@ -227,8 +239,7 @@
   [headers ns]
   (when-not (:innerHTML (hiccup/attrs headers))
     (->> (hiccup/children headers)
-         flatten-seqs
-         (mapv #(some->> % (get-hiccup-headers ns))))))
+         (flatten-map-seqs #(some->> % (get-hiccup-headers ns))))))
 
 (defn get-children-ks
   "Like `get-children` but returns a tuple of `[children ks]` where `ks` is a set
