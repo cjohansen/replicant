@@ -110,12 +110,12 @@
 (defn has-bad-conditional-attrs? [vdom headers]
   (if (or (< 0 (count (hiccup/children headers)))
           (< 0 (count (vdom/children vdom))))
-    (let [new-attrs (second (hiccup/sexp headers))
-          old-attrs (second (vdom/sexp vdom))]
+    (let [[new-selector new-attrs] (hiccup/sexp headers)
+          [old-selector old-attrs] (vdom/sexp vdom)]
       (cond
-        (nil? new-attrs) (not (nil? old-attrs))
-        (map? new-attrs) (not (map? old-attrs))
-        (not (map? new-attrs)) (map? old-attrs)
+        (not= new-selector old-selector) false
+        (nil? new-attrs) (map? old-attrs)
+        (map? new-attrs) (nil? old-attrs)
         :else false))
     false))
 
@@ -191,7 +191,7 @@
 
 (defmacro assert-no-conditional-attributes [headers vdom]
   `(assert/assert
-    (has-bad-conditional-attrs? ~vdom ~headers)
+    (not (has-bad-conditional-attrs? ~vdom ~headers))
     "Avoid conditionals around the attribute map"
     (convey-bad-conditional-attributes ~vdom ~headers)))
 
