@@ -107,27 +107,93 @@
              (str " it contains the character " (re-find #"[^a-zA-Z0-9\-:\._]" attr#)))
            ", which isn't allowed as per the HTML spec."))))
 
+(defn has-bad-conditional-attrs? [vdom headers]
+  (if (or (< 0 (count (hiccup/children headers)))
+          (< 0 (count (vdom/children vdom))))
+    (let [new-attrs (second (hiccup/sexp headers))
+          old-attrs (second (vdom/sexp vdom))]
+      (cond
+        (nil? new-attrs) (not (nil? old-attrs))
+        (map? new-attrs) (not (map? old-attrs))
+        (not (map? new-attrs)) (map? old-attrs)
+        :else false))
+    false))
+
+(defn abbreviate-map [m n]
+  (str "{" (->> (take n m)
+                (mapv (fn [[k v]]
+                        (str k " " (if (map? v)
+                                     (abbreviate-map v n)
+                                     (pr-str v)))))
+                (str/join ", "))
+       (when (< n (count m))
+         " ,,,")
+       "}"))
+
+(defn abbreviate-node [x]
+  (cond
+    (h/hiccup? x)
+    (str "[" (first x) " ,,,]")
+
+    (nil? x)
+    "nil"
+
+    (string? x)
+    (if (< 20 (count x))
+      (str (str/join (take 20 x)) "...")
+      x)
+
+    (coll? x)
+    (str "(,,,)")
+
+    :else
+    (pr-str x)))
+
+(defn format-hiccup-part [x]
+  (cond
+    (map? x)
+    (abbreviate-map x 2)
+
+    (h/hiccup? x)
+    (let [s (pr-str x)]
+      (if (< (count s) 20)
+        s
+        (abbreviate-node x)))
+
+    (coll? x)
+    (if (= 1 (count x))
+      (str "(" (abbreviate-node (first x)) ")")
+      (str "(" (abbreviate-node (first x)) " ,,,)"))
+
+    :else
+    (pr-str x)))
+
+(defn convey-bad-conditional-attributes [vdom headers]
+  (let [[k v] (first (or (not-empty (vdom/attrs vdom))
+                         (not-empty (hiccup/attrs headers))))]
+    (str "Replicant treats nils as hints of nodes that come and go. Wrapping "
+         "the entire attribute map in a conditional such that what used to be "
+         (format-hiccup-part (second (vdom/sexp vdom))) " is now "
+         (format-hiccup-part (second (hiccup/sexp headers)))
+         " can impair how well Replicant can match up child nodes without keys, and "
+         "may lead to undesirable behavior for life-cycle events and transitions.\n\n"
+         "Instead of:\n[" (first (hiccup/sexp headers))
+         " (when something? {"
+         (when k
+           (str k " " (pr-str v)))
+         "}) ,,,]\n\nConsider:\n["
+         (first (hiccup/sexp headers))
+         (if k
+           (str "\n  "
+                "(cond-> {}\n    something? (assoc " k " " (pr-str v) "))\n")
+           " {}")
+         " ,,,]")))
+
 (defmacro assert-no-conditional-attributes [headers vdom]
   `(assert/assert
-    (let [new-attrs# (second (hiccup/sexp ~headers))
-          old-attrs# (second (vdom/sexp ~vdom))]
-      (or (and (= 0 (count (hiccup/children ~headers)))
-               (= 0 (count (vdom/children ~vdom))))
-          (= nil new-attrs# old-attrs#)
-          (and (map? new-attrs#) (map? old-attrs#))
-          (and (not (map? new-attrs#)) (not (map? old-attrs#)))))
+    (has-bad-conditional-attrs? ~vdom ~headers)
     "Avoid conditionals around the attribute map"
-    (let [[k# v#] (first (or (second (vdom/sexp ~vdom)) (second (hiccup/sexp ~headers))))]
-      (str "Replicant treats nils as hints of nodes that come and go. Wrapping "
-           "the entire attribute map in a conditional such that what used to be "
-           (pr-str (second (vdom/sexp ~vdom))) " is now "
-           (pr-str (second (hiccup/sexp ~headers)))
-           " can impair how well Replicant can match up child nodes without keys, and "
-           "may lead to undesirable behavior for life-cycle events and transitions.\n\n"
-           "Instead of:\n[" (first (hiccup/sexp ~headers))
-           " (when something? {" k# " " (pr-str v#) "}) ,,,]\n\nConsider:\n["
-           (first (hiccup/sexp ~headers)) "\n  "
-           "(cond-> {}\n    something? (assoc " k# " " (pr-str v#) ")) ,,,]"))))
+    (convey-bad-conditional-attributes ~vdom ~headers)))
 
 (defmacro assert-alias-exists [tag-name f available-aliases]
   `(assert/assert
