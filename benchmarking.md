@@ -36,6 +36,13 @@ npm run build-prod
 You should now be able to manually interact with Replicant on
 http://localhost:8080/frameworks/keyed/replicant/
 
+## Build the reporting rig
+
+```sh
+cd webdriver-ts-results
+npm ci
+```
+
 ## Run the benchmark
 
 With Replicant built, you can go to the root directory to run the benchmark:
@@ -48,6 +55,7 @@ This will take about 5 minutes, and Chrome will open and close several times.
 When it's done, generate the report:
 
 ```sh
+cd webdriver-ts
 npm run results
 ```
 
