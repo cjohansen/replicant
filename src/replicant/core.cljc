@@ -111,11 +111,13 @@
 (defn get-classes [classes]
   (cond
     (keyword? classes) [(name classes)]
+    (symbol? classes) [(name classes)]
     (empty? classes) []
     (coll? classes) (keep (fn [class]
                             (when class
                               (cond
                                 (keyword? class) (name class)
+                                (symbol? class) (name class)
                                 (string? class) (not-empty (.trim class)))))
                          classes)
     (string? classes) (keep #(not-empty (.trim ^String %)) (.split ^String classes " "))

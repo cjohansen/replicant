@@ -50,6 +50,61 @@
                 (filter (comp #{:set-attribute} first)))
            [[:set-attribute [:h1 ""] "id" nil :to "heading"]])))
 
+  (testing "Adds class from hiccup symbol"
+    (is (= (->> (h/render [:h1.heading "Hello world"])
+                h/get-mutation-log-events
+                h/summarize
+                (filter (comp #{:add-class} first)))
+           [[:add-class [:h1 ""] "heading"]])))
+
+  (testing "Adds class with a string"
+    (is (= (->> (h/render [:h1.heading {:class "mt-2"} "Hello world"])
+                h/get-mutation-log-events
+                h/summarize
+                (filter (comp #{:add-class} first)))
+           [[:add-class [:h1 ""] "mt-2"]
+            [:add-class [:h1 ""] "heading"]])))
+
+  (testing "Adds class with a keyword"
+    (is (= (->> (h/render [:h1.heading {:class :mt-2} "Hello world"])
+                h/get-mutation-log-events
+                h/summarize
+                (filter (comp #{:add-class} first)))
+           [[:add-class [:h1 ""] "mt-2"]
+            [:add-class [:h1 ""] "heading"]])))
+
+  (testing "Adds class with a symbol"
+    (is (= (->> (h/render [:h1.heading {:class 'mt-2} "Hello world"])
+                h/get-mutation-log-events
+                h/summarize
+                (filter (comp #{:add-class} first)))
+           [[:add-class [:h1 ""] "mt-2"]
+            [:add-class [:h1 ""] "heading"]])))
+
+  (testing "Adds class with a collection of strings"
+    (is (= (->> (h/render [:h1.heading {:class #{"mt-2"}} "Hello world"])
+                h/get-mutation-log-events
+                h/summarize
+                (filter (comp #{:add-class} first)))
+           [[:add-class [:h1 ""] "mt-2"]
+            [:add-class [:h1 ""] "heading"]])))
+
+  (testing "Adds class with a collection of keywords"
+    (is (= (->> (h/render [:h1.heading {:class #{:mt-2}} "Hello world"])
+                h/get-mutation-log-events
+                h/summarize
+                (filter (comp #{:add-class} first)))
+           [[:add-class [:h1 ""] "mt-2"]
+            [:add-class [:h1 ""] "heading"]])))
+
+  (testing "Adds class with a collection of symbols"
+    (is (= (->> (h/render [:h1.heading {:class '#{mt-2}} "Hello world"])
+                h/get-mutation-log-events
+                h/summarize
+                (filter (comp #{:add-class} first)))
+           [[:add-class [:h1 ""] "mt-2"]
+            [:add-class [:h1 ""] "heading"]])))
+
   (testing "Changes attribute"
     (is (= (-> (h/render [:h1 {:lang "en"} "Hello world"])
                (h/render [:h1 {:lang "nb"} "Hello world"])
