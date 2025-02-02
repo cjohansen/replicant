@@ -7,7 +7,7 @@ dependency.
 ## Install
 
 ```clj
-no.cjohansen/replicant {:mvn/version "2025.01.29"}
+no.cjohansen/replicant {:mvn/version "2025.02.02"}
 ```
 
 ## Documentation
@@ -117,6 +117,13 @@ code. Open an issue or drop by
 [Clojurians Slack](http://clojurians.net/).
 
 ## Changelog
+
+### 2025.02.02
+
+Support symbols for classes.
+
+Fix a bug in the development assert that warns against conditionally including
+the attribute map.
 
 ### 2025.01.29
 
