@@ -893,22 +893,36 @@
               :unmounts (or unmounts (volatile! #{}))
               :aliases aliases
               :alias-data alias-data}
-        vdom (let [headers (get-hiccup-headers nil hiccup)]
-               (assert/enter-node headers)
-
-               ;; Not strictly necessary, but it makes noop renders faster
-               (if (and headers vdom (unchanged? headers (first vdom)) (= 1 (count vdom)))
+        vdom
+        (if (list? hiccup)
+          (let [[children ks] (get-children-ks
+                               (hiccup/create
+                                #?(:cljs #js [nil nil nil]
+                                   :clj [nil nil nil]) nil hiccup nil nil) nil)]
+            (-> (update-children
+                 impl el
+                 children
+                 ks
                  vdom
-                 (let [k (when headers (hiccup/rkey headers))]
-                   (-> (update-children
-                        impl el
-                        (when headers [headers])
-                        (cond-> #{} k (conj k))
-                        vdom
-                        (set (keep #(vdom/rkey %) vdom))
-                        (if (first vdom) 1 0))
-                       ;; second, because update-children returns [changed? children n-children]
-                       second))))
+                 (set (keep #(vdom/rkey %) vdom))
+                 (count vdom))
+                ;; second, because update-children returns [changed? children n-children]
+                second))
+          (let [headers (get-hiccup-headers nil hiccup)]
+            (assert/enter-node headers)
+            ;; Not strictly necessary, but it makes noop renders faster
+            (if (and headers vdom (unchanged? headers (first vdom)) (= 1 (count vdom)))
+              vdom
+              (let [k (when headers (hiccup/rkey headers))]
+                (-> (update-children
+                     impl el
+                     (when headers [headers])
+                     (cond-> #{} k (conj k))
+                     vdom
+                     (set (keep #(vdom/rkey %) vdom))
+                     (if (first vdom) 1 0))
+                    ;; second, because update-children returns [changed? children n-children]
+                    second)))))
         hooks @(:hooks impl)]
     (if-let [mounts (seq @(:mounts impl))]
       (->> (fn []

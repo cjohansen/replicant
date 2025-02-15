@@ -2,6 +2,7 @@
   (:require [clojure.string :as str]
             [replicant.alias :as alias]
             [replicant.core :as r]
+            [replicant.hiccup :as h]
             [replicant.hiccup-headers :as hiccup]))
 
 (defprotocol IStringifier
@@ -153,14 +154,20 @@
 (defn render
   "Render `hiccup` to a string of HTML"
   [hiccup & [{:keys [aliases alias-data indent]}]]
-  (if hiccup
-    (let [stringifier (create-renderer)]
-      (render-node
-       stringifier
-       (r/get-hiccup-headers nil hiccup)
-       {:indent (or indent 0)
-        :depth 0
-        :aliases (or aliases (alias/get-registered-aliases))
-        :alias-data alias-data})
-      (to-string stringifier))
-    ""))
+  (let [opt {:indent (or indent 0)
+             :depth 0
+             :aliases (or aliases (alias/get-registered-aliases))
+             :alias-data alias-data}]
+    (cond
+      (h/hiccup? hiccup)
+      (let [stringifier (create-renderer)]
+        (render-node stringifier (r/get-hiccup-headers nil hiccup) opt)
+        (to-string stringifier))
+
+      (list? hiccup)
+      (let [stringifier (create-renderer)]
+        (doseq [hiccup-node hiccup]
+          (render-node stringifier (r/get-hiccup-headers nil hiccup-node) opt))
+        (to-string stringifier))
+
+      :else (str hiccup))))

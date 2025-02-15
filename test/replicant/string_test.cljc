@@ -255,7 +255,11 @@
          (-> [:ui/list
               [:li [:ui/i18n :thing-1]]
               [:li [:ui/i18n :thing-2]]]
-             sut/render)))))
+             sut/render))))
+
+  (testing "Renders top-level collection"
+    (is (= (sut/render (list [:h1 "Hello world"] [:p "Text"]))
+           "<h1>Hello world</h1><p>Text</p>"))))
 
 (deftest escape-html-test
   (is (= (sut/escape-html "<script>alert(\"boom\")</script>")
