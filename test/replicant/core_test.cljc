@@ -791,19 +791,38 @@
                h/summarize)
            [[:set-event-handler [:h1 "Hi!"] :click f1]])))
 
-  (testing "Ignores nil event handler"
+  (testing "Adds event handler with options"
+    (is (= (-> (h/render [:h1 "Hi!"])
+               (h/render
+                [:h1 {:on
+                      {:click {:replicant.event/handler f1
+                               :replicant.event/capture true}}}
+                 "Hi!"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:set-event-handler [:h1 "Hi!"] :click f1 {"capture" true}]])))
+
+    (testing "Ignores nil event handler"
     (is (= (-> (h/render [:h1 "Hi!"])
                (h/render [:h1 {:on {:click nil}} "Hi!"])
                h/get-mutation-log-events
                h/summarize)
            [])))
 
-  (testing "Remove event handler when value is nil"
+  (testing "Removes event handler when value is nil"
     (is (= (-> (h/render [:h1 {:on {:click f1}} "Hi!"])
                (h/render [:h1 {:on {:click nil}} "Hi!"])
                h/get-mutation-log-events
                h/summarize)
            [[:remove-event-handler [:h1 "Hi!"] :click]])))
+
+  (testing "Removes event handler with capture option"
+    (is (= (-> (h/render [:h1 {:on {:click {:replicant.event/handler f1
+                                            :replicant.event/capture true}}} "Hi!"])
+               (h/render [:h1 {:on {:click nil}} "Hi!"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:remove-event-handler [:h1 "Hi!"] :click {"capture" true}]])))
 
   (testing "Dispatches data handler globally, with backwards compatible name for event"
     (is (= (binding [sut/*dispatch* (fn [& args] args)]
@@ -822,6 +841,25 @@
     (is (= (-> (h/render [:h1 "Hi!"])
                (h/render [:h1 {:on {:click f1}} "Hi!"])
                (h/render [:h1 {:on {:click f1}} "Hi!"])
+               h/get-mutation-log-events
+               h/summarize)
+           [])))
+
+  (testing "Re-adds event handler when options change"
+    (is (= (-> (h/render [:h1 {:on {:click {:replicant.event/handler f1
+                                            :replicant.event/capture true}}} "Hi!"])
+               (h/render [:h1 {:on {:click {:replicant.event/handler f1
+                                            :replicant.event/capture false}}} "Hi!"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:remove-event-handler [:h1 "Hi!"] :click {"capture" true}]
+            [:set-event-handler [:h1 "Hi!"] :click f1 {"capture" false}]])))
+
+  (testing "Does not re-add event handler when options don't change"
+    (is (= (-> (h/render [:h1 {:on {:click {:replicant.event/handler f1
+                                            :replicant.event/capture true}}} "Hi!"])
+               (h/render [:h1 {:on {:click {:replicant.event/handler f1
+                                            :replicant.event/capture true}}} "Hi!"])
                h/get-mutation-log-events
                h/summarize)
            [])))

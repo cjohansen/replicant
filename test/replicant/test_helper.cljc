@@ -85,12 +85,14 @@
           [e (format-element element) attr (get element attr) :to value]))
 
       :set-event-handler
-      (let [[e element event handler] event]
-        [e (format-element element) event handler])
+      (let [[e element event handler opt] event]
+        (cond-> [e (format-element element) event handler]
+          opt (conj opt)))
 
       :remove-event-handler
-      (let [[e element event] event]
-        [e (format-element element) event])
+      (let [[e element event opt] event]
+        (cond-> [e (format-element element) event]
+          opt (conj opt)))
 
       :set-style
       (let [[e element style v] event]

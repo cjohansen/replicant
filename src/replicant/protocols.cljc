@@ -15,8 +15,8 @@
   (set-attribute [this el a v opt])
   (remove-attribute [this el a])
 
-  (set-event-handler [this el event handler])
-  (remove-event-handler [this el event])
+  (set-event-handler [this el event handler opt])
+  (remove-event-handler [this el event opt])
 
   (insert-before [this el child-node reference-node])
   (append-child [this el child-node])

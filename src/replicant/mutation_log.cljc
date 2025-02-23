@@ -114,14 +114,16 @@
      this)
 
    `replicant/set-event-handler
-   (fn [this el event handler]
-     (log this [:set-event-handler el event handler])
+   (fn [this el event handler opt]
+     (log this (cond-> [:set-event-handler el event handler]
+                 opt (conj opt)))
      (swap! el assoc-in [:on event] handler)
      this)
 
    `replicant/remove-event-handler
-   (fn [this el event]
-     (log this [:remove-event-handler el event])
+   (fn [this el event opt]
+     (log this (cond-> [:remove-event-handler el event]
+                 opt (conj opt)))
      (swap! el update :on dissoc event)
      this)
 

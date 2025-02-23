@@ -367,20 +367,43 @@
   (->> (remove (set old-classes) new-classes)
        (run! #(r/add-class renderer el %))))
 
+(defn get-event-handler-options [m]
+  (reduce
+   (fn [res k]
+     (cond-> res
+       (= "replicant.event" (namespace k))
+       (assoc (name k) (k m))))
+   {}
+   (keys (dissoc m :replicant.event/handler))))
+
 (defn add-event-listeners [renderer el val]
   (->> val
        (remove (comp nil? second))
        (run! (fn [[event handler]]
                (asserts/assert-event-handler-casing event)
-               (when-let [handler (get-event-handler handler event)]
-                 (r/set-event-handler renderer el event handler))))))
+               (if-let [eh (:replicant.event/handler handler)]
+                 (when-let [eh (get-event-handler eh event)]
+                   (->> (get-event-handler-options handler)
+                        (r/set-event-handler renderer el event eh)))
+                 (when-let [handler (get-event-handler handler event)]
+                   (r/set-event-handler renderer el event handler nil)))))))
 
 (defn update-event-listeners [renderer el new-handlers old-handlers]
-  (->> (remove (set (filter new-handlers (keys new-handlers)))
-               (filter old-handlers (keys old-handlers)))
-       (run! #(r/remove-event-handler renderer el %)))
-  (->> (remove #(= (val %) (get old-handlers (key %))) new-handlers)
-       (add-event-listeners renderer el)))
+  (->> (into (set (keys new-handlers)) (keys old-handlers))
+       (run! (fn [k]
+               (let [new-handler (get new-handlers k)
+                     old-handler (get old-handlers k)
+                     old-opts (when (get old-handler :replicant.event/handler)
+                                (not-empty (get-event-handler-options old-handler)))
+                     new-opts (when (get new-handler :replicant.event/handler)
+                                (not-empty (get-event-handler-options new-handler)))]
+                 (when (and old-handler
+                            (or (nil? new-handler) (not= old-opts new-opts)))
+                   (r/remove-event-handler renderer el k old-opts))
+                 (when (and new-handler (not= new-handler old-handler))
+                   (if-let [handler (get new-handler :replicant.event/handler)]
+                     (r/set-event-handler renderer el k handler new-opts)
+                     (r/set-event-handler renderer el k new-handler nil))))))))
 
 (def xlinkns "http://www.w3.org/1999/xlink")
 (def xmlns "http://www.w3.org/XML/1998/namespace")
@@ -440,15 +463,12 @@
   (->> new-classes
        (run! #(r/add-class renderer el %))))
 
-(defn set-event-listeners [renderer el new-handlers]
-  (add-event-listeners renderer el new-handlers))
-
 (defn set-attr [renderer el attr new]
   (when-not (namespace attr)
     (case attr
       :style (set-styles renderer el (:style new))
       :classes (set-classes renderer el (:classes new))
-      :on (set-event-listeners renderer el (:on new))
+      :on (add-event-listeners renderer el (:on new))
       (set-attr-val renderer el attr (attr new)))))
 
 (defn set-attributes [renderer el new-attrs]

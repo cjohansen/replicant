@@ -6,9 +6,9 @@
             [replicant.protocols :as replicant]
             [replicant.transition :as transition]))
 
-(defn ^:no-doc remove-listener [^js/EventTarget el event]
+(defn ^:no-doc remove-listener [^js/EventTarget el event opt]
   (when-let [old-handler (some-> el .-replicantHandlers (aget event))]
-    (.removeEventListener el event old-handler)))
+    (.removeEventListener el event old-handler (clj->js opt))))
 
 (defn ^:no-doc on-next-frame [f]
   (js/requestAnimationFrame
@@ -151,18 +151,18 @@
         (.removeAttribute el attr))
       this)
 
-    (set-event-handler [this ^js/EventTarget el event handler]
+    (set-event-handler [this ^js/EventTarget el event handler opt]
       (when-not (.-replicantHandlers el)
         (set! (.-replicantHandlers el) #js {}))
       (let [event (name event)]
-        (remove-listener el event)
+        (remove-listener el event opt)
         (aset (.-replicantHandlers el) event handler)
-        (.addEventListener el event handler))
+        (.addEventListener el event handler (clj->js opt)))
       this)
 
-    (remove-event-handler [this ^js/EventTarget el event]
+    (remove-event-handler [this ^js/EventTarget el event opt]
       (let [event (name event)]
-        (remove-listener el event)
+        (remove-listener el event opt)
         (aset (.-replicantHandlers el) event nil))
       this)
 
