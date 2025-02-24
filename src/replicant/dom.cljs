@@ -3,6 +3,7 @@
             [replicant.assert :as assert]
             [replicant.core :as r]
             [replicant.env :as env]
+            [replicant.errors :as errors]
             [replicant.protocols :as replicant]
             [replicant.transition :as transition]))
 
@@ -72,7 +73,7 @@
       this)
 
     (set-attribute [this ^js el attr v opt]
-      (try
+      (errors/with-error-handling "setting attribute" {:el el :attr attr :v v}
         (cond
           (= "innerHTML" attr)
           (set! (.-innerHTML el) v)
@@ -108,11 +109,7 @@
           (.setAttributeNS el (:ns opt) attr v)
 
           :else
-          (.setAttribute el attr v))
-        (catch :default e
-          (assert/log-error
-           (str "Replicant caught an error during rendering: "
-                (.-message e)))))
+          (.setAttribute el attr v)))
       this)
 
     (remove-attribute [this ^js el attr]
@@ -243,3 +240,11 @@
   the user guide for details."
   [f]
   (set! r/*dispatch* f))
+
+(defn ^:export set-error-handler!
+  "Register a global error handler that will be called in case of an exception
+  during rendering. When the `:replicant/catch-exceptions?` build option is set
+  to `true`, Replicant will call the error handler with an exception object and
+  a context map. See error handling in the user guide for details."
+  [f]
+  (r/set-error-handler! f))

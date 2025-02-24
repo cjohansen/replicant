@@ -40,10 +40,22 @@
   similar macro accessors as the hiccup headers."
   (:require [replicant.assert :as assert]
             [replicant.asserts :as asserts]
+            [replicant.errors :as errors]
             [replicant.hiccup :as h]
             [replicant.hiccup-headers :as hiccup]
             [replicant.protocols :as r]
-            [replicant.vdom :as vdom]))
+            [replicant.vdom :as vdom])
+  (:refer-clojure :exclude [set-error-handler!]))
+
+(def ^:dynamic *error-handler* nil)
+
+(defn ^:export set-error-handler!
+  "Register a global error handler that will be called in case of an exception
+  during rendering. When the `:replicant/catch-exceptions?` build option is set
+  to `true`, Replicant will call the error handler with an exception object and
+  a context map. See error handling in the user guide for details."
+  [f]
+  (set! *error-handler* f))
 
 ;; Hiccup stuff
 
@@ -501,7 +513,7 @@
             id (hiccup/id headers)
             classes (hiccup/classes headers)]
         (asserts/assert-alias-exists tag-name (get aliases tag-name) (keys aliases))
-        (try
+        (errors/with-error-handling "rendering alias" (hiccup/sexp headers)
           (let [attrs (hiccup/attrs headers)
                 alias-hiccup (->> (hiccup/children headers)
                                   flatten-seqs
@@ -515,7 +527,7 @@
             (->> alias-hiccup
                  (get-hiccup-headers nil)
                  (hiccup/from-alias headers)))
-          (catch #?(:clj Exception :cljs :default) e
+          (catch :default e
             (->> [:div {:data-replicant-error "Alias threw exception"
                         :data-replicant-exception #?(:clj (.getMessage e)
                                                      :cljs (.-message e))

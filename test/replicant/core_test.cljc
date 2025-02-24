@@ -1888,12 +1888,25 @@
             [:set-attribute [:div ""] "data-replicant-sexp" nil :to "[:custom/title \"Hello world\"]"]
             [:append-child [:div ""] :to "body"]])))
 
-  (testing "Renders default hiccup when alias function throws"
-    (is (= (-> (h/render
+  (testing "Calls custom error handler when alias function throws"
+    (is (= (let [calls (atom [])]
+             (with-redefs [replicant.core/*error-handler*
+                           (fn [e hiccup]
+                             (swap! calls conj [(select-keys (Throwable->map e) [:cause :data]) hiccup]))]
+               (h/render
                 {:alias-error-hiccup [:h1 "Oops!"]
                  :aliases {:custom/title (fn [_attr _children]
                                            (throw (ex-info "Oh no!" {})))}}
-                [:custom/title "Hello world"])
+                [:custom/title "Hello world"]))
+             @calls)
+           [[{:cause "Oh no!" :data {}} [:custom/title "Hello world"]]])))
+
+  (testing "Renders blank node even when calling custom error handler"
+    (is (= (-> (with-redefs [replicant.core/*error-handler* (fn [& args])]
+                 (h/render
+                  {:aliases {:custom/title (fn [_attr _children]
+                                             (throw (ex-info "Oh no!" {})))}}
+                  [:custom/title "Hello world"]))
                h/get-mutation-log-events
                h/summarize)
            [[:create-element "div"]
