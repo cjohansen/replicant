@@ -152,7 +152,8 @@
         stringifier))))
 
 (defn render
-  "Render `hiccup` to a string of HTML"
+  "Render `hiccup` to a string of HTML. `hiccup` can be either a single hiccup
+  node or a list of multiple nodes."
   [hiccup & [{:keys [aliases alias-data indent]}]]
   (let [opt {:indent (or indent 0)
              :depth 0
