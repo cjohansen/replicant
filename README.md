@@ -12,7 +12,25 @@ no.cjohansen/replicant {:mvn/version "2025.02.02"}
 
 ## Documentation
 
-Learn about using Replicant:
+Using Replicant is simple: express your UI (yes, the whole thing) as hiccup,
+pass it to Replicant, sit back and enjoy. When you need to update the UI, do it
+all over again, and Replicant will do just what's needed up update the DOM.
+
+```clj
+(require '[replicant.dom :as r])
+
+(r/render js/document.body
+  [:div.media
+   [:aside.media-thumb
+    [:img.rounded-lg {:src "/images/christian.jpg"}]]
+   [:main.grow
+    [:h2.font-bold "Christian Johansen"]
+    [:p "Just wrote some documentation for Replicant."]
+    [:p.opacity-50
+     "Posted February 26th 2025"]]])
+```
+
+Learn more about using Replicant:
 
 - [Replicant user guide](https://replicant.fun/learn/)
 - [Reference API docs](https://cljdoc.org/d/no.cjohansen/replicant/)
