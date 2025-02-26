@@ -198,7 +198,8 @@
 (defn ^:export render
   "Render `hiccup` in DOM element `el`. Replaces any pre-existing content not
   created by this function. Subsequent calls with the same `el` will update the
-  rendered DOM by comparing `hiccup` to the previous `hiccup`."
+  rendered DOM by comparing `hiccup` to the previous `hiccup`. `hiccup` can be
+  either a single hiccup node, or a list of multiple nodes."
   [^js el hiccup & [{:keys [aliases alias-data]}]]
   (let [rendering? (get-in @state [el :rendering?])]
     (when-not (contains? @state el)
