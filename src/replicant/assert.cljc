@@ -51,7 +51,7 @@
   (add-watch error k (fn [_ _ _ error] (f error))))
 
 (defn ^:export remove-reporter
-  "Remove a previoulsy added reporter, using the same `k` that was used to
+  "Remove a previously added reporter, using the same `k` that was used to
   register it. To remove the default reporter, use `:replicant.assert/default`
   as `k`."
   [k]
