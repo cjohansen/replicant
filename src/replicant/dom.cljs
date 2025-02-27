@@ -1,6 +1,6 @@
 (ns replicant.dom
   (:require [replicant.alias :as alias]
-            [replicant.assert :as assert]
+            [replicant.asserts :as asserts]
             [replicant.core :as r]
             [replicant.env :as env]
             [replicant.errors :as errors]
@@ -206,10 +206,11 @@
       (set! (.-innerHTML el) "")
       (vswap! state assoc el {:renderer (create-renderer)
                               :unmounts (volatile! #{})
-                              :rendering? true
-                              :queue []}))
+                              :rendering? true}))
     (if rendering?
-      (vswap! state update-in [el :queue] #(conj % hiccup))
+      (do
+        (asserts/assert-no-nested-renders)
+        (vswap! state assoc-in [el :queued] hiccup))
       (do
         (vswap! state assoc-in [el :rendering?] true)
         (let [{:keys [renderer current unmounts]} (get @state el)
@@ -222,9 +223,9 @@
                                                                       :alias-data alias-data})]
           (vswap! state update el merge {:current vdom
                                          :rendering? false})
-          (when-let [pending (first (:queue (get @state el)))]
+          (when-let [pending (:queued (get @state el))]
             (js/requestAnimationFrame #(render el pending))
-            (vswap! state update-in [el :queue] #(vec (rest %))))))))
+            (vswap! state update el dissoc :queued))))))
   el)
 
 (defn ^:export unmount

@@ -6,6 +6,17 @@
             [replicant.vdom :as vdom])
   #?(:cljs (:require-macros replicant.asserts)))
 
+(defmacro assert-no-nested-renders []
+  `(assert/assert
+    false
+    "Avoid triggering rendering while rendering"
+    (str "replicant.dom/render was called while working on a previous render. "
+         "This render call will be postponed. Renders are synchronous and cannot "
+         "nest.\n\nNested renders can occur when life-cycle hooks trigger renders "
+         "- consider avoiding this if possible, or do so using "
+         "requestAnimationFrame. Nested renders can cause performance issues, or, "
+         "in the worst case - unresponsive UIs.")))
+
 (defmacro assert-no-class-name [headers]
   `(assert/assert
     (not (contains? (hiccup/attrs ~headers) :className))
