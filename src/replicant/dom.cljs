@@ -209,7 +209,9 @@
                               :rendering? true
                               :queue []}))
     (if rendering?
-      (vswap! state update-in [el :queue] #(conj % hiccup))
+      (do
+        (println "Already rendering: Queueing hiccup for delayed render")
+        (vswap! state update-in [el :queue] #(conj % hiccup)))
       (do
         (vswap! state assoc-in [el :rendering?] true)
         (let [{:keys [renderer current unmounts]} (get @state el)
@@ -223,6 +225,7 @@
           (vswap! state update el merge {:current vdom
                                          :rendering? false})
           (when-let [pending (first (:queue (get @state el)))]
+            (println "Rendering queued hiccup. Queue size: " (count (:queue (get @state el))))
             (js/requestAnimationFrame #(render el pending))
             (vswap! state update-in [el :queue] #(vec (rest %))))))))
   el)
