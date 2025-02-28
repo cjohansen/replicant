@@ -414,8 +414,8 @@
                    (r/remove-event-handler renderer el k old-opts))
                  (when (and new-handler (not= new-handler old-handler))
                    (if-let [handler (get new-handler :replicant.event/handler)]
-                     (r/set-event-handler renderer el k handler new-opts)
-                     (r/set-event-handler renderer el k (get-event-handler new-handler nil) nil))))))))
+                     (r/set-event-handler renderer el k (get-event-handler handler k) new-opts)
+                     (r/set-event-handler renderer el k (get-event-handler new-handler k) nil))))))))
 
 (def xlinkns "http://www.w3.org/1999/xlink")
 (def xmlns "http://www.w3.org/XML/1998/namespace")
