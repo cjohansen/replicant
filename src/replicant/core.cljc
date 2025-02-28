@@ -402,20 +402,20 @@
 
 (defn update-event-listeners [renderer el new-handlers old-handlers]
   (->> (into (set (keys new-handlers)) (keys old-handlers))
-       (run! (fn [k]
-               (let [new-handler (get new-handlers k)
-                     old-handler (get old-handlers k)
+       (run! (fn [event]
+               (let [new-handler (get new-handlers event)
+                     old-handler (get old-handlers event)
                      old-opts (when (get old-handler :replicant.event/handler)
                                 (not-empty (get-event-handler-options old-handler)))
                      new-opts (when (get new-handler :replicant.event/handler)
                                 (not-empty (get-event-handler-options new-handler)))]
                  (when (and old-handler
                             (or (nil? new-handler) (not= old-opts new-opts)))
-                   (r/remove-event-handler renderer el k old-opts))
+                   (r/remove-event-handler renderer el event old-opts))
                  (when (and new-handler (not= new-handler old-handler))
                    (if-let [handler (get new-handler :replicant.event/handler)]
-                     (r/set-event-handler renderer el k (get-event-handler handler k) new-opts)
-                     (r/set-event-handler renderer el k (get-event-handler new-handler k) nil))))))))
+                     (r/set-event-handler renderer el event (get-event-handler handler event) new-opts)
+                     (r/set-event-handler renderer el event (get-event-handler new-handler event) nil))))))))
 
 (def xlinkns "http://www.w3.org/1999/xlink")
 (def xmlns "http://www.w3.org/XML/1998/namespace")
