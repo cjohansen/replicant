@@ -136,6 +136,21 @@ code. Open an issue or drop by
 
 ## Changelog
 
+### 2025.02.27
+
+Enable `replicant.dom/render` and `replicant.string/render` to render a list of
+hiccup nodes at the root level.
+
+Add an API for setting [event handler
+options](https://replicant.fun/event-handlers/#options).
+
+Don't catch render exceptions in development. Add a [build
+option](https://replicant.fun/build-options/) for controlling Replicant's
+exception catching behavior.
+
+Add ability to control how Replicant should render aliases that throw an
+exception.
+
 ### 2025.02.02
 
 Support symbols for classes.
