@@ -32,9 +32,7 @@
          (catch ~(if (:ns &env)
                    :default
                    'Exception) ~e
-           (if (ifn? replicant.core/*error-handler*)
-             (replicant.core/*error-handler* ~e ~ctx)
-             (log (str "Threw exception while " ~message) ~ctx ~e))
+           (log (str "Threw exception while " ~message) ~ctx ~e)
            ~(let [[binding & exprs] (drop 2 catch-clause)]
               (when binding
                 `(let [~binding ~e]

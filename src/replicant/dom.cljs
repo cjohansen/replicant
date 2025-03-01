@@ -241,11 +241,3 @@
   the user guide for details."
   [f]
   (set! r/*dispatch* f))
-
-(defn ^:export set-error-handler!
-  "Register a global error handler that will be called in case of an exception
-  during rendering. When the `:replicant/catch-exceptions?` build option is set
-  to `true`, Replicant will call the error handler with an exception object and
-  a context map. See error handling in the user guide for details."
-  [f]
-  (r/set-error-handler! f))

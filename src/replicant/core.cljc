@@ -47,16 +47,6 @@
             [replicant.vdom :as vdom])
   (:refer-clojure :exclude [set-error-handler!]))
 
-(def ^:dynamic *error-handler* nil)
-
-(defn ^:export set-error-handler!
-  "Register a global error handler that will be called in case of an exception
-  during rendering. When the `:replicant/catch-exceptions?` build option is set
-  to `true`, Replicant will call the error handler with an exception object and
-  a context map. See error handling in the user guide for details."
-  [f]
-  (set! *error-handler* f))
-
 ;; Hiccup stuff
 
 #_(set! *warn-on-reflection* true)
@@ -506,33 +496,36 @@
 
     :else (conj (set classes) class-attr)))
 
-(defn get-alias-headers [{:keys [aliases alias-data]} headers]
+(defn get-alias-headers [{:keys [aliases alias-data on-alias-exception]} headers]
   (let [tag-name (hiccup/tag-name headers)]
     (when (keyword? tag-name)
       (let [f (or (get aliases tag-name) (partial render-default-alias tag-name))
             id (hiccup/id headers)
-            classes (hiccup/classes headers)]
+            classes (hiccup/classes headers)
+            attrs (hiccup/attrs headers)
+            attrs (cond-> attrs
+                    id (update :id #(or % id))
+                    (or (seq classes)
+                        (:class attrs)) (update :class add-classes classes)
+                    alias-data (assoc :replicant/alias-data alias-data))
+            children (seq (flatten-seqs (hiccup/children headers)))]
         (asserts/assert-alias-exists tag-name (get aliases tag-name) (keys aliases))
         (errors/with-error-handling "rendering alias" (hiccup/sexp headers)
-          (let [attrs (hiccup/attrs headers)
-                alias-hiccup (->> (hiccup/children headers)
-                                  flatten-seqs
-                                  seq
-                                  (f (cond-> attrs
-                                       id (update :id #(or % id))
-                                       (or (seq classes)
-                                           (:class attrs)) (update :class add-classes classes)
-                                       alias-data (assoc :replicant/alias-data alias-data))))]
+          (let [alias-hiccup (f attrs children)]
             (asserts/assert-valid-alias-result tag-name alias-hiccup)
             (->> alias-hiccup
                  (get-hiccup-headers nil)
                  (hiccup/from-alias headers)))
-          (catch :default e
-            (->> [:div {:data-replicant-error "Alias threw exception"
-                        :data-replicant-exception #?(:clj (.getMessage e)
-                                                     :cljs (.-message e))
-                        :data-replicant-sexp (pr-str (hiccup/sexp headers))}]
-                 (get-hiccup-headers nil))))))))
+          (catch #?(:clj Exception
+                    :cljs :default) e
+            (or (when on-alias-exception
+                  (->> (on-alias-exception e [tag-name attrs children])
+                       (get-hiccup-headers nil)))
+                (->> [:div {:data-replicant-error "Alias threw exception"
+                            :data-replicant-exception #?(:clj (.getMessage e)
+                                                         :cljs (.-message e))
+                            :data-replicant-sexp (pr-str (hiccup/sexp headers))}]
+                     (get-hiccup-headers nil)))))))))
 
 (defn create-node
   "Create DOM node according to virtual DOM in `headers`. Register relevant
@@ -918,13 +911,14 @@
   `vdom`, `reconcile` will create the DOM as per `hiccup`. Assumes that the DOM
   in `el` is in sync with `vdom` - if not, this will certainly not produce the
   desired result."
-  [renderer el hiccup & [vdom {:keys [unmounts aliases alias-data]}]]
+  [renderer el hiccup & [vdom {:keys [unmounts aliases alias-data on-alias-exception]}]]
   (let [impl {:renderer renderer
               :hooks (volatile! [])
               :mounts (volatile! [])
               :unmounts (or unmounts (volatile! #{}))
               :aliases aliases
-              :alias-data alias-data}
+              :alias-data alias-data
+              :on-alias-exception on-alias-exception}
         vdom
         (if (list? hiccup)
           (let [[children ks] (get-children-ks

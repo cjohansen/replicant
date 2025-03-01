@@ -181,11 +181,12 @@
      :callbacks (atom [])}
     mutation-log-impl))
 
-(defn render [element new-hiccup & [old-vdom {:keys [unmounts aliases]}]]
+(defn render [element new-hiccup & [old-vdom {:keys [unmounts aliases on-alias-exception]}]]
   (let [el (atom (or element {}))
         renderer (create-renderer {:log (atom []) :element el})]
     (-> (d/reconcile renderer el new-hiccup old-vdom {:unmounts unmounts
-                                                      :aliases aliases})
+                                                      :aliases aliases
+                                                      :on-alias-exception on-alias-exception})
         (assoc :el (-> renderer
                        (update :log deref)
                        (update :element deref)))

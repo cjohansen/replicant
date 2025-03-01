@@ -118,13 +118,14 @@
 
 (defn render
   ([vdom] (mutation-log/render {:tag-name "body"} vdom))
-  ([{:keys [vdom el unmounts aliases]} new-vdom]
+  ([{:keys [vdom el unmounts aliases on-alias-exception]} new-vdom]
    (mutation-log/render
     (or (:element el) {:tag-name "body"})
     new-vdom
     vdom
     {:unmounts unmounts
-     :aliases aliases})))
+     :aliases aliases
+     :on-alias-exception on-alias-exception})))
 
 (defn text-node-event? [event]
   (or (= :create-text-node (first event))
