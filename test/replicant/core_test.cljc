@@ -837,6 +837,24 @@
              :replicant/js-event {:dom :event}}
             [:h1 "Data"]])))
 
+  (testing "Wraps event listener in a function when updating it"
+    (is (true? (binding [sut/*dispatch* (fn [& args] args)]
+                 (-> (h/render [:h1 {:on {:click [:h1 "Data"]}} "Hi!"])
+                     (h/render [:h1 {:on {:click [:h1 "Other data"]}} "Hi!"])
+                     h/get-mutation-log-events
+                     first
+                     last
+                     fn?)))))
+
+  (testing "Wraps optioned event listener in a function when updating it"
+    (is (true? (binding [sut/*dispatch* (fn [& args] args)]
+                 (-> (h/render [:h1 {:on {:click {:replicant.event/handler [:h1 "Data"]}}} "Hi!"])
+                     (h/render [:h1 {:on {:click {:replicant.event/handler [:h1 "Other data"]}}} "Hi!"])
+                     h/get-mutation-log-events
+                     first
+                     last
+                     fn?)))))
+
   (testing "Does not re-add current event handler"
     (is (= (-> (h/render [:h1 "Hi!"])
                (h/render [:h1 {:on {:click f1}} "Hi!"])
