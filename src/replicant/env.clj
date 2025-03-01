@@ -46,12 +46,15 @@
     (not (#{:advanced :simple} (:optimizations options)))
     (enabled? :replicant/dev?)))
 
-(defmacro with-dev-keys [hiccup aliases]
+(defmacro with-dev-key [hiccup k]
   (if (dev?)
     `(let [hiccup# ~hiccup]
        (if (vector? hiccup#)
          (if (map? (second hiccup#))
-           (update-in hiccup# [1 :replicant/key] (fn [k#] [k# ~aliases]))
-           (into [(first hiccup#) {:replicant/key ~aliases}] (rest hiccup#)))
+           (update-in hiccup# [1 :replicant/key] (fn [k#]
+                                                   (if k#
+                                                     [k# ~k]
+                                                     ~k)))
+           (into [(first hiccup#) {:replicant/key ~k}] (rest hiccup#)))
          hiccup#))
     hiccup))

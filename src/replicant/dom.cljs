@@ -215,7 +215,9 @@
         (vswap! state assoc-in [el :rendering?] true)
         (let [{:keys [renderer current unmounts]} (get @state el)
               aliases (or aliases (alias/get-registered-aliases))
-              hiccup (env/with-dev-keys hiccup [aliases alias-data])
+              hiccup (if alias-data
+                       (env/with-dev-key hiccup [aliases alias-data])
+                       (env/with-dev-key hiccup aliases))
               {:keys [vdom]} (r/reconcile renderer el hiccup current {:unmounts unmounts
                                                                       :aliases aliases
                                                                       :alias-data alias-data})]
