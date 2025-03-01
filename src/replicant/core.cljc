@@ -63,9 +63,6 @@
 #_(set! *unchecked-math* :warn-on-boxed)
 
 (defn parse-tag [^clojure.lang.Keyword tag]
-  (asserts/assert-non-empty-id tag)
-  (asserts/assert-valid-id tag)
-  (asserts/assert-non-empty-class tag)
   ;; Borrowed from hiccup, and adapted to support multiple classes
   (let [ns ^String (namespace tag)
         tag ^String (name tag)
@@ -117,6 +114,9 @@
             args (rest sexp)
             has-args? (map? (first args))
             attrs (if has-args? (first args) {})]
+        (asserts/assert-non-empty-id sym sexp)
+        (asserts/assert-valid-id sym sexp)
+        (asserts/assert-non-empty-class sym sexp)
         (hiccup/create (parse-tag sym) attrs (if has-args? (rest args) args) ns sexp))
       (hiccup/create-text-node (str sexp)))))
 

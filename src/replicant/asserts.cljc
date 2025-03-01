@@ -47,23 +47,26 @@
          (str ~k) " and once with " (keyword (str ~k))
          " may produce undesired results. Your safest option is to always use keywords.")))
 
-(defmacro assert-non-empty-id [tag]
+(defmacro assert-non-empty-id [tag sexp]
   `(assert/assert
     (not (re-find #"#($|\.)" (str ~tag)))
     (str "Hiccup tag " ~tag " contains an empty id")
-    "Either complete the id or remove the # character."))
+    "Either complete the id or remove the # character."
+    ~sexp))
 
-(defmacro assert-valid-id [tag]
+(defmacro assert-valid-id [tag sexp]
   `(assert/assert
     (not (re-find #"#[^a-zA-Z_\.]" (str ~tag)))
     (str "Hiccup tag " ~tag " contains an invalid id")
-    "IDs must start with a letter."))
+    "IDs must start with a letter."
+    ~sexp))
 
-(defmacro assert-non-empty-class [tag]
+(defmacro assert-non-empty-class [tag sexp]
   `(assert/assert
     (not (re-find #"\.$" (str ~tag)))
     (str "Hiccup tag " ~tag " contains an empty class")
-    "This may cause a DOMException and is considered a coding error. Replicant will not sacrifice performance to work around it."))
+    "This may cause a DOMException and is considered a coding error. Replicant will not sacrifice performance to work around it."
+    ~sexp))
 
 (defn camel->dash [s]
   (->> s
