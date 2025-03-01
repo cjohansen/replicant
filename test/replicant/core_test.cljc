@@ -1908,30 +1908,16 @@
 
   (testing "Calls custom error handler when alias function throws"
     (is (= (let [calls (atom [])]
-             (with-redefs [replicant.core/*error-handler*
-                           (fn [e hiccup]
-                             (swap! calls conj [(select-keys (Throwable->map e) [:cause :data]) hiccup]))]
-               (h/render
-                {:alias-error-hiccup [:h1 "Oops!"]
-                 :aliases {:custom/title (fn [_attr _children]
-                                           (throw (ex-info "Oh no!" {})))}}
-                [:custom/title "Hello world"]))
+             (h/render
+              {:alias-error-hiccup [:h1 "Oops!"]
+               :aliases {:custom/title (fn [_attr _children]
+                                         (throw (ex-info "Oh no!" {})))}
+               :on-alias-exception (fn [e hiccup]
+                                     (swap! calls conj [(select-keys (Throwable->map e) [:cause :data]) hiccup])
+                                     [:div "Oh well"])}
+              [:custom/title "Hello world"])
              @calls)
            [[{:cause "Oh no!" :data {}} [:custom/title "Hello world"]]])))
-
-  (testing "Renders blank node even when calling custom error handler"
-    (is (= (-> (with-redefs [replicant.core/*error-handler* (fn [& args])]
-                 (h/render
-                  {:aliases {:custom/title (fn [_attr _children]
-                                             (throw (ex-info "Oh no!" {})))}}
-                  [:custom/title "Hello world"]))
-               h/get-mutation-log-events
-               h/summarize)
-           [[:create-element "div"]
-            [:set-attribute [:div ""] "data-replicant-error" nil :to "Alias threw exception"]
-            [:set-attribute [:div ""] "data-replicant-exception" nil :to "Oh no!"]
-            [:set-attribute [:div ""] "data-replicant-sexp" nil :to "[:custom/title \"Hello world\"]"]
-            [:append-child [:div ""] :to "body"]])))
 
   (testing "Supports short-hand id and classes on aliases"
     (is (= (-> (h/render

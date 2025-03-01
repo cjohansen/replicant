@@ -47,16 +47,6 @@
             [replicant.vdom :as vdom])
   (:refer-clojure :exclude [set-error-handler!]))
 
-(def ^:dynamic *error-handler* nil)
-
-(defn ^:export set-error-handler!
-  "Register a global error handler that will be called in case of an exception
-  during rendering. When the `:replicant/catch-exceptions?` build option is set
-  to `true`, Replicant will call the error handler with an exception object and
-  a context map. See error handling in the user guide for details."
-  [f]
-  (set! *error-handler* f))
-
 ;; Hiccup stuff
 
 #_(set! *warn-on-reflection* true)
