@@ -34,12 +34,6 @@
             alias# (assoc :alias alias#)
             fd# (assoc :data fd#)))))))
 
-;; Install default reporter
-
-(defmacro ^:no-doc configure []
-  (when (assert?)
-    `(add-watch error ::default (fn [_# _# _# error#] (console/report error#)))))
-
 ;; API
 
 (defn ^:export add-reporter
@@ -48,7 +42,9 @@
   `{:title :message :hiccup :fname :alias :data}`."
   [k f]
   (remove-watch error ::default)
-  (add-watch error k (fn [_ _ _ error] (f error))))
+  (add-watch error k (fn [_ _ _ error]
+                       #?(:cljs (js/requestAnimationFrame #(f error))
+                          :clj (f error)))))
 
 (defn ^:export remove-reporter
   "Remove a previously added reporter, using the same `k` that was used to
@@ -56,3 +52,9 @@
   as `k`."
   [k]
   (remove-watch error k))
+
+;; Install default reporter
+
+(defmacro ^:no-doc configure []
+  (when (assert?)
+    `(add-reporter ::default console/report)))
