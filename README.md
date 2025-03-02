@@ -7,7 +7,7 @@ dependency.
 ## Install
 
 ```clj
-no.cjohansen/replicant {:mvn/version "2025.02.02"}
+no.cjohansen/replicant {:mvn/version "2025.03.02"}
 ```
 
 ## Documentation
@@ -135,6 +135,29 @@ code. Open an issue or drop by
 [Clojurians Slack](http://clojurians.net/).
 
 ## Changelog
+
+### 2025.03.02
+
+Enable `replicant.dom/render` and `replicant.string/render` to render a list of
+hiccup nodes at the root level.
+
+Add an API for setting [event handler
+options](https://replicant.fun/event-handlers/#options).
+
+Don't catch render exceptions in development. Add a [build
+option](https://replicant.fun/build-options/) for controlling Replicant's
+exception catching behavior.
+
+Add ability to control how Replicant should render aliases that throw an
+exception.
+
+Improve how Replicant deals with renders that are triggered during rendering.
+Replaces the existing queue with a throttle that will only realize the last
+render triggered during rendering.
+
+Thanks to [@pez](https://github.com/pez),
+[@maxweber](https://github.com/maxweber) and
+[@simongray](https://github.com/simongray) for contributing to this release.
 
 ### 2025.02.02
 
