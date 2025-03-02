@@ -9,13 +9,14 @@
 (defmacro assert-no-nested-renders []
   `(assert/assert
     false
-    "Avoid triggering rendering while rendering"
+    "Triggered a render while rendering"
     (str "replicant.dom/render was called while working on a previous render. "
-         "This render call will be postponed. Renders are synchronous and cannot "
-         "nest.\n\nNested renders can occur when life-cycle hooks trigger renders "
-         "- consider avoiding this if possible, or do so using "
-         "requestAnimationFrame. Nested renders can cause performance issues, or, "
-         "in the worst case - unresponsive UIs.")))
+         "This call will be throttled.\n\nNested renders can occur when"
+         "life-cycle hooks trigger renders, e.g. by storing some information from"
+         "the DOM (size of elements, etc) in the state that triggers rendering."
+         "Doing so isn't catagorically wrong, but should be used with care."
+         "Nested renders can cause performance issues, or, in the worst case - "
+         "unresponsive UIs.")))
 
 (defmacro assert-no-class-name [headers]
   `(assert/assert
