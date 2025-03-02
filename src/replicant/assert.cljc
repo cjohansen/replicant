@@ -5,9 +5,9 @@
   (:refer-clojure :exclude [assert])
   #?(:cljs (:require-macros [replicant.assert])))
 
-(def current-context (atom nil))
-(def current-node (atom nil))
-(def error (atom nil))
+(def ^:no-doc current-context (atom nil))
+(def ^:no-doc current-node (atom nil))
+(def ^:no-doc error (atom nil))
 
 (defn ^:no-doc assert? []
   #?(:clj (env/enabled? :replicant/asserts? (env/dev?))))
