@@ -3,6 +3,7 @@
             [replicant.assert :as assert]
             [replicant.contenteditable-bug :as ceb]
             [replicant.dom :as d]
+            [replicant.memory :as memory]
             [replicant.nested-rendering-bug :as nrb]))
 
 (defn app [{:keys [square?] :as props}]
@@ -80,6 +81,7 @@
 
   (ceb/start)
   (nrb/start)
+  (memory/start)
 
   (do
     (set! (.-innerHTML js/document.body) "<div id=\"app\"></div>")

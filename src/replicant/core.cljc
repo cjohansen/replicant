@@ -308,7 +308,7 @@
                         {:handler handler
                          :dispatch *dispatch*})))))
 
-(defn call-hook [[hook k node new old details]]
+(defn call-hook [renderer [hook k node new old details]]
   (let [f (get-life-cycle-hook hook)
         life-cycle (cond
                      (nil? old) :replicant.life-cycle/mount
@@ -323,8 +323,14 @@
                    (= life-cycle :replicant.life-cycle/update)))
       (f (cond-> {:replicant/trigger :replicant.trigger/life-cycle
                   :replicant/life-cycle life-cycle
-                  :replicant/node node}
-           details (assoc :replicant/details details))))))
+                  :replicant/node node
+                  :replicant/remember (fn remember [memory]
+                                        (r/remember renderer node memory))}
+           details
+           (assoc :replicant/details details)
+
+           (not= life-cycle :replicant.life-cycle/mount)
+           (assoc :replicant/memory (r/recall renderer node)))))))
 
 (defn register-hooks
   "Register the life-cycle hooks from the corresponding virtual DOM node to call
@@ -634,7 +640,7 @@
                          (vswap! (:unmounts impl) disj (vdom/unmount-id vdom))
                          (r/remove-child renderer el child)
                          (when-let [hook (:replicant/on-render (vdom/attrs vdom))]
-                           (call-hook [hook :replicant/on-render child nil vdom]))
+                           (call-hook renderer [hook :replicant/on-render child nil vdom]))
                          renderer)
                        (r/on-transition-end renderer child))
                   vdom)
@@ -953,9 +959,9 @@
     (if-let [mounts (seq @(:mounts impl))]
       (->> (fn []
              (run! #(perform-post-mount-update renderer %) mounts)
-             (run! call-hook hooks))
+             (run! #(call-hook renderer %) hooks))
            (r/next-frame renderer))
-      (run! call-hook hooks))
+      (run! #(call-hook renderer %) hooks))
     {:hooks hooks
      :vdom vdom
      :unmounts (:unmounts impl)}))

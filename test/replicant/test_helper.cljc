@@ -161,4 +161,6 @@
   (strip-id (mutation-log/get-snapshot el)))
 
 (defn summarize-event [e]
-  (update e :replicant/node get-snapshot))
+  (-> e
+      (dissoc :replicant/remember)
+      (update :replicant/node get-snapshot)))

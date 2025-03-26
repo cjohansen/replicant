@@ -45,6 +45,8 @@
         ;; important part is that the element doesn't get stuck forever.
         (vreset! timer (js/setTimeout callback (+ dur 200)))))))
 
+(def ^:no-doc memories (js/WeakMap.))
+
 (defn ^:no-doc create-renderer []
   (reify
     replicant/IRender
@@ -191,7 +193,14 @@
       (aget (.-childNodes el) idx))
 
     (next-frame [_this f]
-      (on-next-frame f))))
+      (on-next-frame f))
+
+    replicant/IMemory
+    (remember [_this ^js node memory]
+      (.set ^js memories node memory))
+
+    (recall [_this ^js node]
+      (.get ^js memories node))))
 
 (defonce ^:no-doc state (volatile! {}))
 

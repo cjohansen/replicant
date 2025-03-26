@@ -172,7 +172,15 @@
    `replicant/next-frame
    (fn [this f]
      (log this [:next-frame])
-     (f))})
+     (f))
+
+   `replicant/remember
+   (fn [_ node data]
+     (swap! node assoc :replicant/memory data))
+
+   `replicant/recall
+   (fn [_ node]
+     (:replicant/memory @node))})
 
 (defn create-renderer [{:keys [log element]}]
   (with-meta

@@ -28,3 +28,9 @@
   (get-child [this el idx])
 
   (next-frame [this f]))
+
+(defprotocol IMemory
+  :extend-via-metadata true
+
+  (remember [this node memory])
+  (recall [this node]))

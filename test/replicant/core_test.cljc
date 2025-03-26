@@ -1237,7 +1237,37 @@
                 (binding [sut/*dispatch* (fn [e data] (reset! res {:e e :data data}))]
                   (-> (h/render [:h1 {:replicant/on-update ["Update data"]} "Hi!"])
                       (h/render nil))
-                  @res))))))
+                  @res)))))
+
+  (testing "Remembers return-value from on-mount to on-update"
+    (is (= (let [res (atom nil)
+                 attrs {:replicant/on-mount
+                        (fn [{:keys [replicant/remember]}]
+                          (remember {:remember "me"}))
+                        :replicant/on-update ["Update data"]}]
+             (binding [sut/*dispatch* (fn [e _]
+                                        (reset! res (:replicant/memory e)))]
+               (-> (h/render [:h1 attrs "Hi!"])
+                   (h/render [:h1 attrs "Hello!"]))
+               @res))
+           {:remember "me"})))
+
+  (testing "Updates memory in update hook"
+    (is (= (let [res (atom [])
+                 attrs {:replicant/on-mount
+                        (fn [{:keys [replicant/remember]}]
+                          (remember {:number 0}))
+
+                        :replicant/on-update
+                        (fn [{:keys [replicant/remember replicant/memory]}]
+                          (swap! res conj memory)
+                          (remember (update memory :number inc)))}]
+             (-> (h/render [:h1 attrs "Hi 1"])
+                 (h/render [:h1 attrs "Hi 2"])
+                 (h/render [:h1 attrs "Hi 3"]))
+             @res)
+           [{:number 0}
+            {:number 1}]))))
 
 (deftest mounting-test
   (testing "Applies attribute overrides while mounting"
@@ -1612,6 +1642,18 @@
             [:replicant.life-cycle/unmount {:tag-name "p"
                                             :classes #{"unmounting"}
                                             :children [{:text "Text"}]}]])))
+
+  (testing "Updates memory between on-render calls"
+    (is (= (let [res (atom [])
+                 attrs {:replicant/on-render
+                        (fn [{:keys [replicant/memory replicant/remember]}]
+                          (swap! res conj memory)
+                          (remember (update (or memory {:number 0}) :number inc)))}]
+             (-> (h/render [:h1 attrs "Hi 1"])
+                 (h/render [:h1 attrs "Hi 2"])
+                 (h/render [:h1 attrs "Hi 3"]))
+             @res)
+           [nil {:number 1} {:number 2}])))
 
   (testing "Transitions element when wiping all children"
     (is (= (-> (h/render [:div
