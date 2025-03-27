@@ -138,7 +138,8 @@ code. Open an issue or drop by
 
 ### 2025.03.27
 
-New feature: [Life-cycle hook memory](/life-cycle-hooks/#memory) with
+New feature: [Life-cycle hook
+memory](https://replicant.fun/life-cycle-hooks/#memory) with
 `:replicant/remember` and `:replicant/memory`.
 
 ### 2025.03.02
