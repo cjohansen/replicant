@@ -7,7 +7,7 @@ dependency.
 ## Install
 
 ```clj
-no.cjohansen/replicant {:mvn/version "2025.03.02"}
+no.cjohansen/replicant {:mvn/version "2025.03.27"}
 ```
 
 ## Documentation
@@ -135,6 +135,11 @@ code. Open an issue or drop by
 [Clojurians Slack](http://clojurians.net/).
 
 ## Changelog
+
+### 2025.03.27
+
+New feature: [Life-cycle hook memory](/life-cycle-hooks/#memory) with
+`:replicant/remember` and `:replicant/memory`.
 
 ### 2025.03.02
 
