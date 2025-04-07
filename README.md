@@ -183,3 +183,8 @@ compiler warnings, and even exceptions during rendering.
 ### 2025.01.28
 
 First public release.
+
+## License: MIT
+
+Copyright © 2023-2025 Christian Johansen. Distributed under the [MIT
+License](https://opensource.org/license/mit).
