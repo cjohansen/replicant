@@ -30,6 +30,22 @@ all over again, and Replicant will do just what's needed up update the DOM.
      "Posted February 26th 2025"]]])
 ```
 
+Or render to a string, either on the client or the JVM:
+
+```clj
+(require '[replicant.string :as s])
+
+(s/render
+  [:div.media
+   [:aside.media-thumb
+    [:img.rounded-lg {:src "/images/christian.jpg"}]]
+   [:main.grow
+    [:h2.font-bold "Christian Johansen"]
+    [:p "Just wrote some documentation for Replicant."]
+    [:p.opacity-50
+     "Posted February 26th 2025"]]])
+```
+
 Learn more about using Replicant:
 
 - [Replicant user guide](https://replicant.fun/learn/)
