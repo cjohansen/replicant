@@ -101,9 +101,6 @@
           (= "disabled" attr)
           (set! (.-disabled el) v)
 
-          (= "readonly" attr)
-          (set! (.-readonly el) v)
-
           (= "required" attr)
           (set! (.-required el) v)
 
@@ -139,9 +136,6 @@
 
         (= "disabled" attr)
         (set! (.-disabled el) nil)
-
-        (= "readonly" attr)
-        (set! (.-readonly el) nil)
 
         (= "required" attr)
         (set! (.-required el) nil)
