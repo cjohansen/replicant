@@ -7,7 +7,7 @@ dependency.
 ## Install
 
 ```clj
-no.cjohansen/replicant {:mvn/version "2025.03.27"}
+no.cjohansen/replicant {:mvn/version "2025.06.21"}
 ```
 
 ## Documentation
@@ -151,6 +151,13 @@ code. Open an issue or drop by
 [Clojurians Slack](http://clojurians.net/).
 
 ## Changelog
+
+### 2025.06.21
+
+Fix bug: Correctly set the `readonly` attribute on input fields. Also change
+`disabled` and `required` from properties to attributes.
+
+Thanks to [Tormod Mathiesen/2food](https://github.com/2food).
 
 ### 2025.03.27
 
