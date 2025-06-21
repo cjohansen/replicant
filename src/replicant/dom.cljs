@@ -98,12 +98,6 @@
           (= "default-checked" attr)
           (.setAttribute el "checked" v)
 
-          (= "disabled" attr)
-          (set! (.-disabled el) v)
-
-          (= "required" attr)
-          (set! (.-required el) v)
-
           (:ns opt)
           (.setAttributeNS el (:ns opt) attr v)
 
@@ -133,12 +127,6 @@
 
         (= "default-checked" attr)
         (.removeAttribute el "checked")
-
-        (= "disabled" attr)
-        (set! (.-disabled el) nil)
-
-        (= "required" attr)
-        (set! (.-required el) nil)
 
         :else
         (.removeAttribute el attr))
