@@ -2112,7 +2112,20 @@
                (h/render
                 [:ui/menu {:location {:hash-params {:open "1"}}}])
                h/->dom)
-           [:div [:a "Close"] [:div "Dialog"]]))))
+           [:div [:a "Close"] [:div "Dialog"]])))
+
+  (testing "Produces svg nodes with an alias"
+    (is (= (->> (h/render
+                 {:aliases {:ui/circle
+                            (fn [_ _]
+                              [:circle {:cx 75 :cy 25 :r 25}])}}
+                 [:svg
+                  [:ui/circle]])
+                h/get-mutation-log-events
+                h/summarize
+                (filter (comp #{:create-element} first)))
+           [[:create-element "svg" "http://www.w3.org/2000/svg"]
+            [:create-element "circle" "http://www.w3.org/2000/svg"]]))))
 
 (deftest regression-tests
   (testing "Replaces element when root node key changes"

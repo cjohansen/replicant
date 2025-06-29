@@ -77,6 +77,7 @@
        (when hh#
          (doto hh#
            (aset 3 (or (rkey alias#) (rkey hh#)))
+           (aset 6 (html-ns alias#))
            (aset 7 (sexp hh#))
            (aset 9 (sexp alias#)))))
     `(let [hh# ~headers
@@ -84,5 +85,6 @@
        (when hh#
          (-> hh#
              (assoc 3 (or (rkey alias#) (rkey hh#)))
+             (assoc 6 (html-ns alias#))
              (assoc 7 (sexp hh#))
              (assoc 9 (sexp alias#)))))))
