@@ -926,7 +926,7 @@
               :alias-data alias-data
               :on-alias-exception on-alias-exception}
         vdom
-        (if (list? hiccup)
+        (if (seq? hiccup)
           (let [[children ks] (get-children-ks
                                (hiccup/create
                                 #?(:cljs #js [nil nil nil]

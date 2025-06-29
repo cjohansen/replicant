@@ -56,6 +56,19 @@
             [:append-child "Text" :to "p"]
             [:append-child [:p "Text"] :to "body"]])))
 
+  (testing "Renders top-level seq"
+    (is (= (-> (h/render (seq (list [:h1 "Hello world"] [:p "Text"])))
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "h1"]
+            [:create-text-node "Hello world"]
+            [:append-child "Hello world" :to "h1"]
+            [:append-child [:h1 "Hello world"] :to "body"]
+            [:create-element "p"]
+            [:create-text-node "Text"]
+            [:append-child "Text" :to "p"]
+            [:append-child [:p "Text"] :to "body"]])))
+
   (testing "Re-renders top-level collection"
     (is (= (-> (h/render (list [:h1 {:replicant/key :h1} "Hello world"]
                                [:p {:replicant/key :p} "Text"]))
