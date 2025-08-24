@@ -83,7 +83,7 @@ be attached to DOM nodes.
 
 [m1p](https://github.com/cjohansen/m1p) spawned the idea that the rendering
 library could resolve placeholders like `[:i18n ::some-key]` during rendering,
-eliminating an entire `walk` through the UI - an idea that turned in Replican
+eliminating an entire `walk` through the UI - an idea that turned into Replicant
 aliases (whose name was inspired by
 [chassis](https://github.com/onionpancakes/chassis)).
 
