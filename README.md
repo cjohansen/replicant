@@ -14,7 +14,7 @@ no.cjohansen/replicant {:mvn/version "2025.06.21"}
 
 Using Replicant is simple: express your UI (yes, the whole thing) as hiccup,
 pass it to Replicant, sit back and enjoy. When you need to update the UI, do it
-all over again, and Replicant will do just what's needed up update the DOM.
+all over again, and Replicant will do just what's needed to update the DOM.
 
 ```clj
 (require '[replicant.dom :as r])
