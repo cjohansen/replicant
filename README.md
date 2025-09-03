@@ -103,7 +103,7 @@ that matter). Enabling Replicant to render components written for other
 libraries would effectively introduce an escape hatch that would undermine
 Replicant's assumptions. Given that I don't see "reusable components across
 libraries and frameworks" as an attractive goal, this is not complexity I am
-interesting in taking on.
+interested in taking on.
 
 For truly reusable extensions of the browser you can use web components (like
 [u-elements](https://u-elements.github.io/)) and have Replicant render custom
