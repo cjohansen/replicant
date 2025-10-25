@@ -4,7 +4,8 @@
             [replicant.contenteditable-bug :as ceb]
             [replicant.dom :as d]
             [replicant.memory :as memory]
-            [replicant.nested-rendering-bug :as nrb]))
+            [replicant.nested-rendering-bug :as nrb]
+            [replicant.svg-foreign-object :as svg-foreign-object]))
 
 (defn app [{:keys [square?] :as props}]
   [:div {:replicant/context {:fn-name "replicant.dev/app"
