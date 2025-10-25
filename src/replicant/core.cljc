@@ -561,9 +561,10 @@
                   "http://www.w3.org/2000/svg"))
          node (r/create-element renderer tag-name (when ns {:ns ns}))
          [attrs mounting-attrs] (get-mounting-attrs headers)
+         children-ns (if (= "foreignObject" tag-name) nil ns)
          _ (set-attributes renderer node (or mounting-attrs attrs))
          [children ks n-children]
-         (->> (get-children headers ns)
+         (->> (get-children headers children-ns)
               (reduce (fn [[children ks n] child-headers]
                         (if child-headers
                           (let [[child-node vdom] (create-node impl child-headers)

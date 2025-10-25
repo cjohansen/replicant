@@ -327,6 +327,13 @@
                first)
            [:create-element "g" "http://www.w3.org/2000/svg"])))
 
+  (testing "Does not force SVG namespace on foreignObject child nodes"
+    (is (= (-> (h/render [:svg [:foreignObject [:div "Hello World"]]])
+               h/get-mutation-log-events
+               h/summarize
+               (nth 2))
+           [:create-element "div"])))
+
   (testing "Re-creates unkeyed moved nodes"
     (is (= (-> (h/render [:div
                           [:h1 {} "Title"]
