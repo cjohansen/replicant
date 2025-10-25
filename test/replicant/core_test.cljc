@@ -2502,4 +2502,14 @@
                (h/render [:span {:style {"background" "blue"}} "Hello"])
                h/get-mutation-log-events
                h/summarize)
-           [[:set-style [:span "Hello"] "background" "blue"]]))))
+           [[:set-style [:span "Hello"] "background" "blue"]])))
+
+  (testing "Can render IndexedSeq"
+    (is (= (-> (let [[_ & hiccup] [[:div "1"] [:div "2"]]]
+                 (h/render hiccup))
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "div"]
+            [:create-text-node "2"]
+            [:append-child "2" :to "div"]
+            [:append-child [:div "2"] :to "body"]]))))

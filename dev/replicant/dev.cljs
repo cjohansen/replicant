@@ -3,6 +3,8 @@
             [replicant.assert :as assert]
             [replicant.contenteditable-bug :as ceb]
             [replicant.dom :as d]
+            [replicant.indexed-seq :as indexed-seq]
+            [replicant.input :as input]
             [replicant.memory :as memory]
             [replicant.nested-rendering-bug :as nrb]
             [replicant.svg-foreign-object :as svg-foreign-object]))
@@ -61,12 +63,9 @@
      [:div attrs "C"]]))
 
 (defn main []
-  (d/set-dispatch!
-   (fn [& args]
-     (prn "OHOI!" args)))
-  (set! (.-innerHTML js/document.body) "<div id=\"app\"></div>")
-  (def el (js/document.getElementById "app"))
-  (d/render el (app {:square? true})))
+  #_(input/start)
+  #_(svg-foreign-object/start)
+  (indexed-seq/start))
 
 (comment
 
