@@ -1,8 +1,14 @@
 {:deps {:aliases [:dev]}
- :dev-http {8089 ["resources/public"]}
+ :dev-http {8089 ["resources/public" "dev-resources/public"]}
  :builds
  {:app
   {:target :browser
    :modules {:main {:init-fn replicant.dev/main}}
    :dev {:output-dir "dev-resources/public/js"}
-   :release {:output-dir "target/js"}}}}
+   :release {:output-dir "target/js"}}
+
+  :client
+  {:target :browser
+   :modules {:main {:init-fn replicant.client/main}}
+   :dev {:output-dir "dev-resources/public/client-js"}
+   :release {:output-dir "target/client-js"}}}}
