@@ -74,14 +74,14 @@
             [:li "Item #2"]])))
 
   (testing "Fails missing aliases when explicitly told to"
-    (is (thrown-with-msg?
-         #?(:clj clojure.lang.ExceptionInfo)
-         #"Tried to expand undefined alias :ui/list"
-         (-> [:ui/list
-              [:li [:ui/i18n :thing-1]]
-              [:li [:ui/i18n :thing-2]]]
-             (sut/expand-1 {:aliases (select-keys aliases [:ui/i18n])
-                            :ignore-missing-alias? false}))))))
+    #?(:clj (is (thrown-with-msg?
+                 #?(:clj clojure.lang.ExceptionInfo)
+                 #"Tried to expand undefined alias :ui/list"
+                 (-> [:ui/list
+                      [:li [:ui/i18n :thing-1]]
+                      [:li [:ui/i18n :thing-2]]]
+                     (sut/expand-1 {:aliases (select-keys aliases [:ui/i18n])
+                                    :ignore-missing-alias? false})))))))
 
 (deftest expand-test
   (testing "Expands all aliases"

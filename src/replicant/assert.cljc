@@ -43,7 +43,9 @@
   [k f]
   (remove-watch error ::default)
   (add-watch error k (fn [_ _ _ error]
-                       #?(:cljs (js/requestAnimationFrame #(f error))
+                       #?(:cljs (if (exists? js/requestAnimationFrame)
+                                  (js/requestAnimationFrame #(f error))
+                                  (f error))
                           :clj (f error)))))
 
 (defn ^:export remove-reporter

@@ -249,13 +249,13 @@
                 "</nav>"))))
 
   (testing "Fails when rendering missing aliases"
-    (is (thrown-with-msg?
-         clojure.lang.ExceptionInfo
-         #"Tried to expand undefined alias :ui/list"
-         (-> [:ui/list
-              [:li [:ui/i18n :thing-1]]
-              [:li [:ui/i18n :thing-2]]]
-             sut/render))))
+    #?(:clj (is (thrown-with-msg?
+                 clojure.lang.ExceptionInfo
+                 #"Tried to expand undefined alias :ui/list"
+                 (-> [:ui/list
+                      [:li [:ui/i18n :thing-1]]
+                      [:li [:ui/i18n :thing-2]]]
+                     sut/render)))))
 
   (testing "Renders top-level collection"
     (is (= (sut/render (list [:h1 "Hello world"] [:p "Text"]))
