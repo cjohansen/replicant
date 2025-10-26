@@ -1983,21 +1983,6 @@
             [:append-child "OMG! :custom/title" :to "div"]
             [:append-child [:div "OMG! :custom/title"] :to "body"]])))
 
-  (testing "Calls custom error handler when alias function throws"
-    (is (= (-> (h/render
-                {:alias-error-hiccup [:h1 "Oops!"]
-                 :aliases {:custom/title (fn [_attr _children]
-                                           (throw (ex-info "Oh no!" {:message "OMG!"})))}
-                 :on-alias-exception (fn [e hiccup]
-                                       [:div (str (:message (ex-data e)) " " (pr-str (first hiccup)))])}
-                [:custom/title "Hello world"])
-               h/get-mutation-log-events
-               h/summarize)
-           [[:create-element "div"]
-            [:create-text-node "OMG! :custom/title"]
-            [:append-child "OMG! :custom/title" :to "div"]
-            [:append-child [:div "OMG! :custom/title"] :to "body"]])))
-
   (testing "Supports short-hand id and classes on aliases"
     (is (= (-> (h/render
                 {:aliases {:custom/title (fn [attrs [title]]
