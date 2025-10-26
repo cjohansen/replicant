@@ -3,20 +3,21 @@
  :aliases
  {:dev {:extra-paths ["dev" "test" "dev-resources"]
         :extra-deps {org.clojure/clojure {:mvn/version "1.12.0"}
-                     org.clojure/clojurescript {:mvn/version "1.11.132"}
+                     org.clojure/clojurescript {:mvn/version "1.12.42"}
                      org.clojure/test.check {:mvn/version "1.1.1"}
                      cider/piggieback {:mvn/version "0.5.3"}
-                     clj-kondo/clj-kondo {:mvn/version "2024.02.12"}
-                     com.bhauman/figwheel-main {:mvn/version "0.2.18"}
-                     com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.1.1"}
-                     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.0"}
-                     com.lambdaisland/kaocha-cljs {:mvn/version "1.5.154"}
+                     clj-kondo/clj-kondo {:mvn/version "2025.10.23"}
+                     com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.2"}
+                     com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.7"}
+                     com.lambdaisland/kaocha-cljs {:mvn/version "1.8.163"}
                      criterium/criterium {:mvn/version "0.4.6"}
                      dev.onionpancakes/chassis {:mvn/version "1.0.365"}
                      hiccup/hiccup {:mvn/version "2.0.0-RC4"}
                      kaocha-noyoda/kaocha-noyoda {:mvn/version "2019-06-03"}
-                     lambdaisland/kaocha {:mvn/version "1.87.1366"}
-                     thheller/shadow-cljs {:mvn/version "2.28.20"}}
+                     lambdaisland/kaocha {:mvn/version "1.91.1392"}
+                     thheller/shadow-cljs {:mvn/version "3.2.1"}
+                     ring/ring-core {:mvn/version "1.15.3"}
+                     ring/ring-jetty-adapter {:mvn/version "1.15.3"}}
         :jvm-opts ["-XX:-OmitStackTraceInFastThrow" "-Djdk.attach.allowAttachSelf=true"]}
   :test {:exec-fn kaocha.runner/exec-fn
          :exec-args {}}
