@@ -480,9 +480,11 @@
       (set-attr-val renderer el attr (attr new)))))
 
 (defn set-attributes [renderer el new-attrs]
-  (->> (keys new-attrs)
-       (filter new-attrs)
-       (run! #(set-attr renderer el % new-attrs))))
+  (run! (fn [[attr v]]
+          (when v
+            (set-attr renderer el attr new-attrs))) (dissoc new-attrs :value))
+  (when-let [v (:value new-attrs)]
+    (set-attr renderer el :value new-attrs)))
 
 (defn render-default-alias [tag-name _attrs children]
   [:div

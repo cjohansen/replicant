@@ -2497,4 +2497,31 @@
            [[:create-element "div"]
             [:create-text-node "2"]
             [:append-child "2" :to "div"]
-            [:append-child [:div "2"] :to "body"]]))))
+            [:append-child [:div "2"] :to "body"]])))
+
+  (testing "Sets value attribute last on range inputs"
+    ;; Range inputs have a default min/max of 0/100. Setting value to a number
+    ;; outside of this range will truncate the value to 100. For this reason, it
+    ;; is important to set other attributes (specifically type/min/max) before
+    ;; value. So we set value last.
+    (is (= (->> (h/render
+                 [:input {:type "range"
+                          :value 150
+                          :min 100
+                          :max 200}])
+                h/get-mutation-log-events
+                h/summarize
+                (filter (comp #{:set-attribute} first))
+                last)
+           [:set-attribute [:input ""] "value" nil :to 150]))
+
+    (is (= (->> (h/render
+                 [:input {:value 150
+                          :min 100
+                          :max 200
+                          :type "range"}])
+                h/get-mutation-log-events
+                h/summarize
+                (filter (comp #{:set-attribute} first))
+                last)
+           [:set-attribute [:input ""] "value" nil :to 150]))))
