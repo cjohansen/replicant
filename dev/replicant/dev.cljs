@@ -10,6 +10,7 @@
             [replicant.input]
             [replicant.life-cycle-bug]
             [replicant.memory-example]
+            [replicant.multi-select]
             [replicant.nested-rendering-bug]
             [replicant.ohm]
             [replicant.on-mount-bug]
@@ -28,6 +29,7 @@
    replicant.input/example
    replicant.life-cycle-bug/example
    replicant.memory-example/example
+   replicant.multi-select/example
    replicant.nested-rendering-bug/example
    replicant.ohm/example
    replicant.on-mount-bug/example
@@ -55,11 +57,17 @@
      [:div (f state k)])
    (toc)])
 
-(defn interpolate [event args]
+(defn interpolate [^js event args]
   (walk/postwalk
    (fn [x]
-     (if (= x :event.target/value)
-       (.. ^js event -target -value)
+     (cond
+       (= x :event.target/value)
+       (.. event -target -value)
+
+       (= x :event.target/selected-option-values)
+       (map #(.-value %) (seq (.. event -target -selectedOptions)))
+
+       :else
        x))
    args))
 
