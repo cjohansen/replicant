@@ -1,5 +1,4 @@
-(ns replicant.top-level-collection
-  (:require [replicant.dom :as d]))
+(ns replicant.top-level-collection)
 
 (defn app [{:keys [text]}]
   (list

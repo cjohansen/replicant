@@ -1,148 +1,109 @@
 (ns replicant.dev
-  (:require [replicant.alias :refer [defalias]]
-            [replicant.assert :as assert]
-            [replicant.contenteditable-bug :as ceb]
+  (:require [clojure.walk :as walk]
+            [replicant.alias-example]
+            [replicant.animate-styles]
+            [replicant.assert-example]
+            [replicant.contenteditable-bug]
             [replicant.dom :as d]
-            [replicant.indexed-seq :as indexed-seq]
-            [replicant.input :as input]
-            [replicant.memory :as memory]
-            [replicant.nested-rendering-bug :as nrb]
-            [replicant.svg-foreign-object :as svg-foreign-object]))
+            [replicant.duplicate-key-bug]
+            [replicant.indexed-seq]
+            [replicant.input]
+            [replicant.life-cycle-bug]
+            [replicant.memory-example]
+            [replicant.nested-rendering-bug]
+            [replicant.ohm]
+            [replicant.on-mount-bug]
+            [replicant.range]
+            [replicant.svg-foreign-object]))
 
-(defn app [{:keys [square?] :as props}]
-  [:div {:replicant/context {:fn-name "replicant.dev/app"
-                             :data props}}
-   [:h1 "Watch it go!"]
-   [:input {:type "text" :value "Hehe"}]
-   (when square?
-     [:div#3.lol.
-      {;;:className "some classes"
-       :style {:transition "width 0.5s, height 200ms"
-               :width 100
-               :height 200
-               :background "red"
-               :overflow "hidden"}
-       :on {:click [:some-data-for-your-handler]}
-       :replicant/mounting {:style {:width 0 :height 0}}
-       :replicant/unmounting {:style {:width 0 :height 0}}
-       }
-      "Colored square"])
-   [:p {:replicant/key "p"} (if square? "Square!" "It's gone!")]
-   ])
+(defonce store (atom {}))
 
-(defalias app-alias [{:keys [square?]}]
-  [:div {:on-click "Hmm"}
-   [:h1 "Watch it go!"]
-   [:input {:type "text" :value "Hehe"}]
-   (when square?
-     [:div#3.lol
-      {:style {:transition "width 0.5s, height 200ms"
-               :width 100
-               :height 200
-               :background "red"
-               :overflow "hidden"}
-       :on {:click [:some-data-for-your-handler]}
-       :replicant/mounting {:style {:width 0 :height 0}}
-       :replicant/unmounting {:style {:width 0 :height 0}}
-       }
-      "Colored square"])
-   [:p {:replicant/key "p"} (if square? "Square!" "It's gone!")]
-   ])
+(def examples
+  [replicant.alias-example/example
+   replicant.animate-styles/example
+   replicant.assert-example/example
+   replicant.contenteditable-bug/example
+   replicant.duplicate-key-bug/example
+   replicant.indexed-seq/example
+   replicant.input/example
+   replicant.life-cycle-bug/example
+   replicant.memory-example/example
+   replicant.nested-rendering-bug/example
+   replicant.ohm/example
+   replicant.on-mount-bug/example
+   replicant.range/example-1
+   replicant.range/example-2
+   replicant.svg-foreign-object/example])
 
-(defn animated [{:keys [peek?]}]
-  (let [attrs {:style {:background-color "red"
-                       :transition "background-color 0.5s"}
-               :replicant/mounting {:style {:background-color "blue"}}
-               :replicant/unmounting {:style {:background-color "blue"}}
-               }]
-    [:div
-     [:div attrs "A"]
-     (when peek?
-       [:div attrs "B"])
-     nil
-     [:div attrs "C"]]))
+(defn get-example [k]
+  (first (filter (comp #{k} :k) examples)))
 
-(defn main []
-  #_(input/start)
-  #_(svg-foreign-object/start)
-  (indexed-seq/start))
+(defn toc []
+  [:main
+   [:h1 "Replicant examples"]
+   [:ul.list
+    (for [{:keys [title k]} examples]
+      [:li
+       [:button.link
+        {:type "button"
+         :on {:click [[:actions/go-to k]]}}
+        title]])]])
+
+(defn render [state]
+  [:main
+   (when-let [{:keys [f k]} (get-example (:example state))]
+     [:div (f state k)])
+   (toc)])
+
+(defn interpolate [event args]
+  (walk/postwalk
+   (fn [x]
+     (if (= x :event.target/value)
+       (.. ^js event -target -value)
+       x))
+   args))
+
+(defn dispatch-actions [{:replicant/keys [dom-event]} actions]
+  (doseq [[action & args] actions]
+    (let [args (cond->> args
+                 dom-event (interpolate dom-event))]
+      (apply prn action args)
+      (case action
+        :actions/go-to
+        (swap! store (fn [state]
+                       (let [k (first args)
+                             example (get-example k)]
+                         (cond-> (assoc state :example k)
+                           (:initial-data example)
+                           (assoc k (:initial-data example))))))
+
+        :actions/assoc-in
+        (apply swap! store assoc-in args)
+
+        :actions/conj-in
+        (let [[path v] args]
+          (swap! store update-in path conj v))
+
+        :actions/log
+        nil
+
+        (let [k (:example @store)]
+          (if-let [impl (get-in (get-example k) [:actions action])]
+            (dispatch-actions nil (apply impl (get @store k) args))
+            (println "Unknown action" action)))))))
+
+(defn start []
+  (set! (.-innerHTML js/document.body) "<div id=\"app\"></div>")
+  (d/set-dispatch! dispatch-actions)
+  (let [el (js/document.getElementById "app")]
+    (add-watch store ::render (fn [_ _ _ state]
+                                (d/render el (render state))))
+    (swap! store assoc ::booted-at (.getTime (js/Date.)))))
+
+(defn ^:export main []
+  (start))
 
 (comment
-
   (enable-console-print!)
-
   (set! *print-namespace-maps* false)
-
-
-
-  (d/set-dispatch!
-   (fn [& args]
-     (prn "OHOI!" args)))
-
-  (ceb/start)
-  (nrb/start)
-  (memory/start)
-
-  (do
-    (set! (.-innerHTML js/document.body) "<div id=\"app\"></div>")
-    (def el (js/document.getElementById "app"))
-    ;;(d/render el (app {:square? true}))
-    (d/render el [app-alias {:square? true :n 0}])
-    )
-
-  (assert/assert?)
-
-  (d/render el (app {}))
-
-  (d/render el [:div {:className "wrong"} "Hello"])
-  (d/render el [:div {:class "also wrong"} "Hello"])
-  (d/render el [:div {:style "background: yellow"} "Hello"])
-  (d/render el [:div {:replicant/context ^:replicant/internal {:fn-name 'replicant.dev/event-handler-ex}
-                      :on {:keyUp [:some-data]}} "Hello"])
-
-  (d/render el [:div {:style {32 "LOL"}} "Hello"])
-  (d/render el [:div {:style {:backgroundColor "LOL"}} "Hello"])
-  (d/render el [:div {:style {:onclick (fn [])}} "Not like that"])
-  (d/render el [:div {:onClick (fn [])} "Not like that"])
-
-  (d/render
-   el
-   [:div
-    [:div {:style {:animation "fadein 2s ease"}} "A"]
-    (when true
-      [:div {:style {:animation "fadein 2s ease"}} "B"])
-    nil ;; <-- denne er ny
-    [:div {:style {:animation "fadein 2s ease"}} "C"]])
-
-
-  (d/render el (animated {})) ;; Ok
-  (d/render el (animated {:peek? true})) ;; Ok
-  (d/render el (animated {})) ;; Ok
-  (d/render el (animated {:peek? true})) ;; BOOM
-
-
-  (->> [:div
-        [:h1 {:style {"background" "var(--bg)"
-                      "--bg" "red"}} "Watch it go!"]]
-       (d/render el))
-
-  )
-
-(comment
-
-
-  (->> [:div
-        [:ul.cards
-         [:li {:replicant/key 1} [:div.square.wobble]]
-         [:li {:replicant/key 2} [:div.square.wobble.green]]
-         [:li {:replicant/key 3} [:div.square.wobble.orange]]
-         [:li {:replicant/key 4} [:div.square.wobble.yellow]]]
-        [:div {:style {:transition "width 0.25s"
-                       :width 100
-                       :height 200
-                       :background "red"}
-               :replicant/mounting {:style {:width 0}}}]]
-       (d/render el))
-
-
 )

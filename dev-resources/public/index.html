@@ -3,59 +3,10 @@
   <head>
    <meta charset="UTF-8">
    <meta name="viewport" content="width=device-width, initial-scale=1">
-   <style type="text/css">
-     .circle {
-         display: inline-block;
-         width: 100px;
-         height: 100px;
-         border-radius: 50%;
-         background: whiteSmoke;
-         box-shadow: 4px -40px 60px 5px rgb(26, 117, 206) inset;
-     }
-
-     .square {
-         display: inline-block;
-         width: 100px;
-         height: 100px;
-         border-radius: 20px;
-         background: whiteSmoke;
-         box-shadow: 4px -40px 60px 5px rgb(26, 117, 206) inset;
-     }
-
-     .green {
-         box-shadow: 4px -40px 60px 5px rgb(0, 204, 102) inset;
-     }
-
-     .orange {
-         box-shadow: 4px -40px 60px 5px rgb(255, 102, 0) inset;
-     }
-
-     .yellow {
-         box-shadow: 4px -40px 60px 5px rgb(255, 204, 0) inset;
-     }
-
-     .wobble {
-         animation: wobble 1s ease;
-     }
-     @keyframes wobble {
-         30% { transform: scale(1.2); }
-         40%, 60% { transform: rotate(-20deg) scale(1.2); }
-         50% { transform: rotate(20deg) scale(1.2); }
-         70% { transform: rotate(0deg) scale(1.2); }
-         100% { transform: scale(1); }
-     }
-
-     .cards {
-         margin: 0;
-         padding: 0;
-         display: flex;
-         gap: 20px;
-         list-style: none;
-     }
-   </style>
+   <link rel="stylesheet" type="text/css" href="/styles.css">
   </head>
   <body>
     <div id="app"></div>
-    <script src="/js/replicant/app.js"></script>
+    <script src="/js/main.js"></script>
   </body>
 </html>

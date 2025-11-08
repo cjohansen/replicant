@@ -1,5 +1,4 @@
-(ns replicant.duplicate-key-bug
-  (:require [replicant.dom :as r]))
+(ns replicant.duplicate-key-bug)
 
 (def initial-data
   '{:session/route :route/home
@@ -89,25 +88,13 @@
         [:p {:class '[mt-1 truncate "text-xs/5" text-gray-500 dark:text-gray-400]}
          [:time {:datetime date} (.toLocaleString (js/Date. date))]]]]])])
 
-(defn app [state]
+(defn render [state k]
   [:div
-   [:button {:on {:click [:add-scan]}} "Add another"]
-   (scans-view state)])
+   [:button {:on {:click [[:actions/assoc-in [k] initial-data]]}} "Start"]
+   (scans-view (get state k))])
 
-(defn start []
-  (let [store (atom nil)]
-    (add-watch store ::render (fn [_ _ _ state]
-                                (r/render js/document.body (app state))))
-
-    (r/set-dispatch!
-     (fn [_ data]
-       (case data
-         [:add-scan] (swap! store update :scans conj extra-scan))))
-
-    (reset! store initial-data)))
-
-(comment
-
-  (start)
-
-)
+(def example
+  {:title "Duplicate key bug"
+   :k :duplicate-key
+   :initial-data initial-data
+   :f render})

@@ -1,0 +1,85 @@
+input:invalid {
+    border: 2px solid red;
+}
+
+.label {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.label input {
+    margin-left: 12px;
+}
+
+.circle {
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: whiteSmoke;
+    box-shadow: 4px -40px 60px 5px rgb(26, 117, 206) inset;
+}
+
+.square {
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+    border-radius: 20px;
+    background: whiteSmoke;
+    box-shadow: 4px -40px 60px 5px rgb(26, 117, 206) inset;
+}
+
+.green {
+    box-shadow: 4px -40px 60px 5px rgb(0, 204, 102) inset;
+}
+
+.orange {
+    box-shadow: 4px -40px 60px 5px rgb(255, 102, 0) inset;
+}
+
+.yellow {
+    box-shadow: 4px -40px 60px 5px rgb(255, 204, 0) inset;
+}
+
+.wobble {
+    animation: wobble 1s ease;
+}
+@keyframes wobble {
+    30% { transform: scale(1.2); }
+    40%, 60% { transform: rotate(-20deg) scale(1.2); }
+    50% { transform: rotate(20deg) scale(1.2); }
+    70% { transform: rotate(0deg) scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.cards {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 20px;
+    list-style: none;
+}
+
+.list li {
+    margin: 0.25rem 0;
+}
+
+.link {
+    background: none;
+    border: 0;
+    color: #3366ff;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: inherit;
+    font-size: 1em;
+    line-height: inherit;
+    margin: 0;
+    outline-offset: 2px;
+    outline: 2px none currentcolor;
+    padding: 0;
+    text-decoration: underline;
+}
+
+.link:hover {
+    text-decoration: none;
+}

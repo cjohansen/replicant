@@ -1,37 +1,22 @@
-(ns replicant.life-cycle-bug
-  (:require [replicant.dom :as d]))
+(ns replicant.life-cycle-bug)
 
-(defn app []
+(defn render [_ _]
   [:div
    [:h1 {:replicant/key :render
-         :replicant/on-render [:rendered-ok]}
+         :replicant/on-render [[:actions/log [:rendered-ok]]]}
     "On render"]
    [:h1 {:replicant/key :on-mount
-         :replicant/on-mount [:only-mounted-ok]}
+         :replicant/on-mount [[:actions/log [:only-mounted-ok]]]}
     "On mount"]
    [:h1 {:replicant/key :on-unmount
-         :replicant/on-unmount [:only-unmounted-ok]}
+         :replicant/on-unmount [[:actions/log [:only-unmounted-ok]]]}
     "On unmount"]
    [:h1 {:replicant/key :on-mount-and-unmount
-         :replicant/on-mount [:mounted-ok]
-         :replicant/on-unmount [:unmounted-missing]}
+         :replicant/on-mount [[:actions/log [:mounted-ok]]]
+         :replicant/on-unmount [[:actions/log [:unmounted-missing]]]}
     "On mount and unmount"]])
 
-(defn ^:export start []
-  (set! (.-innerHTML js/document.body) "<div id=\"app\"></div>")
-
-  (d/set-dispatch!
-   (fn [replicant-data handler-data]
-     (prn handler-data)
-     (prn replicant-data)
-     (prn)))
-
-  (let [el (js/document.getElementById "app")]
-    (d/render el (app))
-    (d/render el [:div])))
-
-(comment
-
-  (start)
-
-  )
+(def example
+  {:title "Life-cycle bug"
+   :k :life-cycle
+   :f render})

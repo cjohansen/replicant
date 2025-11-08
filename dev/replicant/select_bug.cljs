@@ -42,7 +42,6 @@
 
 (defn replicant-dispatch!
   "Dispatch event data outside of Replicant actions"
-    ;; TODO: Reimplement with public API once Replicant has one
   [e data]
   (let [el @!el]
     (if (and c/*dispatch* el)

@@ -1,30 +1,11 @@
-(ns replicant.on-mount-bug
-  (:require [replicant.dom :as d]))
+(ns replicant.on-mount-bug)
 
-(defonce store
-  (atom {}))
-
-(defn app [_state]
+(defn render [_state k]
   [:h1 {:replicant/key :the-header
-        :replicant/on-mount [:nothing]}
+        :replicant/on-mount [[:actions/assoc-in [k] (rand-int 10)]]}
    "We keep mounting."])
 
-(defn ^:export start []
-  (set! (.-innerHTML js/document.body) "<div id=\"app\"></div>")
-
-  (d/set-dispatch!
-   (fn [replicant-data handler-data]
-     (js/console.log (clj->js replicant-data))
-     (swap! store identity)
-     ))
-
-  (let [el (js/document.getElementById "app")]
-    (add-watch store :re-render (fn [_ _ _ state] (d/render el (app state)))))
-
-  (swap! store identity))
-
-(comment
-  (prn "Hello")
-
-  (start)
-  )
+(def example
+  {:title "On-mount bug"
+   :k :on-mount
+   :f render})

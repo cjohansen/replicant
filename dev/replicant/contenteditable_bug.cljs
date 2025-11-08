@@ -1,17 +1,18 @@
-(ns replicant.contenteditable-bug
-  (:require [replicant.dom :as d]))
+(ns replicant.contenteditable-bug)
 
-(defonce store
-  (atom (list "Deleting the contents of this div, then clicking add, reproduces the bug.")))
+(def initial-fields
+  (list "Deleting the contents of this div, then clicking add, reproduces the bug."))
 
-(defn app [fields]
+(defn render [state k]
   [:div
    [:h1 "A bug that occurs when content is editable"]
-   [:button {:on {:click #(swap! store conj "another field")}} "add"]
-   (for [field fields] [:div {:contenteditable true :style {:border "solid red"}} field])])
+   [:div
+    [:button {:on {:click [[:actions/conj-in [k :fields] "another field"]]}} "add"]
+    (for [field (get-in state [k :fields])]
+      [:div {:contenteditable true :style {:border "solid red"}} field])]])
 
-(defn ^:export start []
-  (set! (.-innerHTML js/document.body) "<div id=\"app\"></div>")
-  (let [el (js/document.getElementById "app")]
-    (add-watch store :re-render (fn [_ _ _ _] (d/render el (app @store)))))
-  (swap! store identity))
+(def example
+  {:title "Content editable bug"
+   :initial-data {:fields initial-fields}
+   :k :contenteditable
+   :f render})
