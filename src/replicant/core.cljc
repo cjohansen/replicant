@@ -482,9 +482,11 @@
 (defn set-attributes [renderer el new-attrs]
   (run! (fn [[attr v]]
           (when v
-            (set-attr renderer el attr new-attrs))) (dissoc new-attrs :value))
-  (when-let [v (:value new-attrs)]
-    (set-attr renderer el :value new-attrs)))
+            (set-attr renderer el attr new-attrs))) (dissoc new-attrs :value :default-value))
+  (when (:value new-attrs)
+    (set-attr renderer el :value new-attrs))
+  (when (:default-value new-attrs)
+    (set-attr renderer el :default-value new-attrs)))
 
 (defn render-default-alias [tag-name _attrs children]
   [:div

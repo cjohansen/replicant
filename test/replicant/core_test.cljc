@@ -2524,4 +2524,16 @@
                 h/summarize
                 (filter (comp #{:set-attribute} first))
                 last)
-           [:set-attribute [:input ""] "value" nil :to 150]))))
+           [:set-attribute [:input ""] "value" nil :to 150])))
+
+  (testing "Sets default value attribute last on range inputs"
+    (is (= (->> (h/render
+                 [:input {:type "range"
+                          :default-value 150
+                          :min 100
+                          :max 200}])
+                h/get-mutation-log-events
+                h/summarize
+                (filter (comp #{:set-attribute} first))
+                last)
+           [:set-attribute [:input ""] "default-value" nil :to 150]))))
