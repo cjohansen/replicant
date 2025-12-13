@@ -47,6 +47,9 @@
 
 (def ^:no-doc memories (js/WeakMap.))
 
+(defn recall [node]
+  (.get ^js memories node))
+
 (defn ^:no-doc create-renderer []
   (reify
     replicant/IRender
