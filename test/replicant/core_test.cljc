@@ -782,6 +782,7 @@
 
 (def f1 (fn []))
 (def f2 (fn []))
+(def dispatch-fn (fn [& args] args))
 
 (deftest event-handler-test
   (testing "Creates node with event handler"
@@ -845,7 +846,7 @@
            [[:remove-event-handler [:h1 "Hi!"] :click {"capture" true}]])))
 
   (testing "Dispatches data handler globally, with backwards compatible name for event"
-    (is (= (binding [sut/*dispatch* (fn [& args] args)]
+    (is (= (binding [sut/*dispatch* dispatch-fn]
              (let [f (->> (h/render [:h1 {:on {:click [:do-stuff "Data"]}} "Hi!"])
                           h/get-mutation-log-events
                           (filter (comp #{:set-event-handler} first))
@@ -854,7 +855,8 @@
                (f {:dom :event})))
            [{:replicant/trigger :replicant.trigger/dom-event
              :replicant/dom-event {:dom :event}
-             :replicant/js-event {:dom :event}}
+             :replicant/js-event {:dom :event}
+             :replicant/dispatch dispatch-fn}
             [:do-stuff "Data"]])))
 
   (testing "Wraps event listener in a function when updating it"
@@ -874,6 +876,26 @@
                      first
                      last
                      fn?)))))
+
+  (testing "Passes dispatch function to event handler"
+    (is (= (let [calls (atom [])]
+             (binding [sut/*dispatch* (fn [& args] (swap! calls conj args))]
+               (let [f (->> (h/render [:h1 {:on
+                                            {:click
+                                             {:replicant.event/wrap-handler? true
+                                              :replicant.event/handler
+                                              (fn [{:replicant/keys [dom-event
+                                                                     node
+                                                                     dispatch]}]
+                                                (dispatch dom-event node "Hello"))}}}
+                                       "Hi!"])
+                            h/get-mutation-log-events
+                            (filter (comp #{:set-event-handler} first))
+                            first
+                            last)]
+                 (f {:dom :event})))
+             @calls)
+           [[{:dom :event} nil "Hello"]])))
 
   (testing "Does not re-add current event handler"
     (is (= (-> (h/render [:h1 "Hi!"])

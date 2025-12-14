@@ -266,24 +266,30 @@
 
 (def ^:dynamic *dispatch* nil)
 
+(defn build-event-map [e]
+  (let [node #?(:cljs (.-target e) :clj nil)]
+    (cond-> {:replicant/trigger :replicant.trigger/dom-event
+             :replicant/dom-event e}
+      node (assoc :replicant/node node)
+      (ifn? *dispatch*) (assoc :replicant/dispatch *dispatch*))))
+
 (defn get-event-handler
   "Returns the function to use for handling DOM events. Uses `handler` directly
   when it's a function or a string (assumed to be inline JavaScript, not really
   recommended), or a wrapper that dispatches through
   `replicant.core/*dispatch*`, if it is bound to a function. "
-  [handler event]
+  [handler event options]
   (or (when (or (fn? handler)
                 (and (var? handler) (fn? (deref handler))))
-        handler)
+        (if (:replicant.event/wrap-handler? options)
+          (fn [e]
+            (handler (build-event-map e)))
+          handler))
       (when (ifn? *dispatch*)
         (fn [e]
-          (let [node #?(:cljs (.-target e)
-                        :clj nil)
-                rd (cond-> {:replicant/trigger :replicant.trigger/dom-event
-                            :replicant/js-event e ;; Backwards compatibility
-                            :replicant/dom-event e}
-                     node (assoc :replicant/node node))]
-            (*dispatch* rd handler))))
+          (-> (build-event-map e)
+              (assoc :replicant/js-event e) ;; Backwards compatibility
+              (*dispatch* handler))))
       (when (string? handler)
         ;; Strings could be inline JavaScript, so will be allowed when there is
         ;; no global event handler.
@@ -381,8 +387,10 @@
      (cond-> res
        (= "replicant.event" (namespace k))
        (assoc (name k) (k m))))
-   {}
-   (keys (dissoc m :replicant.event/handler))))
+   nil
+   (keys (dissoc m
+                 :replicant.event/handler
+                 :replicant.event/wrap-handler?))))
 
 (defn add-event-listeners [renderer el val]
   (->> val
@@ -390,10 +398,10 @@
        (run! (fn [[event handler]]
                (asserts/assert-event-handler-casing event)
                (if-let [eh (:replicant.event/handler handler)]
-                 (when-let [eh (get-event-handler eh event)]
+                 (when-let [eh (get-event-handler eh event handler)]
                    (->> (get-event-handler-options handler)
                         (r/set-event-handler renderer el event eh)))
-                 (when-let [handler (get-event-handler handler event)]
+                 (when-let [handler (get-event-handler handler event nil)]
                    (r/set-event-handler renderer el event handler nil)))))))
 
 (defn update-event-listeners [renderer el new-handlers old-handlers]
@@ -410,8 +418,8 @@
                    (r/remove-event-handler renderer el event old-opts))
                  (when (and new-handler (not= new-handler old-handler))
                    (if-let [handler (get new-handler :replicant.event/handler)]
-                     (r/set-event-handler renderer el event (get-event-handler handler event) new-opts)
-                     (r/set-event-handler renderer el event (get-event-handler new-handler event) nil))))))))
+                     (r/set-event-handler renderer el event (get-event-handler handler event new-handler) new-opts)
+                     (r/set-event-handler renderer el event (get-event-handler new-handler event nil) nil))))))))
 
 (def xlinkns "http://www.w3.org/1999/xlink")
 (def xmlns "http://www.w3.org/XML/1998/namespace")
