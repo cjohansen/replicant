@@ -162,5 +162,5 @@
 
 (defn summarize-event [e]
   (-> e
-      (dissoc :replicant/remember)
+      (dissoc :replicant/remember :replicant/dispatch)
       (update :replicant/node get-snapshot)))

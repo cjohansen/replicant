@@ -960,6 +960,16 @@
                               :children [{:text "Hi!"}]}}
             :data ["Update data"]})))
 
+  (testing "Makes the dispatch function available in the life-cycle hook function"
+    (is (= (let [calls (atom [])]
+             (binding [sut/*dispatch* (fn [& args] (swap! calls conj args))]
+               (h/render [:h1 {:replicant/on-render
+                               (fn [{:replicant/keys [dispatch]}]
+                                 (dispatch "Hello"))}
+                          "Hi!"]))
+             @calls)
+           [["Hello"]])))
+
   (testing "Triggers on-render function on first mount"
     (is (= (-> (let [res (atom nil)]
                  (h/render [:h1 {:replicant/on-render #(reset! res %)} "Hi!"])

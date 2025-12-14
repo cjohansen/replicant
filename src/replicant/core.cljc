@@ -336,7 +336,10 @@
            (assoc :replicant/details details)
 
            (not= life-cycle :replicant.life-cycle/mount)
-           (assoc :replicant/memory (r/recall renderer node)))))))
+           (assoc :replicant/memory (r/recall renderer node))
+
+           (ifn? *dispatch*)
+           (assoc :replicant/dispatch *dispatch*))))))
 
 (defn register-hooks
   "Register the life-cycle hooks from the corresponding virtual DOM node to call
