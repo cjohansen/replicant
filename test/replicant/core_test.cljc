@@ -846,7 +846,7 @@
 
   (testing "Dispatches data handler globally, with backwards compatible name for event"
     (is (= (binding [sut/*dispatch* (fn [& args] args)]
-             (let [f (->> (h/render [:h1 {:on {:click [:h1 "Data"]}} "Hi!"])
+             (let [f (->> (h/render [:h1 {:on {:click [:do-stuff "Data"]}} "Hi!"])
                           h/get-mutation-log-events
                           (filter (comp #{:set-event-handler} first))
                           first
@@ -855,12 +855,12 @@
            [{:replicant/trigger :replicant.trigger/dom-event
              :replicant/dom-event {:dom :event}
              :replicant/js-event {:dom :event}}
-            [:h1 "Data"]])))
+            [:do-stuff "Data"]])))
 
   (testing "Wraps event listener in a function when updating it"
     (is (true? (binding [sut/*dispatch* (fn [& args] args)]
-                 (-> (h/render [:h1 {:on {:click [:h1 "Data"]}} "Hi!"])
-                     (h/render [:h1 {:on {:click [:h1 "Other data"]}} "Hi!"])
+                 (-> (h/render [:h1 {:on {:click [:do-stuff "Data"]}} "Hi!"])
+                     (h/render [:h1 {:on {:click [:do-stuff "Other data"]}} "Hi!"])
                      h/get-mutation-log-events
                      first
                      last
@@ -868,8 +868,8 @@
 
   (testing "Wraps optioned event listener in a function when updating it"
     (is (true? (binding [sut/*dispatch* (fn [& args] args)]
-                 (-> (h/render [:h1 {:on {:click {:replicant.event/handler [:h1 "Data"]}}} "Hi!"])
-                     (h/render [:h1 {:on {:click {:replicant.event/handler [:h1 "Other data"]}}} "Hi!"])
+                 (-> (h/render [:h1 {:on {:click {:replicant.event/handler [:do-stuff "Data"]}}} "Hi!"])
+                     (h/render [:h1 {:on {:click {:replicant.event/handler [:do-stuff "Other data"]}}} "Hi!"])
                      h/get-mutation-log-events
                      first
                      last
