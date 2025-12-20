@@ -168,7 +168,7 @@ of event handlers. See an example in the [tutorial on integrating third-party JS
 libraries](https://replicant.fun/tutorials/javascript-interop/).
 
 Pass the global dispatch function to [life-cycle
-hooks]/(https://replicant.fun/life-cycle-hooks/) and [event
+hooks](https://replicant.fun/life-cycle-hooks/) and [event
 handlers](https://replicant.fun/event-handlers/#custom-dispatch).
 
 ### 2025.06.21
