@@ -7,7 +7,7 @@ dependency.
 ## Install
 
 ```clj
-no.cjohansen/replicant {:mvn/version "2025.06.21"}
+no.cjohansen/replicant {:mvn/version "2025.12.1"}
 ```
 
 ## Documentation
@@ -151,6 +151,25 @@ code. Open an issue or drop by
 [Clojurians Slack](http://clojurians.net/).
 
 ## Changelog
+
+### 2025.12.1
+
+Fix bug: Use namespaced DOM methods when creating SVG child nodes from aliases.
+
+Fix bug: Do not use the SVG namespace on SVG foreignObject elements.
+
+Fix bug: Set the `value` attribute after all other attributes. This avoids
+`value` being clamped down by default values for `min`/`max` in range inputs.
+
+Support rendering seqs of hiccup, not just lists.
+
+Add `replicant.dom/recall` to recall state associated with a DOM element outside
+of event handlers. See an example in the [tutorial on integrating third-party JS
+libraries](https://replicant.fun/tutorials/javascript-interop/).
+
+Pass the global dispatch function to [life-cycle
+hooks]/(https://replicant.fun/life-cycle-hooks/) and [event
+handlers](https://replicant.fun/event-handlers/#custom-dispatch).
 
 ### 2025.06.21
 
