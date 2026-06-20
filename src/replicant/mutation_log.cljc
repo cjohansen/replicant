@@ -62,8 +62,26 @@
   (set-parent child-node el)
   (swap! el update :children #(conj (vec %) child-node)))
 
+(defn get-node-ids [element]
+  (->> (tree-seq
+        (fn [x]
+          (or (coll? x) (atom? x)))
+        (fn [x]
+          (cond-> x
+            (atom? x) deref))
+        (cond-> element
+          (atom? element) deref))
+       (filter atom?)
+       (map (comp :replicant.mutation-log/id deref))
+       set))
+
 (def mutation-log-impl
-  {`replicant/create-text-node
+  {`replicant/attached?
+   (fn [this el]
+     (contains? (get-node-ids (:element this))
+                (:replicant.mutation-log/id @el)))
+
+   `replicant/create-text-node
    (fn [this text]
      (log this [:create-text-node text])
      (atom {:text text
@@ -189,12 +207,13 @@
      :callbacks (or callbacks (atom []))}
     mutation-log-impl))
 
-(defn render [element new-hiccup & [old-vdom {:keys [unmounts aliases on-alias-exception callbacks]}]]
+(defn render [element new-hiccup & [old-vdom {:keys [unmounts unmount-hooks aliases on-alias-exception callbacks]}]]
   (let [el (atom (or element {}))
         renderer (create-renderer {:log (atom [])
                                    :element el
                                    :callbacks callbacks})]
     (-> (d/reconcile renderer el new-hiccup old-vdom {:unmounts unmounts
+                                                      :unmount-hooks unmount-hooks
                                                       :aliases aliases
                                                       :on-alias-exception on-alias-exception})
         (assoc :el (-> renderer

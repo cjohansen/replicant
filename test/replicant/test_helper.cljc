@@ -118,12 +118,13 @@
 
 (defn render
   ([vdom] (mutation-log/render {:tag-name "body"} vdom))
-  ([{:keys [vdom el unmounts aliases on-alias-exception]} new-vdom]
+  ([{:keys [vdom el unmounts unmount-hooks aliases on-alias-exception]} new-vdom]
    (mutation-log/render
     (or (:element el) {:tag-name "body"})
     new-vdom
     vdom
     {:unmounts unmounts
+     :unmount-hooks unmount-hooks
      :aliases aliases
      :on-alias-exception on-alias-exception
      :callbacks (:callbacks el)})))

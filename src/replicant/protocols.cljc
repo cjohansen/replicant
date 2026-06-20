@@ -3,6 +3,8 @@
 (defprotocol IRender
   :extend-via-metadata true
 
+  (attached? [this el])
+
   (create-text-node [this text])
   (create-element [this tag-name options])
 

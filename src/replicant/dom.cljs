@@ -53,6 +53,9 @@
 (defn ^:no-doc create-renderer []
   (reify
     replicant/IRender
+    (attached? [_this el]
+      (.-isConnected el))
+
     (create-text-node [_this text]
       (js/document.createTextNode text))
 
@@ -200,6 +203,7 @@
       (set! (.-innerHTML el) "")
       (vswap! state assoc el {:renderer (create-renderer)
                               :unmounts (volatile! #{})
+                              :unmount-hooks (volatile! {})
                               :rendering? true}))
     (if rendering?
       (do
@@ -207,12 +211,13 @@
         (vswap! state assoc-in [el :queued] hiccup))
       (do
         (vswap! state assoc-in [el :rendering?] true)
-        (let [{:keys [renderer current unmounts]} (get @state el)
+        (let [{:keys [renderer current unmounts unmount-hooks]} (get @state el)
               aliases (or aliases (alias/get-registered-aliases))
               hiccup (if alias-data
                        (env/with-dev-key hiccup [aliases alias-data])
                        (env/with-dev-key hiccup aliases))
               {:keys [vdom]} (r/reconcile renderer el hiccup current {:unmounts unmounts
+                                                                      :unmount-hooks unmount-hooks
                                                                       :aliases aliases
                                                                       :alias-data alias-data})]
           (vswap! state update el merge {:current vdom

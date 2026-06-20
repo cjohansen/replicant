@@ -1261,7 +1261,41 @@
                             [:p {:replicant/on-unmount f} "New paragraph!"]])
                  (h/render [:div [:h1 "Hi!"]]))
              (map :replicant/life-cycle @res))
-           [:replicant.life-cycle/unmount]))))
+           [:replicant.life-cycle/unmount])))
+
+  (testing "Triggers on-unmount on child of unmounting node"
+    (is (= (let [res (atom [])
+                 f (fn [e] (swap! res conj e))]
+             (-> (h/render [:div
+                            [:h1 "Hi!"]
+                            [:div [:p {:replicant/on-unmount f} "New paragraph!"]]])
+                 (h/render [:div [:h1 "Hi!"]]))
+             (map :replicant/life-cycle @res))
+           [:replicant.life-cycle/unmount])))
+
+  (testing "Does not keep triggering on-unmount on child"
+    (is (= (let [res (atom [])
+                 f (fn [e] (swap! res conj e))]
+             (-> (h/render [:div
+                            [:h1 "Hi!"]
+                            [:div [:p {:replicant/on-unmount f} "New paragraph!"]]])
+                 (h/render [:div [:h1 "Hi!"]])
+                 (h/render [:div [:h1 "Hi!"]]))
+             (map :replicant/life-cycle @res))
+           [:replicant.life-cycle/unmount])))
+
+  (testing "Does not trigger removed on-unmount hook on child of unmounting node"
+    (is (= (let [res (atom [])
+                 f (fn [e] (swap! res conj e))]
+             (-> (h/render [:div
+                            [:h1 "Hi!"]
+                            [:div [:p {:replicant/on-unmount f} "New paragraph!"]]])
+                 (h/render [:div
+                            [:h1 "Hi!"]
+                            [:div [:p "New paragraph!"]]])
+                 (h/render [:div [:h1 "Hi!"]]))
+             (map :replicant/life-cycle @res))
+           []))))
 
 (deftest lifecycle-on-update-test
   (testing "Does not trigger on-update on mount"

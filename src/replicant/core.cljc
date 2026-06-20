@@ -314,12 +314,13 @@
                         {:handler handler
                          :dispatch *dispatch*})))))
 
-(defn call-hook [renderer [hook k node new old details]]
+(defn call-hook [renderer [hook k node new old details life-cycle]]
   (let [f (get-life-cycle-hook hook)
-        life-cycle (cond
-                     (nil? old) :replicant.life-cycle/mount
-                     (nil? new) :replicant.life-cycle/unmount
-                     :else :replicant.life-cycle/update)]
+        life-cycle (or life-cycle
+                       (cond
+                         (nil? old) :replicant.life-cycle/mount
+                         (nil? new) :replicant.life-cycle/unmount
+                         :else :replicant.life-cycle/update))]
     (when (or (= :replicant/on-render k)
               (and (= k :replicant/on-mount)
                    (= life-cycle :replicant.life-cycle/mount))
@@ -345,7 +346,7 @@
   "Register the life-cycle hooks from the corresponding virtual DOM node to call
   in `impl`, if any. `details` is a vector of keywords that provide some detail
   about why the hook is invoked."
-  [{:keys [hooks]} node headers & [vdom details]]
+  [{:keys [hooks unmount-hooks]} node headers & [vdom details]]
   (let [target (if headers (hiccup/attrs headers) (vdom/attrs vdom))
         new-hooks (keep (fn [life-cycle-key]
                           (when-let [hook (life-cycle-key target)]
@@ -354,12 +355,26 @@
                          :replicant/on-mount
                          :replicant/on-unmount
                          :replicant/on-update])]
+    ;; If this node previously had an unmount hook associated with it, but the
+    ;; new headers don't have any hooks, remove it.
+    (when (and (get @unmount-hooks node)
+               headers
+               (empty? new-hooks))
+      (vswap! unmount-hooks dissoc node))
     (when-not (empty? new-hooks)
       (let [headers-sexp (some-> headers hiccup/sexp)
-            vdom-sexp (some-> vdom vdom/sexp)]
-        (->> new-hooks
-             (map (fn [[k hook]] [hook k node headers-sexp vdom-sexp details]))
-             (vswap! hooks into))))))
+            vdom-sexp (some-> vdom vdom/sexp)
+            new-hooks (map (fn [[k hook]]
+                             [hook k node headers-sexp vdom-sexp details])
+                           new-hooks)]
+        (when-let [new-unmount-hooks
+                   (->> new-hooks
+                        (filterv (comp #{:replicant/on-render
+                                         :replicant/on-unmount} second))
+                        (mapv (fn [[_ _ node :as hook]]
+                                [node (conj hook :replicant.life-cycle/unmount)])))]
+          (vswap! unmount-hooks into new-unmount-hooks))
+        (vswap! hooks into new-hooks)))))
 
 (defn register-mount [{:keys [mounts]} node mounting-attrs attrs]
   (vswap! mounts conj [node mounting-attrs attrs]))
@@ -932,15 +947,37 @@
 (defn perform-post-mount-update [renderer [node mounting-attrs attrs]]
   (update-attributes renderer node attrs mounting-attrs))
 
+(defn get-hooks-to-call [{:keys [renderer hooks unmount-hooks]}]
+  (let [potential-unmounts @unmount-hooks
+        hooks-to-call @hooks
+        ;; We only want one hook per DOM node.
+        ;;
+        ;; `potential-unmounts` is a map of {dom-node hook} for any node that
+        ;; has ever had a hook registered.
+        unmounted-nodes (->> (keys potential-unmounts)
+                             ;; We're only interested in DOM nodes that have
+                             ;; been removed from the DOM
+                             (remove #(r/attached? renderer %))
+                             ;; ...and that we're not already planning to call
+                             ;; hooks for
+                             (remove (set (mapv (fn [[_ _ node]] node) hooks-to-call))))]
+    (when unmounted-nodes
+      ;; If we found any of these, we'll forget about them for the next render
+      (vswap! unmount-hooks (fn [h] (apply dissoc h unmounted-nodes))))
+    (into hooks-to-call
+          ;; ...and we'll call include the hooks to be called now
+          (vals (select-keys potential-unmounts unmounted-nodes)))))
+
 (defn reconcile
   "Reconcile the DOM in `el` by diffing `hiccup` with `vdom`. If there is no
   `vdom`, `reconcile` will create the DOM as per `hiccup`. Assumes that the DOM
   in `el` is in sync with `vdom` - if not, this will certainly not produce the
   desired result."
-  [renderer el hiccup & [vdom {:keys [unmounts aliases alias-data on-alias-exception]}]]
+  [renderer el hiccup & [vdom {:keys [unmounts unmount-hooks aliases alias-data on-alias-exception]}]]
   (let [impl {:renderer renderer
               :hooks (volatile! [])
               :mounts (volatile! [])
+              :unmount-hooks (or unmount-hooks (volatile! {}))
               :unmounts (or unmounts (volatile! #{}))
               :aliases aliases
               :alias-data alias-data
@@ -975,15 +1012,16 @@
                      (if (first vdom) 1 0))
                     ;; second, because update-children returns [changed? children n-children]
                     second)))))
-        hooks @(:hooks impl)]
+        hooks-to-call (get-hooks-to-call impl)]
     (if-let [mounts (seq @(:mounts impl))]
       (->> (fn []
              (run! #(perform-post-mount-update renderer %) mounts)
-             (run! #(call-hook renderer %) hooks))
+             (run! #(call-hook renderer %) hooks-to-call))
            (r/next-frame renderer))
-      (run! #(call-hook renderer %) hooks))
-    {:hooks hooks
+      (run! #(call-hook renderer %) hooks-to-call))
+    {:hooks hooks-to-call
      :vdom vdom
-     :unmounts (:unmounts impl)}))
+     :unmounts (:unmounts impl)
+     :unmount-hooks (:unmount-hooks impl)}))
 
 (assert/configure)
