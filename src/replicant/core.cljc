@@ -120,7 +120,7 @@
                               (cond
                                 (keyword? class) (name class)
                                 (symbol? class) (name class)
-                                (string? class) (not-empty (.trim class)))))
+                                (string? class) (not-empty (.trim ^String class)))))
                          classes)
     (string? classes) (keep #(not-empty (.trim ^String %)) (.split ^String classes " "))
     :else (throw (ex-info "class name is neither string, keyword, or a collection of those"
