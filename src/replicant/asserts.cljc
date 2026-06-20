@@ -11,10 +11,10 @@
     false
     "Triggered a render while rendering"
     (str "replicant.dom/render was called while working on a previous render. "
-         "This call will be throttled.\n\nNested renders can occur when"
-         "life-cycle hooks trigger renders, e.g. by storing some information from"
-         "the DOM (size of elements, etc) in the state that triggers rendering."
-         "Doing so isn't catagorically wrong, but should be used with care."
+         "This call will be throttled.\n\nNested renders can occur when "
+         "life-cycle hooks trigger renders, e.g. by storing some information from "
+         "the DOM (size of elements, etc) in the state that triggers rendering. "
+         "Doing so isn't catagorically wrong, but should be used with care. "
          "Nested renders can cause performance issues, or, in the worst case - "
          "unresponsive UIs.")))
 
