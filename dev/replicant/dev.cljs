@@ -12,6 +12,7 @@
             [replicant.memory-example]
             [replicant.multi-select]
             [replicant.nested-rendering-bug]
+            [replicant.nested-unmount]
             [replicant.ohm]
             [replicant.on-mount-bug]
             [replicant.range]
@@ -31,6 +32,7 @@
    replicant.memory-example/example
    replicant.multi-select/example
    replicant.nested-rendering-bug/example
+   replicant.nested-unmount/example
    replicant.ohm/example
    replicant.on-mount-bug/example
    replicant.range/example-1
