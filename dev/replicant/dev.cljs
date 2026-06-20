@@ -72,33 +72,34 @@
    args))
 
 (defn dispatch-actions [{:replicant/keys [dom-event]} actions]
-  (doseq [[action & args] actions]
-    (let [args (cond->> args
-                 dom-event (interpolate dom-event))]
-      (apply prn action args)
-      (case action
-        :actions/go-to
-        (swap! store (fn [state]
-                       (let [k (first args)
-                             example (get-example k)]
-                         (cond-> (assoc state :example k)
-                           (:initial-data example)
-                           (assoc k (:initial-data example))))))
+  (js/requestAnimationFrame
+   #(doseq [[action & args] actions]
+      (let [args (cond->> args
+                   dom-event (interpolate dom-event))]
+        (apply prn action args)
+        (case action
+          :actions/go-to
+          (swap! store (fn [state]
+                         (let [k (first args)
+                               example (get-example k)]
+                           (cond-> (assoc state :example k)
+                             (:initial-data example)
+                             (assoc k (:initial-data example))))))
 
-        :actions/assoc-in
-        (apply swap! store assoc-in args)
+          :actions/assoc-in
+          (apply swap! store assoc-in args)
 
-        :actions/conj-in
-        (let [[path v] args]
-          (swap! store update-in path conj v))
+          :actions/conj-in
+          (let [[path v] args]
+            (swap! store update-in path conj v))
 
-        :actions/log
-        nil
+          :actions/log
+          nil
 
-        (let [k (:example @store)]
-          (if-let [impl (get-in (get-example k) [:actions action])]
-            (dispatch-actions nil (apply impl (get @store k) args))
-            (println "Unknown action" action)))))))
+          (let [k (:example @store)]
+            (if-let [impl (get-in (get-example k) [:actions action])]
+              (dispatch-actions nil (apply impl (get @store k) args))
+              (println "Unknown action" action))))))))
 
 (defn start []
   (set! (.-innerHTML js/document.body) "<div id=\"app\"></div>")
