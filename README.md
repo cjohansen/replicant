@@ -122,8 +122,8 @@ elements, e.g.:
 
 ## Status
 
-Replicant is stable, performant and feature complete. Its public APIs will not
-be intentionally changed. It's used in production by several apps.
+Replicant is stable, performant and feature complete production quality
+software. Its public APIs will not be intentionally changed.
 
 ## Performance
 
