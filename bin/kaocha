@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+[ -d "node_modules/ws" ] || npm install ws
+clojure -A:dev:test -M -m kaocha.runner "$@"
