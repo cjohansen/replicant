@@ -993,7 +993,7 @@
                  children
                  ks
                  vdom
-                 (set (keep #(vdom/rkey %) vdom))
+                 (set (keep #(some-> % vdom/rkey) vdom))
                  (count vdom))
                 ;; second, because update-children returns [changed? children n-children]
                 second))

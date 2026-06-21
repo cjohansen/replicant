@@ -2683,4 +2683,13 @@
                      [:ul
                       '([:li {:replicant/key "a"} "a"]
                         [:li {:replicant/key "c"} "c"])])
-                    h/get-mutation-log-events)))))
+                    h/get-mutation-log-events))))
+
+  (testing "Can tolerate top-level list with a nil"
+    (is (= (-> (h/render
+                '(nil [:div "Count: " 0]))
+               (h/render
+                '(nil [:div "Count: " 1]))
+               h/get-mutation-log-events)
+           [[:create-text-node "1"]
+            [:replace-child "1" "0"]]))))
