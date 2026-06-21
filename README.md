@@ -253,5 +253,7 @@ First public release.
 
 ## License: MIT
 
-Copyright © 2023-2025 Christian Johansen. Distributed under the [MIT
+Copyright © 2023-2026 Christian Johansen. Distributed under the [MIT
 License](https://opensource.org/license/mit).
+
+Replicant is software written for and by humans.
