@@ -150,6 +150,16 @@ code. Open an issue or drop by
 [#replicant](https://clojurians.slack.com/archives/C06JZ4X334N) on the
 [Clojurians Slack](http://clojurians.net/).
 
+### LLMs
+
+I'm happy to collaborate with other humans to improve Replicant. However, I will
+not review the results of your LLM prompts. When opening a pull request, I
+expect that you understand the code you're submitting and can vouch for its
+quality. I don't care if you had help from an LLM to write it, and I certainly
+do not want to read any part of your LLM chat logs.
+
+Do not open issues or pull requests with LLM generated text.
+
 ## Changelog
 
 ### 2026.06.1
