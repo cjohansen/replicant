@@ -152,6 +152,21 @@ code. Open an issue or drop by
 
 ## Changelog
 
+### 2026.06.1
+
+Call unmount hooks on the children of unmounting nodes (thanks
+[@borkdude](https://github.com/borkdude)!).
+
+Recover after encountering an exception during rendering.
+
+Fix bug: don't trip on top-level lists with nils in them.
+
+Improve the formatting on some assertion errors.
+
+Accept any seq at the top-level, not just lists.
+
+Properly escape attribute values when rendering to strings.
+
 ### 2025.12.1
 
 Fix bug: Use namespaced DOM methods when creating SVG child nodes from aliases.
