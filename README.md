@@ -7,7 +7,7 @@ dependency.
 ## Install
 
 ```clj
-no.cjohansen/replicant {:mvn/version "2025.12.1"}
+no.cjohansen/replicant {:mvn/version "2026.06.1"}
 ```
 
 ## Documentation
