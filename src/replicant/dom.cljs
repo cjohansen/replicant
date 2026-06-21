@@ -216,12 +216,20 @@
               hiccup (if alias-data
                        (env/with-dev-key hiccup [aliases alias-data])
                        (env/with-dev-key hiccup aliases))
-              {:keys [vdom]} (r/reconcile renderer el hiccup current {:unmounts unmounts
-                                                                      :unmount-hooks unmount-hooks
-                                                                      :aliases aliases
-                                                                      :alias-data alias-data})]
-          (vswap! state update el merge {:current vdom
-                                         :rendering? false})
+              {:keys [vdom]} (try
+                               (r/reconcile renderer el hiccup current {:unmounts unmounts
+                                                                        :unmount-hooks unmount-hooks
+                                                                        :aliases aliases
+                                                                        :alias-data alias-data})
+                               (catch :default e
+                                 (js/console.error (str "Caught exception during rendering. "
+                                                        (if aliases
+                                                          "You may have misbehaving aliases, or you have encountered a bug in Replicant."
+                                                          "This is likely a bug in Replicant."))
+                                                   e)
+                                 nil))]
+          (vswap! state update el merge (cond-> {:rendering? false}
+                                          vdom (assoc :current vdom)))
           (when-let [pending (:queued (get @state el))]
             (js/requestAnimationFrame #(render el pending))
             (vswap! state update el dissoc :queued))))))
