@@ -203,7 +203,7 @@
       (set! (.-innerHTML el) "")
       (vswap! state assoc el {:renderer (create-renderer)
                               :unmounts (volatile! #{})
-                              :unmount-hooks (volatile! {})
+                              :unmount-hooks (volatile! (r/node-map))
                               :rendering? true}))
     (if rendering?
       (do
@@ -213,9 +213,12 @@
         (vswap! state assoc-in [el :rendering?] true)
         (let [{:keys [renderer current unmounts unmount-hooks]} (get @state el)
               aliases (or aliases (alias/get-registered-aliases))
-              hiccup (if alias-data
-                       (env/with-dev-key hiccup [aliases alias-data])
-                       (env/with-dev-key hiccup aliases))
+              ;; with-dev-key is a clj macro tied to the cljs compiler, which
+              ;; squint cannot expand, so the dev-key injection is skipped there
+              hiccup #?(:squint hiccup
+                        :default (if alias-data
+                                   (env/with-dev-key hiccup [aliases alias-data])
+                                   (env/with-dev-key hiccup aliases)))
               {:keys [vdom]} (try
                                (r/reconcile renderer el hiccup current {:unmounts unmounts
                                                                         :unmount-hooks unmount-hooks
