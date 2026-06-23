@@ -1,6 +1,13 @@
 (ns ^:no-doc replicant.hiccup-headers
   #?(:cljs (:require-macros [replicant.hiccup-headers])))
 
+(defn ^:no-doc make-key
+  "Key for a keyed node. A [tag k] tuple, except under squint where JS Set and
+  Map compare composite keys by reference, so a length-prefixed string is used."
+  [tag k]
+  #?(:squint (str (.-length tag) ":" tag k)
+     :default [tag k]))
+
 (defmacro hget [x k]
   (if (:ns &env)
     `(aget ~x ~k)
@@ -35,7 +42,7 @@
 
 (defmacro get-key [parsed-tag attrs]
   `(when-let [k# (:replicant/key ~attrs)]
-     [(hget ~parsed-tag 0) k#]))
+     (make-key (hget ~parsed-tag 0) k#)))
 
 (defmacro create [parsed-tag attrs children ns sexp]
   (if (:ns &env)

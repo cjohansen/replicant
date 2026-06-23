@@ -201,12 +201,18 @@
            "<div><script>alert(\"boom\")</script></div>")))
 
   (testing ":innerHTML can be used together with other attributes"
+    ;; squint has no sorted-map; attr order is deterministic but differs (no
+    ;; sorted insertion of :classes), so the expected output differs too
     (is (= (sut/render
-            [:div (sorted-map :innerHTML "<script>alert(\"boom\")</script>"
-                              :class "contains-script"
-                              :id "the-script-container")
+            [:div #?(:squint {:class "contains-script"
+                              :id "the-script-container"
+                              :innerHTML "<script>alert(\"boom\")</script>"}
+                     :default (sorted-map :innerHTML "<script>alert(\"boom\")</script>"
+                                          :class "contains-script"
+                                          :id "the-script-container"))
              "Children should be ignored when :innerHTML is set."])
-           "<div class=\"contains-script\" id=\"the-script-container\"><script>alert(\"boom\")</script></div>")))
+           #?(:squint "<div id=\"the-script-container\" class=\"contains-script\"><script>alert(\"boom\")</script></div>"
+              :default "<div class=\"contains-script\" id=\"the-script-container\"><script>alert(\"boom\")</script></div>"))))
 
   (testing "Renders alias"
     (is (= (sut/render

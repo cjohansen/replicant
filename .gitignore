@@ -9,5 +9,6 @@ dev-resources/public/domed/js
 /.cljs_node_repl/
 /out/
 /package-lock.json
-/package.json
 /.shadow-cljs/
+/lib/
+/cljs-test-runner-out/
