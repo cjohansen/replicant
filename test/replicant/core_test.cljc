@@ -2080,7 +2080,8 @@
                h/get-mutation-log-events
                h/summarize)
            [[:create-element "div"]
-            [:set-attribute [:div ""] "data-replicant-error" nil :to "Undefined alias :custom/title"]
+            ;; squint keywords are strings, so they stringify without a colon
+            [:set-attribute [:div ""] "data-replicant-error" nil :to #?(:squint "Undefined alias custom/title" :default "Undefined alias :custom/title")]
             [:create-text-node "Hello world"]
             [:append-child "Hello world" :to "div"]
             [:append-child [:div "Hello world"] :to "body"]])))

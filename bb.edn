@@ -1,0 +1,13 @@
+{:paths ["src" "test"]
+ :tasks
+ {test:bb
+  {:doc "Run tests under babashka"
+   :extra-deps {io.github.cognitect-labs/test-runner
+                {:git/tag "v0.5.1" :git/sha "dfb30dd6605cb6c0efc275e1df1736f6e90d4d73"}
+                org.clojure/test.check {:mvn/version "1.1.1"}}
+   :task (exec 'cognitect.test-runner.api/test)}
+
+  test:squint
+  {:doc "Run tests under squint"
+   :task (do (shell "npm install")
+             (shell "npm test"))}}}

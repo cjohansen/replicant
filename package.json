@@ -1,0 +1,11 @@
+{
+  "name": "@cjohansen/replicant",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "squint compile && node lib/replicant/run_tests.mjs"
+  },
+  "devDependencies": {
+    "squint-cljs": "0.13.195"
+  }
+}
