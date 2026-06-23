@@ -48,7 +48,14 @@ jobs:
         uses: DeLaGuardo/setup-clojure@13.6.1
         with:
           cli: 1.12.5.1654
+          bb: latest
 
       - name: Run tests
         run: |
           bin/kaocha
+
+      - name: Run babashka tests
+        run: bb test:bb
+
+      - name: Run squint tests
+        run: bb test:squint
