@@ -54,6 +54,9 @@ jobs:
         run: |
           bin/kaocha
 
+      - name: Run cljs tests
+        run: bb test:cljs
+
       - name: Run babashka tests
         run: bb test:bb
 

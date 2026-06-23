@@ -7,6 +7,10 @@
                 org.clojure/test.check {:mvn/version "1.1.1"}}
    :task (exec 'cognitect.test-runner.api/test)}
 
+  test:cljs
+  {:doc "Run tests under ClojureScript with advanced compilation"
+   :task (shell "clojure -M:dev:test-cljs")}
+
   test:squint
   {:doc "Run tests under squint"
    :task (do (shell "npm install")

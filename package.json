@@ -1,6 +1,5 @@
 {
   "name": "@cjohansen/replicant",
-  "type": "module",
   "private": true,
   "scripts": {
     "test": "squint compile && node lib/replicant/run_tests.mjs"

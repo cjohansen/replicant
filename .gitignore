@@ -11,3 +11,4 @@ dev-resources/public/domed/js
 /package-lock.json
 /.shadow-cljs/
 /lib/
+/cljs-test-runner-out/

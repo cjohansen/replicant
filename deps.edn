@@ -9,7 +9,6 @@
                      clj-kondo/clj-kondo {:mvn/version "2026.05.25"}
                      com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.7.0"}
                      com.clojure-goes-fast/clj-java-decompiler {:mvn/version "0.3.7"}
-                     com.lambdaisland/kaocha-cljs {:mvn/version "1.9.181"}
                      criterium/criterium {:mvn/version "0.4.6"}
                      dev.onionpancakes/chassis {:mvn/version "1.0.365"}
                      hiccup/hiccup {:mvn/version "2.0.0"}
@@ -21,6 +20,13 @@
         :jvm-opts ["-XX:-OmitStackTraceInFastThrow" "-Djdk.attach.allowAttachSelf=true"]}
   :test {:exec-fn kaocha.runner/exec-fn
          :exec-args {}}
+  :test-cljs
+  {:extra-paths ["test"]
+   :extra-deps {org.clojure/clojurescript {:mvn/version "1.12.145"}
+                olical/cljs-test-runner {:mvn/version "3.8.1"}}
+   :main-opts ["-m" "cljs-test-runner.main"
+               "-c" "{:optimizations :advanced}"
+               "-x" "node"]}
   :jar {:extra-deps {pack/pack.alpha {:git/url "https://github.com/juxt/pack.alpha.git"
                                       :sha "e518d9b2b70f4292c9988d2792b8667d88a6f4df"}}
         :main-opts ["-m" "mach.pack.alpha.skinny" "--no-libs" "--project-path" "replicant.jar"]}}}
