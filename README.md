@@ -7,7 +7,7 @@ dependency.
 ## Install
 
 ```clj
-no.cjohansen/replicant {:mvn/version "2026.06.1"}
+no.cjohansen/replicant {:mvn/version "2026.06.2"}
 ```
 
 ## Documentation
@@ -161,6 +161,11 @@ do not want to read any part of your LLM chat logs.
 Do not open issues or pull requests with LLM generated text.
 
 ## Changelog
+
+### 2026.06.2
+
+Add support for using with [squint](https://github.com/squint-cljs/squint)
+([Michiel Borkent](https://github.com/borkdude)).
 
 ### 2026.06.1
 
