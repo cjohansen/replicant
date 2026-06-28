@@ -190,7 +190,7 @@
     (recall [_this ^js node]
       (.get ^js memories node))))
 
-(defonce ^:no-doc state (volatile! {}))
+(defonce ^:no-doc state (volatile! (r/node-map)))
 
 (defn ^:export render
   "Render `hiccup` in DOM element `el`. Replaces any pre-existing content not
