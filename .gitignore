@@ -12,3 +12,4 @@ dev-resources/public/domed/js
 /.shadow-cljs/
 /lib/
 /cljs-test-runner-out/
+cherry-lib

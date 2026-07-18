@@ -14,4 +14,10 @@
   test:squint
   {:doc "Run tests under squint"
    :task (do (shell "npm install")
-             (shell "npm test"))}}}
+             (shell "npm test"))}
+
+  test:cherry
+  {:doc "Run tests under cherry"
+   :task (do (shell "npm install")
+             (shell "npx cherry compile")
+             (shell "node cherry-lib/replicant/run_tests.mjs"))}}}
