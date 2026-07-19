@@ -780,6 +780,46 @@
             [:append-child "Hello" :to "div"]
             [:append-child [:div "Hello"] :to "body"]]))))
 
+(deftest shadow-dom-test
+  (testing "Creates shadow DOM element"
+    (is (= (-> (h/render [:h1 {:shadow {}} "Hello world"])
+               h/get-mutation-log-events
+               h/summarize
+               second)
+           ;; replicant.dom implements set-attribute to create the shadow root
+           [:set-attribute [:h1 ""] "shadow" nil :to {}])))
+
+  (testing "Updates shadow DOM child"
+    (is (= (-> (h/render [:h1 {:shadow {}} "Hello world"])
+               (h/render [:h1 {:shadow {}} "Hello world!"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-text-node "Hello world!"]
+            [:replace-child "Hello world!" "Hello world"]])))
+
+  (testing "Does not reuse element when leaving the shadow DOM"
+    (is (= (-> (h/render [:h1 {:shadow {}} "Hello world"])
+               (h/render [:h1 "Hello world"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "h1"]
+            [:create-text-node "Hello world"]
+            [:append-child "Hello world" :to "h1"]
+            [:insert-before [:h1 "Hello world"] [:h1 "Hello world"] :in "body"]
+            [:remove-child [:h1 "Hello world"] :from "body"]])))
+
+  (testing "Does not reuse element when entering the shadow DOM"
+    (is (= (-> (h/render [:h1 {} "Hello world"])
+               (h/render [:h1 {:shadow {}} "Hello world"])
+               h/get-mutation-log-events
+               h/summarize)
+           [[:create-element "h1"]
+            [:set-attribute [:h1 ""] "shadow" nil :to {}]
+            [:create-text-node "Hello world"]
+            [:append-child "Hello world" :to "h1"]
+            [:insert-before [:h1 "Hello world"] [:h1 "Hello world"] :in "body"]
+            [:remove-child [:h1 "Hello world"] :from "body"]]))))
+
 (def f1 (fn []))
 (def f2 (fn []))
 (def dispatch-fn (fn [& args] args))

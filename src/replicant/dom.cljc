@@ -50,6 +50,11 @@
 (defn ^:export recall [node]
   (.get ^js memories node))
 
+(defn create-shadow-root [^js el {:keys [adopted-stylesheets]}]
+  (let [root (.attachShadow el #js {:mode "open"})]
+    (when adopted-stylesheets
+      (set! (.-adoptedStyleSheets root) (clj->js adopted-stylesheets)))))
+
 (defn ^:no-doc create-renderer []
   (reify
     replicant/IRender
@@ -104,6 +109,9 @@
           (= "default-checked" attr)
           (.setAttribute el "checked" v)
 
+          (= "shadow" attr)
+          (create-shadow-root el v)
+
           (:ns opt)
           (.setAttributeNS el (:ns opt) attr v)
 
@@ -154,15 +162,15 @@
       this)
 
     (append-child [this ^js el child-node]
-      (.appendChild el child-node)
+      (.appendChild (or (.-shadowRoot el) el) child-node)
       this)
 
     (insert-before [this ^js el child-node reference-node]
-      (.insertBefore el child-node reference-node)
+      (.insertBefore (or (.-shadowRoot el) el) child-node reference-node)
       this)
 
     (remove-child [this ^js el child-node]
-      (.removeChild el child-node)
+      (.removeChild (or (.-shadowRoot el) el) child-node)
       this)
 
     (on-transition-end [this ^js el f]
@@ -170,15 +178,15 @@
       this)
 
     (replace-child [this ^js el insert-child replace-child]
-      (.replaceChild el insert-child replace-child)
+      (.replaceChild (or (.-shadowRoot el) el) insert-child replace-child)
       this)
 
     (remove-all-children [this ^js el]
-      (set! (.-textContent el) "")
+      (set! (.-textContent (or (.-shadowRoot el) el)) "")
       this)
 
     (get-child [_this ^js el idx]
-      (aget (.-childNodes el) idx))
+      (aget (.-childNodes (or (.-shadowRoot el) el)) idx))
 
     (next-frame [_this f]
       (on-next-frame f))

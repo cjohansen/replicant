@@ -653,7 +653,9 @@
   [headers vdom]
   (or (and (hiccup/text headers) (vdom/text vdom))
       (and (= (hiccup/rkey headers) (vdom/rkey vdom))
-           (= (hiccup/tag-name headers) (vdom/tag-name vdom)))))
+           (= (hiccup/tag-name headers) (vdom/tag-name vdom))
+           (= (nil? (:shadow (hiccup/attrs headers)))
+              (nil? (:shadow (vdom/attrs vdom)))))))
 
 (defn same? [headers vdom]
   (and (= (hiccup/rkey headers) (vdom/rkey vdom))

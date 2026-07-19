@@ -56,7 +56,7 @@
 (defn ^:no-doc render-attrs [stringifier attrs]
   (reduce-kv
    (fn [_ k v]
-     (when (and (not (#{:on :innerHTML} k))
+     (when (and (not (#{:on :innerHTML :shadow} k))
                 v
                 (nil? (namespace k)))
        (let [v (cond-> v
@@ -132,6 +132,8 @@
         (doto stringifier
           (append ">")
           (append newline))
+        (when (:shadow attrs)
+          (append stringifier "<template shadowrootmode=\"open\">"))
         (if (:innerHTML attrs)
           (append stringifier (:innerHTML attrs))
           (run!
@@ -145,6 +147,8 @@
                  :aliases aliases
                  :alias-data alias-data})))
            (r/get-children headers (hiccup/html-ns headers))))
+        (when (:shadow attrs)
+          (append stringifier "</template>"))
         (when-not (self-closing? tag-name)
           (doto stringifier
             (append indent-s)
