@@ -281,7 +281,11 @@
 
   (testing "Renders lazy seqs"
     (is (= (sut/render (lazy-seq '([:h1 "Hello"])))
-           "<h1>Hello</h1>"))))
+           "<h1>Hello</h1>")))
+
+  (testing "Renders elements in the shadow DOM"
+    (is (= (sut/render [:div {:shadow {}} [:h1 "Hello"]])
+           "<div><template shadowrootmode=\"open\"><h1>Hello</h1></template></div>"))))
 
 (deftest escape-html-test
   (is (= (sut/escape-html "<script>alert(\"boom\")</script>")
