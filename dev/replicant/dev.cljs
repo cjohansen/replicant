@@ -4,6 +4,7 @@
             [replicant.animate-styles]
             [replicant.assert-example]
             [replicant.contenteditable-bug]
+            [replicant.dev-actions :as actions]
             [replicant.dom :as d]
             [replicant.duplicate-key-bug]
             [replicant.indexed-seq]
@@ -41,9 +42,6 @@
    replicant.shadow-dom/example
    replicant.svg-foreign-object/example])
 
-(defn get-example [k]
-  (first (filter (comp #{k} :k) examples)))
-
 (defn toc []
   [:main
    [:h1 "Replicant examples"]
@@ -57,7 +55,7 @@
 
 (defn render [state]
   [:main
-   (when-let [{:keys [f k]} (get-example (:example state))]
+   (when-let [{:keys [f k]} (actions/get-example examples (:example state))]
      [:div (f state k)])
    (toc)])
 
@@ -81,29 +79,9 @@
       (let [args (cond->> args
                    dom-event (interpolate dom-event))]
         (apply prn action args)
-        (case action
-          :actions/go-to
-          (swap! store (fn [state]
-                         (let [k (first args)
-                               example (get-example k)]
-                           (cond-> (assoc state :example k)
-                             (:initial-data example)
-                             (assoc k (:initial-data example))))))
-
-          :actions/assoc-in
-          (apply swap! store assoc-in args)
-
-          :actions/conj-in
-          (let [[path v] args]
-            (swap! store update-in path conj v))
-
-          :actions/log
-          nil
-
-          (let [k (:example @store)]
-            (if-let [impl (get-in (get-example k) [:actions action])]
-              (dispatch-actions nil (apply impl (get @store k) args))
-              (println "Unknown action" action))))))))
+        (actions/process-actions {:store store
+                                  :dispatch-actions dispatch-actions
+                                  :examples examples} action args)))))
 
 (defn start []
   (set! (.-innerHTML js/document.body) "<div id=\"app\"></div>")
