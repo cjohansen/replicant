@@ -5,6 +5,7 @@
     "test": "squint compile && node lib/replicant/run_tests.mjs"
   },
   "devDependencies": {
+    "cherry-cljs": "^0.6.35",
     "squint-cljs": "0.13.195"
   }
 }
