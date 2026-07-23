@@ -6,6 +6,6 @@
   },
   "devDependencies": {
     "cherry-cljs": "^0.6.35",
-    "squint-cljs": "0.13.195"
+    "squint-cljs": "0.14.206"
   }
 }
