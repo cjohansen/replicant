@@ -334,6 +334,17 @@
                (nth 2))
            [:create-element "div"])))
 
+  (testing "Does not force SVG namespace on foreignObject children added during reconcile"
+    (is (= (->> (-> (h/render [:svg [:foreignObject
+                                     [:div {:replicant/key :a} "A"]]])
+                    (h/render [:svg [:foreignObject
+                                     [:div {:replicant/key :a} "A"]
+                                     [:div {:replicant/key :b} "B"]]])
+                    h/get-mutation-log-events
+                    h/summarize)
+                (filter (comp #{:create-element} first)))
+           [[:create-element "div"]])))
+
   (testing "Re-creates unkeyed moved nodes"
     (is (= (-> (h/render [:div
                           [:h1 {} "Title"]
@@ -823,7 +834,7 @@
                h/summarize)
            [[:set-event-handler [:h1 "Hi!"] :click f1 {"capture" true}]])))
 
-    (testing "Ignores nil event handler"
+  (testing "Ignores nil event handler"
     (is (= (-> (h/render [:h1 "Hi!"])
                (h/render [:h1 {:on {:click nil}} "Hi!"])
                h/get-mutation-log-events
@@ -2535,8 +2546,7 @@
                  [:div {:replicant/key "A"} "A"]
                  [:div {:replicant/key "B2"} "B2"]
                  [:div {:replicant/key "C"} "C"]
-                 [:div {:replicant/key "D2"} "D2"]
-                 ])
+                 [:div {:replicant/key "D2"} "D2"]])
                h/get-mutation-log-events
                h/summarize)
            [[:create-element "div"]
