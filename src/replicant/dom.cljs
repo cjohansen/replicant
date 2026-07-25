@@ -192,6 +192,12 @@
 
 (defonce ^:no-doc state (volatile! (r/node-map)))
 
+(defn init-state [& [opt]]
+  (into {:renderer (create-renderer)
+         :unmounts (volatile! #{})
+         :unmount-hooks (volatile! (r/node-map))}
+        opt))
+
 (defn ^:export render
   "Render `hiccup` in DOM element `el`. Replaces any pre-existing content not
   created by this function. Subsequent calls with the same `el` will update the
@@ -200,16 +206,14 @@
   [^js el hiccup & [{:keys [aliases alias-data]}]]
   (let [rendering? (get-in @state [el :rendering?])]
     (when-not (contains? @state el)
-      (set! (.-innerHTML el) "")
-      (vswap! state assoc el {:renderer (create-renderer)
-                              :unmounts (volatile! #{})
-                              :unmount-hooks (volatile! (r/node-map))
-                              :rendering? true}))
+      (vswap! state assoc el (init-state)))
     (if rendering?
       (do
         (asserts/assert-no-nested-renders)
         (vswap! state assoc-in [el :queued] hiccup))
       (do
+        (when-not (contains? (get @state el) :rendering?)
+          (set! (.-innerHTML el) ""))
         (vswap! state assoc-in [el :rendering?] true)
         (let [{:keys [renderer current unmounts unmount-hooks]} (get @state el)
               aliases (or aliases (alias/get-registered-aliases))
