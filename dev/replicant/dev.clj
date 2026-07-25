@@ -4,6 +4,7 @@
             [clojure.walk :as walk]
             [replicant.dev-actions :as actions]
             [replicant.hiccup :as hiccup]
+            [replicant.hydration-demo]
             [replicant.string :as s]
             [ring.adapter.jetty :as jetty]
             [ring.middleware.resource]))
@@ -11,7 +12,7 @@
 (def store (atom {}))
 
 (def examples
-  [])
+  [replicant.hydration-demo/example])
 
 (defn render-frontpage []
   [:main

@@ -6,7 +6,9 @@
             [replicant.contenteditable-bug]
             [replicant.dev-actions :as actions]
             [replicant.dom :as d]
+            [replicant.dom.hydration :as dh]
             [replicant.duplicate-key-bug]
+            [replicant.hydration-demo]
             [replicant.indexed-seq]
             [replicant.input]
             [replicant.life-cycle-bug]
@@ -27,6 +29,7 @@
    replicant.assert-example/example
    replicant.contenteditable-bug/example
    replicant.duplicate-key-bug/example
+   replicant.hydration-demo/example
    replicant.indexed-seq/example
    replicant.input/example
    replicant.life-cycle-bug/example
@@ -88,7 +91,14 @@
   (when-let [el (js/document.getElementById "app")]
     (add-watch store ::render (fn [_ _ _ state]
                                 (d/render el (render state))))
-    (swap! store assoc ::booted-at (.getTime (js/Date.)))))
+    (swap! store assoc ::booted-at (.getTime (js/Date.))))
+  (when-let [el (js/document.getElementById "example")]
+    (let [{:keys [f k hydrate?]} (get id->example (keyword (-> el .-dataset .-exampleId)))]
+      (when hydrate?
+        (set! (.-replicantHydration js/window) true)
+        (dh/hydrate el (f @store k))
+        (add-watch store ::render (fn [_ _ _ state]
+                                    (d/render el (f state k))))))))
 
 (defn ^:export main []
   (start))
