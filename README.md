@@ -7,7 +7,7 @@ dependency.
 ## Install
 
 ```clj
-no.cjohansen/replicant {:mvn/version "2026.06.2"}
+no.cjohansen/replicant {:mvn/version "2026.07.1"}
 ```
 
 ## Documentation
@@ -161,6 +161,14 @@ do not want to read any part of your LLM chat logs.
 Do not open issues or pull requests with LLM generated text.
 
 ## Changelog
+
+### 2026.07.1
+
+Don't leak svg namespace on `foreignObject` children during reconciliation
+([Robert Gersak](https://github.com/gersak)).
+
+Add support for using with [cherry](https://github.com/squint-cljs/cherry)
+([Michiel Borkent](https://github.com/borkdude)).
 
 ### 2026.06.2
 
