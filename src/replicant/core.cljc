@@ -121,7 +121,7 @@
                                 (keyword? class) (name class)
                                 (symbol? class) (name class)
                                 (string? class) (not-empty (.trim ^String class)))))
-                         classes)
+                          classes)
     (string? classes) (keep #(not-empty (.trim ^String %)) (.split ^String classes " "))
     :else (throw (ex-info "class name is neither string, keyword, or a collection of those"
                           {:classes classes}))))
@@ -673,9 +673,10 @@
       :else (recur (unchecked-inc-int coll-n) (unchecked-inc-int dom-n) (next xs)))))
 
 (defn get-ns [headers]
-  (or (hiccup/html-ns headers)
-      (when (= "svg" (hiccup/tag-name headers))
-        "http://www.w3.org/2000/svg")))
+  (when-not (= "foreignObject" (hiccup/tag-name headers))
+    (or (hiccup/html-ns headers)
+        (when (= "svg" (hiccup/tag-name headers))
+          "http://www.w3.org/2000/svg"))))
 
 (defn ^:private insert-children [{:keys [renderer] :as impl} el children vdom]
   (reduce (fn [[res n] child]
