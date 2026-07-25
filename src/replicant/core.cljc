@@ -598,6 +598,12 @@
                             :data-replicant-sexp (pr-str (hiccup/sexp headers))}]
                      (get-hiccup-headers nil)))))))))
 
+(defn get-ns [headers]
+  (when-not (= "foreignObject" (hiccup/tag-name headers))
+    (or (hiccup/html-ns headers)
+        (when (= "svg" (hiccup/tag-name headers))
+          "http://www.w3.org/2000/svg"))))
+
 (defn create-node
   "Create DOM node according to virtual DOM in `headers`. Register relevant
   life-cycle hooks from the new node or its descendants in `impl`. Returns a
@@ -621,15 +627,12 @@
        [child-node vdom]))
 
    (let [tag-name (hiccup/tag-name headers)
-         ns (or (hiccup/html-ns headers)
-                (when (= "svg" tag-name)
-                  "http://www.w3.org/2000/svg"))
+         ns (get-ns headers)
          node (r/create-element renderer tag-name (when ns {:ns ns}))
          [attrs mounting-attrs] (get-mounting-attrs headers)
-         children-ns (if (= "foreignObject" tag-name) nil ns)
          _ (set-attributes renderer node (or mounting-attrs attrs))
          [children ks n-children]
-         (->> (get-children headers children-ns)
+         (->> (get-children headers ns)
               (reduce (fn [[children ks n] child-headers]
                         (if child-headers
                           (let [[child-node vdom] (create-node impl child-headers)
@@ -671,12 +674,6 @@
       (nil? (first xs)) (recur (unchecked-inc-int coll-n) dom-n (next xs))
       (f (first xs)) [coll-n dom-n]
       :else (recur (unchecked-inc-int coll-n) (unchecked-inc-int dom-n) (next xs)))))
-
-(defn get-ns [headers]
-  (when-not (= "foreignObject" (hiccup/tag-name headers))
-    (or (hiccup/html-ns headers)
-        (when (= "svg" (hiccup/tag-name headers))
-          "http://www.w3.org/2000/svg"))))
 
 (defn ^:private insert-children [{:keys [renderer] :as impl} el children vdom]
   (reduce (fn [[res n] child]
