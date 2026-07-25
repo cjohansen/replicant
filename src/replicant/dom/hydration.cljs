@@ -1,6 +1,5 @@
 (ns replicant.dom.hydration
   (:require [replicant.alias :as alias]
-            [replicant.core :as r]
             [replicant.dom :as d]
             [replicant.env :as env]
             [replicant.hydration :as hydration]))
@@ -9,10 +8,7 @@
   (let [renderer (d/create-renderer)]
     (if (contains? @d/state el)
       (throw (ex-info "Node already controlled by Replicant, cannot hydrate" {:el el}))
-      (vswap! d/state assoc el {:renderer renderer
-                                :unmounts (volatile! #{})
-                                :unmount-hooks (volatile! (r/node-map))
-                                :rendering? true}))
+      (vswap! d/state assoc el (d/init-state {:rendering? true})))
     (let [aliases (or aliases (alias/get-registered-aliases))
           hiccup (if alias-data
                    (env/with-dev-key hiccup [aliases alias-data])
