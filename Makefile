@@ -19,4 +19,7 @@ test-cljs: node_modules
 test-compile: node_modules
 	npx shadow-cljs release app
 
+shadow: node_modules
+	npx shadow-cljs watch app
+
 .PHONY: clean deploy test test-cljs
