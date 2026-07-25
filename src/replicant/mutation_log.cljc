@@ -1,6 +1,7 @@
 (ns ^:no-doc replicant.mutation-log
   (:require [replicant.core :as d]
-            [replicant.protocols :as replicant]))
+            [replicant.protocols :as replicant]
+            [replicant.hydration :as hydration]))
 
 (declare create-renderer)
 
@@ -216,6 +217,18 @@
                                                       :unmount-hooks unmount-hooks
                                                       :aliases aliases
                                                       :on-alias-exception on-alias-exception})
+        (assoc :el (-> renderer
+                       (update :log deref)
+                       (update :element deref)))
+        (assoc :aliases aliases))))
+
+(defn hydrate [element hiccup & [{:keys [aliases alias-data on-alias-exception]}]]
+  (let [el (atom (or element {}))
+        renderer (create-renderer {:log (atom [])
+                                   :element el})]
+    (-> (hydration/hydrate renderer el hiccup {:aliases aliases
+                                               :alias-data alias-data
+                                               :on-alias-exception on-alias-exception})
         (assoc :el (-> renderer
                        (update :log deref)
                        (update :element deref)))

@@ -129,6 +129,16 @@
      :on-alias-exception on-alias-exception
      :callbacks (:callbacks el)})))
 
+(defn hydrate
+  ([hiccup] (mutation-log/hydrate {:tag-name "body"} hiccup))
+  ([{:keys [el aliases alias-data on-alias-exception]} hiccup]
+   (mutation-log/hydrate
+    (or (:element el) {:tag-name "body"})
+    hiccup
+    {:aliases aliases
+     :alias-data alias-data
+     :on-alias-exception on-alias-exception})))
+
 (defn text-node-event? [event]
   (or (= :create-text-node (first event))
       (and (= :append-child (first event))
