@@ -17,6 +17,7 @@
             [replicant.ohm]
             [replicant.on-mount-bug]
             [replicant.range]
+            [replicant.shadow-dom]
             [replicant.svg-foreign-object]))
 
 (defonce store (atom {}))
@@ -38,6 +39,7 @@
    replicant.on-mount-bug/example
    replicant.range/example-1
    replicant.range/example-2
+   replicant.shadow-dom/example
    replicant.svg-foreign-object/example])
 
 (def id->example (into {} (map (juxt :k identity) examples)))
