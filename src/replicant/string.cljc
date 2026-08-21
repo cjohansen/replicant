@@ -174,4 +174,4 @@
           (render-node stringifier (r/get-hiccup-headers nil hiccup-node) opt))
         (to-string stringifier))
 
-      :else (str hiccup))))
+      :else (escape-html (str hiccup)))))

@@ -61,7 +61,7 @@
   (testing "Renders number attributes as stringified numbers"
     (is (= (sut/render [:img {:height 10}])
            "<img height=\"10\">")))
-  
+
   (testing "Renders arbitrary attributes"
     (is (= (sut/render [:h1 {:title "Color"} "Red"])
            "<h1 title=\"Color\">Red</h1>")))
@@ -117,7 +117,7 @@
                 "<use xlink:href=\"#icon\"></use>"
                 "</g>"
                 "</svg>"))))
-  
+
   (testing "Only generates one xmlns attribute for SVG node"
     (is (= (sut/render
             [:svg {:xmlns "http://www.w3.org/2000/svg"}])
@@ -281,7 +281,16 @@
 
   (testing "Renders lazy seqs"
     (is (= (sut/render (lazy-seq '([:h1 "Hello"])))
-           "<h1>Hello</h1>"))))
+           "<h1>Hello</h1>")))
+
+  (testing "Escapes top-level strings"
+    (is (= (sut/render "<script defer>alert('oops xss')</script>")
+           (sut/render (list "<script defer>" "alert('oops xss')" "</script>"))
+           ;; TODO: Requires #79 to be resolved
+           #_(sut/render (lazy-seq (list "<script defer>" (list "alert('oops xss')" "</script>"))))
+           "&lt;script defer&gt;alert(&apos;oops xss&apos;)&lt;/script&gt;"))
+    (is (= (sut/render (list \< "br" \/ \>))
+           "&lt;br/&gt;"))))
 
 (deftest escape-html-test
   (is (= (sut/escape-html "<script>alert(\"boom\")</script>")
