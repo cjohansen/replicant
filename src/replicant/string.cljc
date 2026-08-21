@@ -50,7 +50,7 @@
       (str/replace "&" "&amp;")
       (str/replace "<" "&lt;")
       (str/replace ">" "&gt;")
-      (str/replace "\"" "&#39;")
+      (str/replace "\"" "&#34;")
       (str/replace "'" "&apos;")))
 
 (defn ^:no-doc render-attrs [stringifier attrs]

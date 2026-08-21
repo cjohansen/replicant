@@ -68,7 +68,7 @@
 
   (testing "Escapes attribute values"
     (is (= (sut/render [:h1 {:title "{\"foo\": \"bar\"}"} "Red"])
-           "<h1 title=\"{&#39;foo&#39;: &#39;bar&#39;}\">Red</h1>")))
+           "<h1 title=\"{&#34;foo&#34;: &#34;bar&#34;}\">Red</h1>")))
 
   (testing "Escapes style values"
     (is (= (sut/render [:h1 {:style {:color "<xss>"}} "Hello"])
@@ -192,7 +192,7 @@
   (testing "Escapes HTML"
     (is (= (sut/render
             [:div "<script>alert(\"boom\")</script>"])
-           "<div>&lt;script&gt;alert(&#39;boom&#39;)&lt;/script&gt;</div>")))
+           "<div>&lt;script&gt;alert(&#34;boom&#34;)&lt;/script&gt;</div>")))
 
   (testing "Passes through raw strings"
     (is (= (sut/render
@@ -285,4 +285,4 @@
 
 (deftest escape-html-test
   (is (= (sut/escape-html "<script>alert(\"boom\")</script>")
-         "&lt;script&gt;alert(&#39;boom&#39;)&lt;/script&gt;")))
+         "&lt;script&gt;alert(&#34;boom&#34;)&lt;/script&gt;")))
