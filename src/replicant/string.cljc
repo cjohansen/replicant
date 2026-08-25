@@ -50,7 +50,7 @@
       (str/replace "&" "&amp;")
       (str/replace "<" "&lt;")
       (str/replace ">" "&gt;")
-      (str/replace "\"" "&#39;")
+      (str/replace "\"" "&#34;")
       (str/replace "'" "&apos;")))
 
 (defn ^:no-doc render-attrs [stringifier attrs]
@@ -174,4 +174,4 @@
           (render-node stringifier (r/get-hiccup-headers nil hiccup-node) opt))
         (to-string stringifier))
 
-      :else (str hiccup))))
+      :else (escape-html (str hiccup)))))

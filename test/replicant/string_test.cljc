@@ -61,14 +61,14 @@
   (testing "Renders number attributes as stringified numbers"
     (is (= (sut/render [:img {:height 10}])
            "<img height=\"10\">")))
-  
+
   (testing "Renders arbitrary attributes"
     (is (= (sut/render [:h1 {:title "Color"} "Red"])
            "<h1 title=\"Color\">Red</h1>")))
 
   (testing "Escapes attribute values"
     (is (= (sut/render [:h1 {:title "{\"foo\": \"bar\"}"} "Red"])
-           "<h1 title=\"{&#39;foo&#39;: &#39;bar&#39;}\">Red</h1>")))
+           "<h1 title=\"{&#34;foo&#34;: &#34;bar&#34;}\">Red</h1>")))
 
   (testing "Escapes style values"
     (is (= (sut/render [:h1 {:style {:color "<xss>"}} "Hello"])
@@ -117,7 +117,7 @@
                 "<use xlink:href=\"#icon\"></use>"
                 "</g>"
                 "</svg>"))))
-  
+
   (testing "Only generates one xmlns attribute for SVG node"
     (is (= (sut/render
             [:svg {:xmlns "http://www.w3.org/2000/svg"}])
@@ -192,7 +192,7 @@
   (testing "Escapes HTML"
     (is (= (sut/render
             [:div "<script>alert(\"boom\")</script>"])
-           "<div>&lt;script&gt;alert(&#39;boom&#39;)&lt;/script&gt;</div>")))
+           "<div>&lt;script&gt;alert(&#34;boom&#34;)&lt;/script&gt;</div>")))
 
   (testing "Passes through raw strings"
     (is (= (sut/render
@@ -281,8 +281,17 @@
 
   (testing "Renders lazy seqs"
     (is (= (sut/render (lazy-seq '([:h1 "Hello"])))
-           "<h1>Hello</h1>"))))
+           "<h1>Hello</h1>")))
+
+  (testing "Escapes top-level strings"
+    (is (= (sut/render "<script defer>alert('oops xss')</script>")
+           (sut/render (list "<script defer>" "alert('oops xss')" "</script>"))
+           ;; TODO: Requires #79 to be resolved
+           #_(sut/render (lazy-seq (list "<script defer>" (list "alert('oops xss')" "</script>"))))
+           "&lt;script defer&gt;alert(&apos;oops xss&apos;)&lt;/script&gt;"))
+    (is (= (sut/render (list \< "br" \/ \>))
+           "&lt;br/&gt;"))))
 
 (deftest escape-html-test
   (is (= (sut/escape-html "<script>alert(\"boom\")</script>")
-         "&lt;script&gt;alert(&#39;boom&#39;)&lt;/script&gt;")))
+         "&lt;script&gt;alert(&#34;boom&#34;)&lt;/script&gt;")))
