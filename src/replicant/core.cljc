@@ -768,9 +768,9 @@
       ;; New: 1 2
       (let [idx (unchecked-add-int n o-dom-idx)
             child (r/get-child renderer el idx)
-            corresponding-old-vdom (nth old-children o-idx)]
-        (r/insert-before renderer el child (r/get-child renderer el n))
-        (reconcile* impl el headers corresponding-old-vdom n)
+            corresponding-old-vdom (nth old-children o-idx)
+            _ (r/insert-before renderer el child (r/get-child renderer el n))
+            new-vdom (reconcile* impl el headers corresponding-old-vdom n)]
         (when (unchanged? headers corresponding-old-vdom)
           ;; If it didn't change, reconcile* did not schedule a hook
           ;; Because the node just moved we still need the hook
@@ -779,7 +779,7 @@
          (concat (take o-idx old-children) (drop (unchecked-inc-int o-idx) old-children))
          (unchecked-inc-int n)
          (unchecked-inc-int (unchecked-add-int n o-idx))
-         corresponding-old-vdom]))))
+         new-vdom]))))
 
 (defn insert-node [r el child n n-children]
   (if (<= n-children n)

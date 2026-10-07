@@ -377,6 +377,25 @@
                h/summarize)
            [[:insert-before [:ul "List"] [:h1 "Title"] :in "div"]])))
 
+  (testing "Keeps track of changes to the children of a moving keyed node"
+    (is (= (-> (h/render [:div
+                          [:h1 {:replicant/key "h1"} "Title"]
+                          [:p {:replicant/key "p1"} "Paragraph 1"]
+                          [:p {:replicant/key "p2"} "Text" [:strong "?"]]])
+               (h/render [:div
+                          [:h1 {:replicant/key "h1"} "Title"]
+                          [:p {:replicant/key "p2"} "TEXT"]
+                          [:p {:replicant/key "p1"} "Paragraph 1"]])
+               (h/render [:div
+                          [:h1 {:replicant/key "h1"} "Title"]
+                          [:p {:replicant/key "p2"} "Text!"]
+                          [:p {:replicant/key "p1"} "Paragraph 1"]])
+               h/->dom)
+           [:div
+            [:h1 "Title"]
+            [:p "Text!"]
+            [:p "Paragraph 1"]])))
+
   (testing "Does not move initial nodes in the desired position"
     (is (= (-> (h/render [:div
                           [:h1 {:replicant/key "1"} "Item #1"]
