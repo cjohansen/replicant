@@ -153,12 +153,20 @@ code. Open an issue or drop by
 ### LLMs
 
 I'm happy to collaborate with other humans to improve Replicant. However, I will
-not review the results of your LLM prompts. When opening a pull request, I
-expect that you understand the code you're submitting and can vouch for its
-quality. I don't care if you had help from an LLM to write it, and I certainly
-do not want to read any part of your LLM chat logs.
+not review the results of your LLM prompts. Please obey these rules for
+collaborating on Replicant:
 
-Do not open issues or pull requests with LLM generated text.
+- Do not open pull requests with LLM generated code
+- Do not open pull requests with bots as committers, or in `Co-Authored-By`
+- Do not open issues or pull requests with LLM generated text
+
+When opening a pull request, I expect that you understand the code you're
+submitting and can vouch for its quality. Whether you use a REPL, a profiler
+and/or an LLM to understand and identify problems is up to you. Leaning on those
+tools to help you with the code is also fine. I don't need to know every minute
+detail about how you wrote something, and I certainly do not want to read any
+part of your LLM chat logs. I just need you to understand what you're asking me
+to maintain.
 
 ## Changelog
 
