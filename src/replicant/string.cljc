@@ -170,7 +170,7 @@
 
       (r/proper-seq? hiccup)
       (let [stringifier (create-renderer)]
-        (doseq [hiccup-node hiccup]
+        (doseq [hiccup-node (r/flatten-seqs hiccup)]
           (render-node stringifier (r/get-hiccup-headers nil hiccup-node) opt))
         (to-string stringifier))
 

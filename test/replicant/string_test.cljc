@@ -283,6 +283,14 @@
     (is (= (sut/render (lazy-seq '([:h1 "Hello"])))
            "<h1>Hello</h1>")))
 
+  (testing "Renders top-level collections wrapped in a collection"
+    (is (= (sut/render (list "a" [:span "Hello"] "b" (list "c")))
+           "a<span>Hello</span>bc")))
+
+  (testing "Renders top-level collections wrapped in a lazy seq"
+    (is (= (sut/render (lazy-seq (list "a" [:span "Hello"] "b" (lazy-seq (list "c")))))
+           "a<span>Hello</span>bc")))
+
   (testing "Escapes top-level strings"
     (is (= (sut/render "<script defer>alert('oops xss')</script>")
            (sut/render (list "<script defer>" "alert('oops xss')" "</script>"))
