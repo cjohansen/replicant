@@ -327,6 +327,22 @@
                first)
            [:create-element "g" "http://www.w3.org/2000/svg"])))
 
+  (testing "Creates foreignObject itself in the SVG namespace"
+    (is (= (-> (h/render [:svg [:foreignObject [:div "Hello World"]]])
+               h/get-mutation-log-events
+               h/summarize
+               (nth 1))
+           [:create-element "foreignObject" "http://www.w3.org/2000/svg"])))
+
+  (testing "Creates foreignObject added during reconcile in the SVG namespace"
+    (is (= (->> (-> (h/render [:svg [:g]])
+                    (h/render [:svg [:g] [:foreignObject [:div "Hello World"]]])
+                    h/get-mutation-log-events
+                    h/summarize)
+                (filter (comp #{:create-element} first)))
+           [[:create-element "foreignObject" "http://www.w3.org/2000/svg"]
+            [:create-element "div"]])))
+
   (testing "Does not force SVG namespace on foreignObject child nodes"
     (is (= (-> (h/render [:svg [:foreignObject [:div "Hello World"]]])
                h/get-mutation-log-events

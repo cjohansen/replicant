@@ -598,11 +598,19 @@
                             :data-replicant-sexp (pr-str (hiccup/sexp headers))}]
                      (get-hiccup-headers nil)))))))))
 
-(defn get-ns [headers]
+(defn element-ns
+  "The namespace the element described by `headers` is created in."
+  [headers]
+  (or (hiccup/html-ns headers)
+      (when (= "svg" (hiccup/tag-name headers))
+        "http://www.w3.org/2000/svg")))
+
+(defn children-ns
+  "The namespace the children of `headers` inherit. `foreignObject` is an SVG
+  element whose children are HTML, so it's the one place the two differ."
+  [headers]
   (when-not (= "foreignObject" (hiccup/tag-name headers))
-    (or (hiccup/html-ns headers)
-        (when (= "svg" (hiccup/tag-name headers))
-          "http://www.w3.org/2000/svg"))))
+    (element-ns headers)))
 
 (defn create-node
   "Create DOM node according to virtual DOM in `headers`. Register relevant
@@ -627,12 +635,12 @@
        [child-node vdom]))
 
    (let [tag-name (hiccup/tag-name headers)
-         ns (get-ns headers)
+         ns (element-ns headers)
          node (r/create-element renderer tag-name (when ns {:ns ns}))
          [attrs mounting-attrs] (get-mounting-attrs headers)
          _ (set-attributes renderer node (or mounting-attrs attrs))
          [children ks n-children]
-         (->> (get-children headers ns)
+         (->> (get-children headers (children-ns headers))
               (reduce (fn [[children ks n] child-headers]
                         (if child-headers
                           (let [[child-node vdom] (create-node impl child-headers)
@@ -940,7 +948,7 @@
             attrs-changed? (reconcile-attributes renderer child attrs vdom-attrs)
             [new-children new-ks inner-html?] (if (:innerHTML (hiccup/attrs headers))
                                                 [nil nil true]
-                                                (get-children-ks headers (get-ns headers)))
+                                                (get-children-ks headers (children-ns headers)))
             [old-children old-ks old-nc]
             (cond
               (:contenteditable vdom-attrs)
