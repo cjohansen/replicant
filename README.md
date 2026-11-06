@@ -1,6 +1,7 @@
 # Replicant
 
-Replicant has moved to Codeberg, which [respects and aims to protect human
+[Replicant source code](https://codeberg.org/cjohansen/replicant) is on
+Codeberg, which [respects and aims to protect human
 FLOSS](https://blog.codeberg.org/protecting-our-floss-commons-from-llms.html).
 
 [Politechs](https://politechs.dev/) has great in-depth discussions about all the
@@ -9,7 +10,7 @@ large.
 
 You should read (or
 [listen](https://anthonymoser.github.io/writing/ai/haterdom/2026/08/26/i-am-still-an-ai-hater.html#audio-recordings))
-[I am an AI
+to [I am an AI
 hater](https://anthonymoser.github.io/writing/ai/haterdom/2025/08/26/i-am-an-ai-hater.html).
 
 You can install [replicant from
